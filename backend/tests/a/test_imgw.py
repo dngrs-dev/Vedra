@@ -53,11 +53,25 @@ def test_nearest_observation():
     assert obs.relative_humidity_pct == 79.8 and obs.precipitation_mm == 0.0
 
 
+def test_observation_selection_ignores_invalid_and_future_dates():
+    today = date(2026, 11, 21)
+    invalid = dict(SYNOP[1], data_pomiaru=None)
+    future_polish_day = dict(SYNOP[1], godzina_pomiaru="23")
+    obs = imgw.nearest_observation([invalid, future_polish_day, SYNOP[0]], 52.25, 19.36, today)
+    assert obs.station_id == "12295"
+
+
 def test_drought_warnings_filtered_by_voivodeship_and_phenomenon():
     w = imgw.drought_warnings(WARN, "łódzkie")
     assert len(w) == 1 and w[0].number == "21" and w[0].area_pl.startswith("łódzkie")
     assert w[0].valid_from == datetime(2026, 4, 17, 8, 46, 51) and w[0].valid_to is None   # 9999-12-31 = open
     assert imgw.drought_warnings(WARN, "pomorskie") == []
+
+
+def test_warning_selection_ignores_expired_and_future_alerts(parcel):
+    future = dict(WARN[0], data_od="2026-11-22 08:00:00")
+    expired = dict(WARN[0], data_do="2026-11-20 08:00:00")
+    assert imgw.drought_warnings([future, expired], parcel.voivodeship, date(2026, 11, 21)) == []
 
 
 @pytest.mark.asyncio

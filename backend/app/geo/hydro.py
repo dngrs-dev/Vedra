@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import math
 import re
 import time
 from datetime import datetime, timezone
@@ -57,9 +58,9 @@ async def _get_map(layer: str, bbox, w: int, h: int) -> np.ndarray:
         png = resp.content
         cache.set(key, png, expire_s=30 * 24 * 3600)  # BDOT10k updates are rare; monthly refresh is our choice
     img = mpimg.imread(io.BytesIO(png), format="png")
-    if img.ndim == 3 and img.shape[2] == 4:
-        return img[..., 3] > 0
-    return np.zeros(img.shape[:2], bool)
+    if img.shape != (h, w, 4):
+        raise ValueError(f"bdot10k GetMap {layer}: expected a transparent {w}x{h} map")
+    return img[..., 3] > 0
 
 
 async def _feature_info(layer: str, bbox, w: int, h: int, row: int, col: int) -> dict[str, str]:
@@ -176,7 +177,10 @@ async def osm_features(parcel: Parcel, buffer_m: int) -> list[WaterFeature]:
     cfg = source("overpass")
     g = geometry.parcel_geom_2180(parcel)
     lat, lon = parcel.centroid_lat, parcel.centroid_lon
-    radius = int(buffer_m + np.sqrt(g.area))  # covers the parcel + buffer around its centroid
+    x, y = geometry.lonlat_to_2180(lon, lat)
+    minx, miny, maxx, maxy = g.buffer(buffer_m).bounds
+    # A radius derived from area misses the ends of long fields and separate parts of a multipolygon.
+    radius = math.ceil(max(math.hypot(x - cx, y - cy) for cx in (minx, maxx) for cy in (miny, maxy)))
     ww = "|".join(cfg["tags"]["waterway"])
     nat = "|".join(cfg["tags"]["natural"])
     q = (f'[out:json][timeout:20];(way(around:{radius},{lat},{lon})[waterway~"^({ww})$"];'
@@ -216,14 +220,15 @@ async def water_features(parcel: Parcel, buffer_m: int) -> SourceResult[HydroDat
         # the derived features are cached like the BDOT10k maps they come from (30 days, our choice)
         key = cache.make_key("geo.bdot.features", parcel=parcel.geometry_2180_wkt, buffer=buffer_m)
         hit = cache.get(key)
-        if hit is None:
+        live = hit is None
+        if live:
             feats, px = await bdot10k_features(parcel, buffer_m)
             hit = {"features": [f.model_dump(mode="json") for f in feats], "px": px,
                    "fetched_at": datetime.now(timezone.utc).isoformat()}
             cache.set(key, hit, expire_s=30 * 24 * 3600)
         feats = [WaterFeature.model_validate(f) for f in hit["features"]]
         px = hit["px"]
-        prov = [provenance("bdot10k_water", source("bdot10k_water")["url"], fetched_at=datetime.fromisoformat(
+        prov = [provenance("bdot10k_water", source("bdot10k_water")["url"], live=live, fetched_at=datetime.fromisoformat(
             hit["fetched_at"]), resolution=f"1:10 000, odczyt co {px:g} m")]
         notes.append(f"Cieki, rowy i wody powierzchniowe odczytano z warstw BDOT10k (siatka {px:g} m); odległości "
                      "mogą być zaniżone o połowę szerokości symbolu na mapie.")

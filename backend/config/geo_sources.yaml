@@ -281,6 +281,8 @@ sentinel2_processing:
   current_window_max_days: 60    # PART_A_DATA_GEO.md / GeoRequest: "extended by A up to 60 if no clear scene"
   season_months: [4, 8]          # PART_A_DATA_GEO.md: season peaks "Apr-Aug"
   season_max_scenes: 6           # PART_A_DATA_GEO.md: "sample <= 6 least-cloudy scenes per season"
+  search_budget_share: 0.5      # OUR CHOICE (CP4): reserve half the vegetation budget for reading returned scenes.
+  snapshot_cache_s: 600         # OUR CHOICE (CP4): reuse a dated vegetation assessment for ten minutes, then retry gaps.
   providers:                     # tried in this order (see planetary_computer.why_primary)
     - {source: planetary_computer, collection: sentinel-2-l2a}
     - {source: earth_search, collection: sentinel-2-l2a}
@@ -434,6 +436,7 @@ worldcover:
   crs: EPSG:4326
   resolution: "10 m"
   map_year: 2021                # dataset name and the /v200/2021/ path above
+  observed_through: "2021-12-31"  # https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/docs/WorldCover_PUM_V2.0.pdf §3.4.3
   observed_latency_s: 0.7
   licence: CC BY 4.0
   licence_verified: false
@@ -466,6 +469,7 @@ edo:
     fpanv: "fAPAR Anomaly (VIIRS)"                    # time 2012-01-21/…/P10D (served by WCS though not listed)
     spaST: "SPI ERA5 Short Term"                      # time 1991-01-01/…/P10D ; SELECTED_TIMESCALE=01|03|...
   cdi_coverage: cdiad             # WCS strip 2026-11-01 contained codes 0..6 (all CDI levels, not only 1..3)
+  resolution: "0,04°"            # WCS GeoTIFF grid inspected in the 2026-11-21 spike.
   cdi_levels:                     # LEVEL -> label, CDI factsheet v4.1.1 Table 1:
     0: No drought                 # https://drought.emergency.copernicus.eu/data/factsheets/factsheet_combinedDroughtIndicator_v4.pdf
     1: Watch

@@ -186,10 +186,18 @@ async def test_landcover_sums_tiles_and_drops_zero_shares(parcel, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_landcover_map_newer_than_analysis_date_is_noted(parcel, monkeypatch):
+async def test_landcover_requires_the_end_of_the_observation_year(parcel, monkeypatch):
     leg = landcover.parse_legend(LEGEND_TAG)
-    monkeypatch.setattr(landcover, "_counts", lambda href, zone, par: (Counter({40: 1}), Counter({40: 1}), leg))
+    reads = []
+
+    def counts(href, zone, par):
+        reads.append(href)
+        return Counter({40: 1}), Counter({40: 1}), leg
+
+    monkeypatch.setattr(landcover, "_counts", counts)
     monkeypatch.setattr(landcover, "tiles_for", lambda b: ["N51E018"])
-    old = await landcover.landcover(parcel, 500, date(2018, 7, 10))
-    assert any("z 2021 r., późniejszej niż data analizy (2018-07-10)" in n for n in old.notes_pl)
-    assert not (await landcover.landcover(parcel, 500, date(2023, 5, 31))).notes_pl
+    old = await landcover.landcover(parcel, 500, date(2021, 12, 30))
+    assert old.status == SourceStatus.MISSING and old.data is None
+    assert "2021-12-31" in old.notes_pl[0] and not reads
+    covered = await landcover.landcover(parcel, 500, date(2021, 12, 31))
+    assert covered.status == SourceStatus.OK and len(reads) == 1

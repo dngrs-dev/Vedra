@@ -2,3 +2,4 @@ rasterio>=1.4      # BSD-3-Clause
 pystac-client>=0.8 # Apache-2.0
 pyyaml>=6.0        # MIT
 pyarrow>=17        # Apache-2.0 (EGiB GeoParquet fallback of ULDK)
+tzdata; platform_system == "Windows"  # IANA zone data for zoneinfo: https://docs.python.org/3/library/zoneinfo.html#data-sources

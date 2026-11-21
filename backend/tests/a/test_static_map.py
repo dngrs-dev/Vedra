@@ -73,4 +73,4 @@ async def test_render_without_dem_does_not_fail(monkeypatch):
 
 def test_attribution_lists_drawn_sources_only():
     b = bundle()
-    assert static_map._attribution(b).startswith("Źródła: ULDK GUGiK")
+    assert static_map._attribution(b).startswith("Źródła: granice działek GUGiK (EGiB)")

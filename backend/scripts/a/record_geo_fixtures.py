@@ -17,6 +17,7 @@ import json
 import os
 import sys
 from datetime import date, datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 for _var in ("PROJ_LIB", "GDAL_DATA"):  # see scripts/a/spike_sources.py
@@ -32,21 +33,21 @@ from app.geo.sources import BACKEND  # noqa: E402
 OUT_DIR = BACKEND / "tests" / "fixtures" / "geo"
 
 
-def fixture_path(parcel_id: str, day: date):
-    return OUT_DIR / f"{parcel_id.replace('/', '-')}__{day.isoformat()}.json"
+def fixture_path(parcel_id: str, day: date, output_dir: Path = OUT_DIR) -> Path:
+    return output_dir / f"{parcel_id.replace('/', '-')}__{day.isoformat()}.json"
 
 
-async def main(n_parcels: int | None, dates: list[date], deadline: float) -> int:
+async def main(n_parcels: int | None, dates: list[date], deadline: float, output_dir: Path = OUT_DIR) -> int:
     parcels = json.loads((BACKEND / "tests" / "fixtures" / "parcels.json").read_text(encoding="utf-8"))
     if n_parcels is not None:
         parcels = parcels[:n_parcels]
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     geo = RealGeoProvider()
     for p in parcels:
         parcel = await uldk.get_by_id(p["parcel_id"])
         for day in dates:
             bundle = await geo.collect(GeoRequest(parcel=parcel, analysis_date=day, deadline_s=deadline))
-            path = fixture_path(parcel.parcel_id, day)
+            path = fixture_path(parcel.parcel_id, day, output_dir)
             path.write_text(json.dumps({"parcel": parcel.model_dump(mode="json"),
                                         "bundle": bundle.model_dump(mode="json")},
                                        ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
@@ -65,5 +66,6 @@ if __name__ == "__main__":
     ap.add_argument("--dates", nargs="*", type=date.fromisoformat,
                     default=[today, date(2018, 7, 10), date(2023, 5, 31)])
     ap.add_argument("--deadline", type=float, default=22.0)
+    ap.add_argument("--output-dir", type=Path, default=OUT_DIR, help="Katalog zapisu zestawów danych geo.")
     a = ap.parse_args()
-    sys.exit(asyncio.run(main(None if a.all else a.parcels, a.dates, a.deadline)))
+    sys.exit(asyncio.run(main(None if a.all else a.parcels, a.dates, a.deadline, a.output_dir)))

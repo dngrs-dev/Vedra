@@ -163,7 +163,11 @@ Cache: `geo.uldk`, no expiry.
 - [x] Re-record fixtures for all test parcels; push.
 
 ### CP4 — performance and robustness (→ 07:00)
-- [ ] Profile `collect` per source; p95 ≤ 22 s cold, ≤ 3 s warm (cache).
+- [x] Profile `collect` per source; p95 ≤ 22 s cold, ≤ 3 s warm (cache).
+  Live two-parcel, three-date profile with the prepared dataset and a new disk cache on 2026-11-21.
+  Before changes the cold/warm p95 was 21.77/21.04 s. With bounded Sentinel-2 searches and dated
+  vegetation snapshots it was 21.05/0.06 s. Cold vegetation remained partial when reads exceeded the budget.
+  Measured using `python -m scripts.a.profile_collect --parcels 2`.
 - [ ] Edge cases: multipolygon, parcel < 0.2 ha, forest/water/built-up parcel, date in 2016 (fewer S2 years), zero clear scenes, every source down (mock) → still a valid bundle.
 - [ ] `tests/contract/test_geo_provider_contract.py` green on 2 parcels.
 

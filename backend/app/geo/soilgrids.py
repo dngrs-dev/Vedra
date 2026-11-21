@@ -181,10 +181,10 @@ async def soil_layers(lat: float, lon: float, budget_s: float) -> SoilGridsResul
         return _result(rec, False, rest_url, "soilgrids_rest")
     rec = cache.get(_key(lat, lon))
     if rec is not None:
-        return _result(rec, True, rest_url, "soilgrids_rest")
+        return _result(rec, False, rest_url, "soilgrids_rest")
     rec = cache.get(_files_key(lat, lon))
     if rec is not None:
-        return _result(rec, True, files_url, "soilgrids_files")
+        return _result(rec, False, files_url, "soilgrids_files")
     try:
         rec = await asyncio.wait_for(asyncio.to_thread(_files_record, lat, lon), timeout=max(budget_s, 0.1))
         return _result(rec, True, files_url, "soilgrids_files")

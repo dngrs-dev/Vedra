@@ -100,8 +100,8 @@ async def _fetch_nmt(parcel: Parcel, timeout_s: float | None = None) -> bytes:
                           retries=0)
     if "tiff" not in (resp.headers.get("content-type") or ""):
         raise ValueError(f"nmt: {resp.text[:200]}")
-    z, origin, got_res = await asyncio.to_thread(_read_tiff, resp.content)
-    blob = _write_tiff(z, origin, got_res)
+    # Both GDAL decoding and compression can block on raster IO used by other sources.
+    blob = await asyncio.to_thread(lambda: _write_tiff(*_read_tiff(resp.content)))
     cache.set(_key(parcel), {"tiff": blob, "fetched_at": datetime.now(timezone.utc).isoformat()})
     return blob
 
@@ -206,7 +206,7 @@ async def fetch_dem(parcel: Parcel, budget_s: float) -> tuple[Dem, list[str]]:
         return await asyncio.to_thread(_from_blob, path.read_bytes(), mtime, False), notes
     hit = cache.get(_key(parcel))
     if hit is not None:
-        return await asyncio.to_thread(_from_blob, hit["tiff"], datetime.fromisoformat(hit["fetched_at"]), True), notes
+        return await asyncio.to_thread(_from_blob, hit["tiff"], datetime.fromisoformat(hit["fetched_at"]), False), notes
     # NMT needs 52-164 s per request (config gugik_nmt_wcs), never less than the budget: waiting for it only delays
     # the analysis (profile 2026-11-21: warm analyses spent ~12 s here). So the first DEM to arrive is used; NMT keeps
     # downloading in the background and replaces Copernicus at the next analysis of the parcel.

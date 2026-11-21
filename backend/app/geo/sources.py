@@ -41,6 +41,6 @@ def provenance(name: str, url: str, *, live: bool = True, fetched_at: datetime |
         data_period=data_period,
         resolution=resolution or entry.get("resolution"),
         # Licence text: provider licence if recorded, else what the service itself declares.
-        licence=entry.get("licence") or entry.get("licence_declared") or "unknown (see docs/DATA_SOURCES.md)",
+        licence=entry.get("licence") or entry.get("licence_declared") or "Brak potwierdzonych warunków wykorzystania.",
         attribution_pl=entry.get("attribution_pl"),
     )

@@ -22,6 +22,7 @@ from shapely.geometry import mapping
 from app.contracts.common import SourceResult, SourceStatus
 from app.contracts.geo import GeoRequest, SceneStat, VegetationData
 from app.contracts.parcel import Parcel
+from app.core import cache
 from app.geo import geometry, sentinel2
 from app.geo.sentinel2 import SceneRef
 from app.geo.sources import provenance, source
@@ -63,7 +64,7 @@ def _background_stats(scene: SceneRef, interior_geo: dict) -> None:
         pass
 
 
-async def _gather_searches(bbox, req: GeoRequest):
+async def _gather_searches(bbox, req: GeoRequest, budget_s: float):
     cfg = sentinel2.s2_params()
     d = req.analysis_date
     cur_start = d - timedelta(days=req.current_window_days)
@@ -81,14 +82,51 @@ async def _gather_searches(bbox, req: GeoRequest):
                    limit=cfg["same_window_max_scenes"], by_cloud=True) for y in hist_years]
     seasons = [search(date(y, m0, 1), date(y, m1 + 1, 1) - timedelta(days=1),
                       limit=cfg["season_max_scenes"], by_cloud=True) for y in season_years]
-    res = await asyncio.gather(current_all, *same, *seasons)
-    current = res[0]
-    same_by_year = dict(zip(hist_years, res[1:1 + len(hist_years)]))
-    season_by_year = {y: s for y, s in zip(season_years, res[1 + len(hist_years):]) if date(y, m0, 1) <= d}
-    return cur_start, ext_start, current, same_by_year, season_by_year
+    tasks = [asyncio.create_task(search) for search in (current_all, *same, *seasons)]
+    try:
+        done, _ = await asyncio.wait(tasks, timeout=budget_s)
+    finally:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+    results = [
+        task.result() if task in done and not task.cancelled() and task.exception() is None else None
+        for task in tasks
+    ]
+    same_by_year = {y: scenes for y, scenes in zip(hist_years, results[1:1 + len(hist_years)]) if scenes is not None}
+    season_by_year = {
+        y: scenes for y, scenes in zip(season_years, results[1 + len(hist_years):])
+        if scenes is not None and date(y, m0, 1) <= d
+    }
+    return cur_start, ext_start, results[0], same_by_year, season_by_year, results.count(None)
 
 
 async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> SourceResult[VegetationData]:
+    started = time.monotonic()
+    key = cache.make_key(
+        "geo.s2.assessment.v1",
+        geometry=parcel.geometry_2180_wkt,
+        day=req.analysis_date,
+        current=req.current_window_days,
+        same_window=req.same_window_half_days,
+        years=req.history_years,
+    )
+    hit = cache.get(key)
+    if hit is not None:
+        result = SourceResult[VegetationData].model_validate(hit)
+        result.provenance = [entry.model_copy(update={"live": False}) for entry in result.provenance]
+        result.elapsed_s = round(time.monotonic() - started, 3)
+        return result
+
+    result = await _collect(parcel, req, budget_s)
+    if result.data is not None:
+        cache.set(key, result.model_dump(mode="json"), expire_s=sentinel2.s2_params()["snapshot_cache_s"])
+    return result
+
+
+async def _collect(parcel: Parcel, req: GeoRequest, budget_s: float) -> SourceResult[VegetationData]:
     t0 = time.monotonic()
     deadline = t0 + budget_s
     cfg = sentinel2.s2_params()
@@ -105,8 +143,18 @@ async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> S
     minx, miny, maxx, maxy = geometry.to_4326(geometry.parcel_geom_2180(parcel)).bounds
     bbox = (minx, miny, maxx, maxy)
 
-    cur_start, ext_start, current_all, same_by_year, season_by_year = await asyncio.wait_for(
-        _gather_searches(bbox, req), timeout=max(deadline - time.monotonic(), 0.1))
+    search_budget = max(deadline - time.monotonic(), 0.0) * cfg["search_budget_share"]
+    cur_start, ext_start, current_found, same_by_year, season_by_year, search_errors = await _gather_searches(
+        bbox, req, search_budget,
+    )
+    if current_found is None and not same_by_year and not season_by_year:
+        return SourceResult[VegetationData](
+            status=SourceStatus.MISSING,
+            error="sentinel-2: no completed catalog search",
+            notes_pl=["W dostępnym czasie nie udało się wyszukać zdjęć Sentinel-2 dla działki."],
+            elapsed_s=round(time.monotonic() - t0, 3),
+        )
+    current_all = current_found or []
     current_30 = [s for s in current_all if s.acquired >= cur_start]
     extension = [s for s in current_all if s.acquired < cur_start]
 
@@ -127,7 +175,6 @@ async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> S
         enqueue(same_by_year[y])
     for y in sorted(season_by_year, reverse=True):
         enqueue(season_by_year[y])
-    considered = set(seen) | {s.scene_id for s in extension}
 
     results: dict[str, SceneStat | None] = {}
     interior_px = 0
@@ -138,7 +185,7 @@ async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> S
     running: dict[asyncio.Future, SceneRef] = {}
     workers = int(cfg["workers"])
     extended = False
-    errors = 0
+    failed_reads: set[str] = set()
 
     while queue or running:
         while queue and len(running) < workers:
@@ -153,12 +200,11 @@ async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> S
             try:
                 stat, n = fut.result()
             except Exception:  # noqa: BLE001 - one unreadable scene must not stop the analysis
-                errors += 1
-                results[s.scene_id] = None
+                failed_reads.add(s.scene_id)
                 continue
             results[s.scene_id] = stat
             interior_px = max(interior_px, n)
-        if not extended and extension and all(s.scene_id in results for s in current_30) \
+        if not extended and extension and all(s.scene_id in results or s.scene_id in failed_reads for s in current_30) \
                 and not any(results.get(s.scene_id) for s in current_30):
             extended = True
             enqueue(extension, front=True)
@@ -194,15 +240,19 @@ async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> S
     processed = len(results)
     total = len(seen)
     status = SourceStatus.OK
-    if processed < total:
+    if processed + len(failed_reads) < total:
         status = SourceStatus.PARTIAL
         notes.append(f"Przeanalizowano {processed} z {total} scen Sentinel-2 w dostępnym czasie; "
-                     "pozostałe sceny są przetwarzane w tle i zostaną uwzględnione przy kolejnej analizie.")
+                     "pozostałe sceny są przetwarzane w tle i mogą uzupełnić wynik po odświeżeniu danych.")
     if interior_px and interior_px < cfg["min_interior_pixels"]:
         status = SourceStatus.PARTIAL
         notes.append(f"Mała działka: tylko {interior_px} pikseli Sentinel-2 (10 m) we wnętrzu działki; "
                      "wskaźniki roślinności są mniej wiarygodne.")
-    if complete(window_scenes) and not current:
+    if search_errors:
+        status = SourceStatus.PARTIAL
+        notes.append(f"Nie udało się wyszukać zdjęć Sentinel-2 dla {search_errors} okien czasowych. "
+                     "Raport uwzględnia dostępne okresy.")
+    if current_found is not None and complete(window_scenes) and not current:
         status = SourceStatus.PARTIAL
         # SCL keeps vegetation / bare soil only (config scl_keep_classes): water, snow and cloud shadow also
         # exclude pixels, so the note does not blame clouds alone.
@@ -212,29 +262,43 @@ async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> S
     elif extended and current:
         notes.append(f"W ostatnich {req.current_window_days} dniach brak bezchmurnych zdjęć; okno bieżące "
                      f"rozszerzono do {(window[1] - window[0]).days} dni.")
-    if errors:
-        notes.append(f"{errors} scen Sentinel-2 nie udało się odczytać.")
+    if failed_reads:
+        status = SourceStatus.PARTIAL
+        notes.append(f"Liczba scen Sentinel-2, których nie udało się odczytać: {len(failed_reads)}.")
     if no_archive:
         notes.append("Brak zdjęć Sentinel-2 L2A w archiwum dla lat: " + ", ".join(map(str, no_archive))
                      + "; porównanie wieloletnie obejmuje krótszy okres.")
 
-    dates = [r.acquired for r in results.values() if r is not None]
     data = VegetationData(
         interior_pixels=interior_px,
         current=current,
         current_window=window,
         same_window_by_year=same_window,
         season_peaks=peaks,
-        scenes_considered=len(considered),
+        scenes_considered=total,
         scenes_processed=processed,
     )
     all_scenes = current_all + [s for v in same_by_year.values() for s in v] + \
         [s for v in season_by_year.values() for s in v]
     used = sorted({(s.provider, s.collection) for s in all_scenes}) or \
         [(p["source"], p["collection"]) for p in cfg["providers"][:1]]
-    prov = [provenance(name, f"{source(name)['url']}/collections/{collection}",
-                       data_period=f"{min(dates).isoformat()}..{max(dates).isoformat()}" if dates else None,
-                       resolution="10 m") for name, collection in used]
+    prov = []
+    for name, collection in used:
+        dates = sorted({
+            s.acquired for s in all_scenes
+            if s.scene_id in results and s.provider == name and s.collection == collection
+        })
+        entry = provenance(
+            name, f"{source(name)['url']}/collections/{collection}",
+            data_period=f"{dates[0].isoformat()}..{dates[-1].isoformat()}" if dates else None,
+            resolution=f"{cfg['grid_m']:g} m",
+        )
+        if entry.attribution_pl and "[year]" in entry.attribution_pl:
+            # Copernicus Sentinel Data Legal Notice requires the observation year in derived products.
+            entry.attribution_pl = " · ".join(
+                entry.attribution_pl.replace("[year]", str(year)) for year in sorted({d.year for d in dates})
+            ) or None
+        prov.append(entry)
     return SourceResult[VegetationData](status=status, data=data, provenance=prov, notes_pl=notes,
-                                        error=f"{errors} scene reads failed" if errors else None,
+                                        error=f"{len(failed_reads)} scene reads failed" if failed_reads else None,
                                         elapsed_s=round(time.monotonic() - t0, 3))

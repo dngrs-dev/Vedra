@@ -32,6 +32,10 @@ async def _guard(name: str, make: Callable[[float], Awaitable[SourceResult]], de
     remaining = deadline - t0
     try:
         res = await asyncio.wait_for(make(max(remaining - _INNER_MARGIN_S, 0.1)), timeout=max(remaining, 0.05))
+        result_model = GeoBundle.model_fields[name].annotation
+        res = result_model.model_validate(res.model_dump())
+        if res.data is not None and not res.provenance:
+            raise ValueError("source data has no provenance")
     except asyncio.TimeoutError:
         return _missing(_TIMEOUT_PL, f"{name}: deadline exceeded", round(time.monotonic() - t0, 3))
     except Exception as exc:  # noqa: BLE001 - contract: collect() never raises
@@ -78,7 +82,7 @@ class RealGeoProvider:
             "imgw": lambda budget: imgw.imgw_context(parcel, req.analysis_date),
         }
         results = await asyncio.gather(*(_guard(n, f, deadline) for n, f in sources.items()))
-        return GeoBundle.model_validate({n: r.model_dump() for n, r in zip(sources, results)})
+        return GeoBundle(**dict(zip(sources, results)))
 
     async def render_static_map(self, parcel: Parcel, bundle: GeoBundle, width_px: int = 1200) -> bytes:
         return await static_map.render(parcel, bundle, width_px)

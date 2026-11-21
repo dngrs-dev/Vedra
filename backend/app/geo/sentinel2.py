@@ -6,6 +6,7 @@ Asset keys, search parameters and the offset/duplicate behaviour of each are rec
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import threading
@@ -167,21 +168,31 @@ async def search_scenes(bbox_wgs84: tuple[float, float, float, float], start: da
             last_exc = exc if isinstance(exc, UpstreamUnavailable) else UpstreamUnavailable(f"{provider}: {exc!r}")
             continue
         scenes = [s for s in (scene_from_item(i, collection, provider) for i in items) if s is not None]
-        return dedupe([s for s in scenes if start <= s.acquired <= not_after])
+        return dedupe([s for s in scenes if start <= s.acquired <= end])
     raise last_exc or UpstreamUnavailable("sentinel-2: no provider answered")
 
 
 # ---------------------------------------------------------------- Planetary Computer SAS token
 _pc_token_value: tuple[str, float] | None = None   # (token, expiry as time.time())
+_pc_token_task: asyncio.Task[str] | None = None
 
 
 async def pc_token() -> str:
     """Anonymous SAS token for Planetary Computer assets, cached until token_refresh_margin_s before expiry."""
-    global _pc_token_value
+    global _pc_token_task
     cfg = source("planetary_computer")
     if _pc_token_value and _pc_token_value[1] - float(cfg["token_refresh_margin_s"]) > time.time():
         return _pc_token_value[0]
-    data = (await http.get(cfg["token_url"], timeout=10.0)).json()
+    loop = asyncio.get_running_loop()
+    if _pc_token_task is None or _pc_token_task.done() or _pc_token_task.get_loop() is not loop:
+        _pc_token_task = loop.create_task(_request_pc_token(cfg["token_url"]))
+        _pc_token_task.add_done_callback(lambda task: task.cancelled() or task.exception())
+    return await asyncio.shield(_pc_token_task)
+
+
+async def _request_pc_token(url: str) -> str:
+    global _pc_token_value
+    data = (await http.get(url, timeout=10.0)).json()
     expiry = datetime.fromisoformat(data["msft:expiry"].replace("Z", "+00:00")).timestamp()
     _pc_token_value = (data["token"], expiry)
     return data["token"]

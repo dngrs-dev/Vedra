@@ -1,6 +1,7 @@
 """vegetation.py: work queue, window extension, history assembly, deadline (scene reads mocked)."""
 from __future__ import annotations
 
+import asyncio
 import time
 from datetime import date, timedelta
 
@@ -8,6 +9,7 @@ import pytest
 
 from app.contracts.common import SourceStatus
 from app.contracts.geo import GeoRequest, SceneStat
+from app.core import cache
 from app.geo import sentinel2, uldk, vegetation
 from app.geo.sentinel2 import BandInfo, SceneRef
 
@@ -89,6 +91,59 @@ async def test_no_clear_scene_is_partial_with_note(monkeypatch, parcel):
     res = await vegetation.vegetation_data(parcel, GeoRequest(parcel=parcel, analysis_date=DAY), budget_s=10)
     assert res.status == SourceStatus.PARTIAL and res.data.current == []
     assert any("Brak bezchmurnych" in n for n in res.notes_pl)
+
+
+@pytest.mark.asyncio
+async def test_slow_historical_search_preserves_the_current_window(monkeypatch, parcel):
+    install(monkeypatch, [ref(DAY)])
+    complete_search = sentinel2.search_scenes
+
+    async def search(bbox, start, end, **kwargs):
+        if start.year == DAY.year - 1:
+            await asyncio.Event().wait()
+        return await complete_search(bbox, start, end, **kwargs)
+
+    monkeypatch.setattr(sentinel2, "search_scenes", search)
+    req = GeoRequest(parcel=parcel, analysis_date=DAY, history_years=1)
+    res = await vegetation.vegetation_data(parcel, req, budget_s=1.0)
+    assert res.status == SourceStatus.PARTIAL
+    assert [scene.acquired for scene in res.data.current] == [DAY]
+    assert DAY.year - 1 not in res.data.same_window_by_year
+    assert any("nie udało się wyszukać" in note.lower() for note in res.notes_pl)
+
+
+@pytest.mark.asyncio
+async def test_unreadable_scene_is_distinct_from_a_cloudy_scene(monkeypatch, parcel):
+    install(monkeypatch, [ref(DAY)])
+
+    def unreadable(*args):
+        raise OSError("test raster read failure")
+
+    monkeypatch.setattr(sentinel2, "scene_stats", unreadable)
+    res = await vegetation.vegetation_data(parcel, GeoRequest(parcel=parcel, analysis_date=DAY), budget_s=5)
+    assert res.status == SourceStatus.PARTIAL
+    assert res.data.scenes_processed == 0 and res.data.scenes_considered == 1
+    assert all("Brak bezchmurnych" not in note for note in res.notes_pl)
+    assert res.error
+
+
+@pytest.mark.asyncio
+async def test_repeat_uses_cached_assessment_with_original_provenance(monkeypatch, parcel):
+    install(monkeypatch, [ref(DAY)])
+    saved = {}
+    monkeypatch.setattr(cache, "get", saved.get)
+    monkeypatch.setattr(cache, "set", lambda key, value, expire_s: saved.update({key: value}))
+    req = GeoRequest(parcel=parcel, analysis_date=DAY)
+    first = await vegetation.vegetation_data(parcel, req, budget_s=5)
+
+    async def unexpected_search(*args, **kwargs):
+        pytest.fail("The repeat request started a new search")
+
+    monkeypatch.setattr(sentinel2, "search_scenes", unexpected_search)
+    second = await vegetation.vegetation_data(parcel, req, budget_s=5)
+    assert second.data == first.data
+    assert second.provenance[0].fetched_at == first.provenance[0].fetched_at
+    assert first.provenance[0].live and not second.provenance[0].live
 
 
 @pytest.mark.asyncio

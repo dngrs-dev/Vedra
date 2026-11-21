@@ -51,26 +51,24 @@ def _attribution(bundle: GeoBundle) -> str:
     names = []
     for _, res in bundle:
         for p in res.provenance:
-            if p.source_id in ("soil_map", "soilgrids_rest", "edo", "imgw", "earth_search", "planetary_computer"):
-                continue  # not drawn on the map
+            if p.source_id not in ("gugik_nmt_wcs", "copernicus_dem", "bdot10k_water", "overpass"):
+                continue
             label = p.attribution_pl or p.name
             if label not in names:
                 names.append(label)
-    return "Źródła: ULDK GUGiK" + ("; " + "; ".join(names) if names else "")
+    return "Źródła: granice działek GUGiK (EGiB)" + ("; " + "; ".join(names) if names else "")
 
 
 def render_png(parcel: Parcel, bundle: GeoBundle, width_px: int, dem=None) -> bytes:
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
 
     g = geometry.parcel_geom_2180(parcel)
     minx, miny, maxx, maxy = g.buffer(MAP_MARGIN_M).bounds
     aspect = (maxy - miny) / (maxx - minx)
     dpi = 100
-    fig = plt.figure(figsize=(width_px / dpi, width_px * min(max(aspect, 0.5), 1.5) / dpi), dpi=dpi)
+    fig = Figure(figsize=(width_px / dpi, width_px * min(max(aspect, 0.5), 1.5) / dpi), dpi=dpi)
     ax = fig.add_axes((0, 0.07, 1, 0.93))
     ax.set_xlim(minx, maxx)
     ax.set_ylim(miny, maxy)
@@ -136,14 +134,18 @@ def render_png(parcel: Parcel, bundle: GeoBundle, width_px: int, dem=None) -> by
     fig.text(0.01, 0.005, textwrap.fill(caption, width=max(int(width_px / 5.3), 40)), fontsize=7, ha="left",
              va="bottom")
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=dpi)
-    plt.close(fig)
+    FigureCanvasAgg(fig).print_png(buf)
     return buf.getvalue()
 
 
 async def render(parcel: Parcel, bundle: GeoBundle, width_px: int = 1200) -> bytes:
-    try:
-        dem, _ = await asyncio.wait_for(dem_mod.fetch_dem(parcel, DEM_BUDGET_S), timeout=DEM_BUDGET_S + 0.2)
-    except Exception:  # noqa: BLE001 - map without relief background
-        dem = None
+    terrain = bundle.terrain.data
+    dem = None
+    if terrain is not None:
+        try:
+            candidate, _ = await asyncio.wait_for(dem_mod.fetch_dem(parcel, DEM_BUDGET_S), timeout=DEM_BUDGET_S + 0.2)
+            if candidate.source == terrain.dem_source and candidate.res == terrain.resolution_m:
+                dem = candidate
+        except Exception:  # noqa: BLE001 - map without relief background
+            pass
     return await asyncio.to_thread(render_png, parcel, bundle, width_px, dem)

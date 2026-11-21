@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import re
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from app.contracts.common import SourceResult, SourceStatus
@@ -70,22 +70,26 @@ async def _time_extent(layer: str) -> tuple[date, date]:
     return date.fromisoformat(first[:10]), date.fromisoformat(last[:10])
 
 
-async def _strip(layer: str, t: date, lon: float) -> bytes:
+async def _strip(layer: str, t: date, lon: float) -> tuple[bytes, datetime, bool]:
     """GeoTIFF strip 0.2 deg wide around lon (the WCS ignores the lat subset - geo_sources.yaml)."""
     cfg = source("edo")
     w = cfg["wcs"]
     lon0 = round(lon, 2)
-    key = cache.make_key("geo.edo.strip", layer=layer, t=t.isoformat(), lon=lon0)
+    key = cache.make_key("geo.edo.strip.v2", layer=layer, t=t.isoformat(), lon=lon0)
     data = cache.get(key)
-    if data is None:
-        params: Any = [("map", w["map_param"]), ("SERVICE", "WCS"), ("VERSION", w["version"]),
-                       ("REQUEST", "GetCoverage"), ("coverageID", layer), ("CRS", "EPSG:4326"),
-                       ("format", w["format"]), ("TIME", t.isoformat()),
-                       ("SUBSET", f"long({lon0 - 0.1:.2f},{lon0 + 0.1:.2f})")]
-        r = await http.get(cfg["wcs_url"], params=params, timeout=20.0)
-        data = r.content
-        cache.set(key, data)  # a published dekad does not change
-    return data
+    if data is not None:
+        return data["tiff"], datetime.fromisoformat(data["fetched_at"]), False
+    params: Any = [("map", w["map_param"]), ("SERVICE", "WCS"), ("VERSION", w["version"]),
+                   ("REQUEST", "GetCoverage"), ("coverageID", layer), ("CRS", "EPSG:4326"),
+                   ("format", w["format"]), ("TIME", t.isoformat()),
+                   ("SUBSET", f"long({lon0 - 0.1:.2f},{lon0 + 0.1:.2f})")]
+    r = await http.get(cfg["wcs_url"], params=params, timeout=20.0)
+    # GeoTIFF signature according to TIFF 6.0 §2. Error XML from a WCS may still be served with HTTP 200.
+    if not r.content.startswith((b"II*\0", b"MM\0*")):
+        raise ValueError("edo: expected a GeoTIFF coverage")
+    fetched_at = datetime.now(timezone.utc)
+    cache.set(key, {"tiff": r.content, "fetched_at": fetched_at.isoformat()})  # fixed published dekad
+    return r.content, fetched_at, True
 
 
 def sample_code(tiff: bytes, lat: float, lon: float) -> int | None:
@@ -110,13 +114,15 @@ async def edo_signal(lat: float, lon: float, analysis_date: date) -> SourceResul
             status=SourceStatus.MISSING, error=f"edo: no {layer} dekad <= {analysis_date}",
             notes_pl=["Brak danych Europejskiego Obserwatorium Suszy (EDO) dla daty analizy."],
             elapsed_s=round(time.monotonic() - t0, 3))
-    code = await asyncio.to_thread(sample_code, await _strip(layer, t, lon), lat, lon)  # GDAL off the event loop
+    tiff, fetched_at, live = await _strip(layer, t, lon)
+    code = await asyncio.to_thread(sample_code, tiff, lat, lon)
     label = cfg["cdi_levels"].get(code) if code is not None else None
     notes = [NO_VALUES_NOTE_PL]
     if label is None:
         notes.insert(0, "Europejskie Obserwatorium Suszy (EDO) nie podaje klasy CDI dla lokalizacji działki "
                         f"(dekada od {t.isoformat()}).")
     data = EdoData(date_used=t, cdi_class=label)
-    prov = [provenance("edo", cfg["wcs_url"], data_period=f"dekada od {t.isoformat()}", resolution="0,04°")]
+    prov = [provenance("edo", cfg["wcs_url"], fetched_at=fetched_at, live=live,
+                       data_period=f"dekada od {t.isoformat()}")]
     return SourceResult[EdoData](status=SourceStatus.OK if label else SourceStatus.PARTIAL, data=data,
                                  provenance=prov, notes_pl=notes, elapsed_s=round(time.monotonic() - t0, 3))

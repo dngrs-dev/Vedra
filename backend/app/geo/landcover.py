@@ -12,7 +12,7 @@ import math
 import re
 import time
 from collections import Counter
-from datetime import date
+from datetime import date, datetime, timezone
 
 import numpy as np
 from shapely.geometry import mapping
@@ -74,12 +74,22 @@ def _shares(counts: Counter, legend: dict[int, str]) -> dict[str, float]:
 
 async def landcover(parcel: Parcel, buffer_m: int, analysis_date: date | None = None) -> SourceResult[LandCoverData]:
     t0 = time.monotonic()
+    cfg = source("worldcover")
+    observed_through = date.fromisoformat(cfg["observed_through"])
+    if analysis_date is not None and analysis_date < observed_through:
+        return SourceResult[LandCoverData](
+            status=SourceStatus.MISSING,
+            notes_pl=[f"Mapa ESA WorldCover obejmuje obserwacje do {observed_through.isoformat()}. "
+                      "Dla wybranej daty nie ma mapy pokrycia terenu w tym zbiorze."],
+            elapsed_s=round(time.monotonic() - t0, 3),
+        )
     g = geometry.parcel_geom_2180(parcel)
     zone = g.buffer(buffer_m)
-    key = cache.make_key("geo.worldcover", parcel=parcel.geometry_2180_wkt, buffer=buffer_m)
+    key = cache.make_key("geo.worldcover.v2", parcel=parcel.geometry_2180_wkt, buffer=buffer_m)
     hit = cache.get(key)
-    if hit is None:
-        tpl = source("worldcover")["url_template"]
+    live = hit is None
+    if live:
+        tpl = cfg["url_template"]
         tiles = tiles_for(geometry.to_4326(zone).bounds)
         results = await asyncio.gather(*(asyncio.to_thread(_counts, tpl.format(tile=t), mapping(zone), mapping(g))
                                          for t in tiles))
@@ -88,18 +98,19 @@ async def landcover(parcel: Parcel, buffer_m: int, analysis_date: date | None = 
             par.update(p)
             ring.update(r)
             legend.update(leg)
-        hit = {"parcel": _shares(par, legend), "ring": _shares(ring, legend), "tiles": tiles}
+        hit = {
+            "parcel": _shares(par, legend), "ring": _shares(ring, legend), "tiles": tiles,
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
+        }
         cache.set(key, hit)  # the 2021 map is a fixed product
     data = LandCoverData(dataset=DATASET, buffer_m=buffer_m, shares_parcel=hit["parcel"], shares_buffer=hit["ring"])
     notes = []
     if not hit["parcel"]:
         notes.append("Mapa pokrycia terenu ESA WorldCover nie zawiera danych dla obszaru działki.")
-    map_year = int(source("worldcover")["map_year"])
-    if analysis_date is not None and analysis_date.year < map_year:
-        notes.append(f"Pokrycie terenu pochodzi z mapy ESA WorldCover z {map_year} r., późniejszej niż data "
-                     f"analizy ({analysis_date.isoformat()}); w dniu analizy mogło się różnić.")
     return SourceResult[LandCoverData](
         status=SourceStatus.OK if hit["parcel"] else SourceStatus.PARTIAL, data=data,
-        provenance=[provenance("worldcover", source("worldcover")["url_template"].format(tile=",".join(hit["tiles"])),
-                               data_period="2021", resolution="10 m")],
+        provenance=[provenance(
+            "worldcover", cfg["url_template"].format(tile=tile), live=live,
+            fetched_at=datetime.fromisoformat(hit["fetched_at"]), data_period=str(cfg["map_year"]),
+        ) for tile in hit["tiles"]],
         notes_pl=notes, elapsed_s=round(time.monotonic() - t0, 3))

@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import asyncio
 import time
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 
-from app.contracts.common import SourceResult, SourceStatus
+from app.contracts.common import Provenance, SourceResult, SourceStatus
 from app.contracts.errors import InvalidParcelQuery, ParcelNotFound
 from app.contracts.geo import GeoBundle, GeoRequest, SoilInfo
 from app.geo import provider as provider_mod
@@ -121,12 +121,29 @@ async def test_collect_respects_deadline(monkeypatch, parcel):
 
 
 @pytest.mark.asyncio
+async def test_collect_rejects_invalid_source_payload_without_losing_the_bundle(monkeypatch, parcel):
+    async def invalid(p, budget):
+        return SourceResult(status=SourceStatus.OK, data={"kbw_category": "unsupported"})
+
+    monkeypatch.setattr(soil, "soil_info", invalid)
+    bundle = await RealGeoProvider().collect(GeoRequest(parcel=parcel, analysis_date=date(2023, 5, 31)))
+    assert bundle.soil.status == SourceStatus.MISSING and bundle.soil.notes_pl
+    assert bundle.vegetation.notes_pl == ["stub"]
+
+
+@pytest.mark.asyncio
 async def test_collect_passes_budget_below_deadline(monkeypatch, parcel):
     got = {}
 
     async def fake(p, budget):
         got["budget"] = budget
-        return SourceResult[SoilInfo](status=SourceStatus.OK, data=SoilInfo(kbw_category="II"))
+        return SourceResult[SoilInfo](
+            status=SourceStatus.OK, data=SoilInfo(kbw_category="II"),
+            provenance=[Provenance(
+                source_id="test", name="test", url="https://example.com/soil",
+                fetched_at=datetime.now(timezone.utc), live=False, licence="test fixture",
+            )],
+        )
 
     monkeypatch.setattr(soil, "soil_info", fake)
     b = await RealGeoProvider().collect(GeoRequest(parcel=parcel, analysis_date=date(2023, 5, 31), deadline_s=5))
