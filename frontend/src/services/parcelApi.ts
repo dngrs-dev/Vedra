@@ -1,5 +1,9 @@
+import { z } from 'zod';
+import { pl } from '@/constants/pl';
 import type { LatLng, Parcel } from '@/types/parcel';
 import { pointInRing, polygonAreaHa, ringCenter, shareInsideRect } from '@/utils/geo';
+import { isParcelId } from '@/utils/validation';
+import { ApiError, request } from './http';
 
 /**
  * Поиск участков через публичный ULDK GUGiK (бесплатно, без ключа).
@@ -7,6 +11,22 @@ import { pointInRing, polygonAreaHa, ringCenter, shareInsideRect } from '@/utils
  * Ответ: первая строка — статус ("0" = OK), далее "id|SRID=4326;POLYGON((lon lat,...))".
  */
 const ULDK = import.meta.env.VITE_ULDK_URL ?? 'https://uldk.gugik.gov.pl/';
+const STANDALONE_DEMO = import.meta.env.VITE_USE_MOCK === 'true';
+const recentParcels = new Map<string, Parcel>();
+
+// RFC 7946 GeoJSON rings use longitude, latitude and at least four positions.
+const position = z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]);
+const polygon = z.array(z.array(position).min(4)).min(1);
+const backendParcel = z.object({
+  parcel_id: z.string().refine(isParcelId),
+  area_ha: z.number().nonnegative(),
+  centroid_lat: z.number().min(-90).max(90),
+  centroid_lon: z.number().min(-180).max(180),
+  geometry_wgs84: z.discriminatedUnion('type', [
+    z.object({ type: z.literal('Polygon'), coordinates: polygon }),
+    z.object({ type: z.literal('MultiPolygon'), coordinates: z.array(polygon).min(1) })
+  ])
+});
 
 export class ParcelNotFoundError extends Error {
   constructor() {
@@ -17,14 +37,17 @@ export class ParcelNotFoundError extends Error {
 
 function parse(text: string): Parcel {
   const lines = text.trim().split(/\r?\n/);
-  if (lines[0]?.trim() !== '0' || !lines[1]) throw new ParcelNotFoundError();
+  if (lines[0]?.trim().startsWith('-1')) throw new ParcelNotFoundError();
+  if (lines[0]?.trim() !== '0' || !lines[1]) throw new Error(pl.search.unavailable);
   const [id, geom] = lines[1].split('|');
   const m = geom?.match(/POLYGON\(\((.+?)\)\)/);
-  if (!id || !m?.[1]) throw new ParcelNotFoundError();
+  if (!id || !isParcelId(id) || !m?.[1]) throw new Error(pl.search.unavailable);
 
   const ring: LatLng[] = m[1].split(',').map((pair) => {
-    const [x, y] = pair.trim().split(' ').map(Number);
-    return [y ?? 0, x ?? 0] as LatLng; // srid=4326 → x = lon, y = lat
+    const parsed = position.safeParse(pair.trim().split(/\s+/).map(Number));
+    if (!parsed.success) throw new Error(pl.search.unavailable);
+    const [lon, lat] = parsed.data;
+    return [lat, lon];
   });
   return {
     id: id.trim(),
@@ -34,17 +57,77 @@ function parse(text: string): Parcel {
   };
 }
 
-async function call(query: string, signal?: AbortSignal): Promise<Parcel> {
+async function callUldk(query: string, signal?: AbortSignal): Promise<Parcel> {
   const res = await fetch(`${ULDK}?${query}&result=id,geom_wkt&srid=4326`, { signal });
-  if (!res.ok) throw new Error(`ULDK ${res.status}`);
+  if (!res.ok) throw new Error(pl.search.unavailable);
   return parse(await res.text());
 }
 
-export const getParcelById = (id: string, signal?: AbortSignal) =>
-  call(`request=GetParcelById&id=${encodeURIComponent(id)}`, signal);
+function fromBackend(raw: unknown): Parcel {
+  const parsed = backendParcel.safeParse(raw);
+  if (!parsed.success) throw new Error(pl.search.unavailable);
+  const { parcel_id, area_ha, centroid_lat, centroid_lon, geometry_wgs84 } = parsed.data;
+  const polygons = geometry_wgs84.type === 'Polygon' ? [geometry_wgs84.coordinates] : geometry_wgs84.coordinates;
+  const outline = polygons.map((rings) => rings.map((ring) => ring.map(([lon, lat]): LatLng => [lat, lon])));
+  const [first, ...others] = outline.map((rings) => rings[0]!);
+  if (!first) throw new Error(pl.search.unavailable);
+  const ring = others.reduce((largest, candidate) =>
+    polygonAreaHa(candidate) > polygonAreaHa(largest) ? candidate : largest, first);
+  return { id: parcel_id, ring, outline, areaHa: area_ha, center: { lat: centroid_lat, lng: centroid_lon } };
+}
 
-export const getParcelByLatLng = (lat: number, lng: number, signal?: AbortSignal) =>
-  call(`request=GetParcelByXY&xy=${lng},${lat},4326`, signal);
+function remember(parcel: Parcel): Parcel {
+  const key = parcel.id.toLowerCase();
+  recentParcels.delete(key);
+  recentParcels.set(key, parcel);
+  // Limit the session cache to the size of the existing smart-selection limit.
+  if (recentParcels.size > AREA_LIMITS.maxParcels) {
+    const oldest = recentParcels.keys().next().value;
+    if (oldest !== undefined) recentParcels.delete(oldest);
+  }
+  return parcel;
+}
+
+async function lookup(
+  path: string, directQuery: string, select: (raw: unknown) => Parcel, signal?: AbortSignal
+): Promise<Parcel> {
+  try {
+    return remember(select(await request<unknown>(path, { signal })));
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    if (STANDALONE_DEMO) return remember(await callUldk(directQuery, signal));
+    if (error instanceof ApiError && error.status === 404) throw new ParcelNotFoundError();
+    throw error;
+  }
+}
+
+export async function getParcelById(id: string, signal?: AbortSignal): Promise<Parcel> {
+  signal?.throwIfAborted();
+  const key = id.toLowerCase();
+  const cached = recentParcels.get(key);
+  if (cached) return remember(cached);
+  const encoded = encodeURIComponent(id);
+  return lookup(`/parcels/search?q=${encoded}`, `request=GetParcelById&id=${encoded}`, (raw) => {
+    if (!Array.isArray(raw)) throw new Error(pl.search.unavailable);
+    const exact = raw.find((item) => typeof item?.parcel_id === 'string' && item.parcel_id.toLowerCase() === key);
+    if (!exact) throw new ParcelNotFoundError();
+    return fromBackend(exact);
+  }, signal);
+}
+
+const pointQuery = (lat: number, lng: number) => `request=GetParcelByXY&xy=${lng},${lat},4326`;
+
+export async function getParcelByLatLng(lat: number, lng: number, signal?: AbortSignal): Promise<Parcel> {
+  signal?.throwIfAborted();
+  for (const parcel of recentParcels.values()) {
+    const polygons = parcel.outline ?? [[parcel.ring]];
+    if (polygons.some(([outer, ...holes]) =>
+      outer && pointInRing(lat, lng, outer) && !holes.some((ring) => pointInRing(lat, lng, ring))
+    )) return remember(parcel);
+  }
+  const params = new URLSearchParams({ lat: String(lat), lon: String(lng) });
+  return lookup(`/parcels/by-point?${params}`, pointQuery(lat, lng), fromBackend, signal);
+}
 
 export interface AreaSearchResult {
   /** Все делянки, пересекающие рамку */
@@ -121,7 +204,8 @@ export async function findParcelsInArea(ring: LatLng[], opts: AreaSearchOptions 
       if (inFound(la, lo)) continue;
       requests++;
       try {
-        const p = await getParcelByLatLng(la, lo, signal);
+        // Smart selection samples many points. Keep those requests separate from the single-parcel backend lookup.
+        const p = await callUldk(pointQuery(la, lo), signal);
         answered++;
         if (!found.has(p.id)) {
           found.set(p.id, p);

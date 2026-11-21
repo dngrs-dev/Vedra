@@ -19,7 +19,7 @@ Build to zwykłe pliki statyczne (`dist/`). Adresy: `/` (strona główna), `/map
 
 1. `/` — krótka strona główna (przycisk **Zobacz mapę**).
 2. `/map` — mapa Polski z liniami województw. Klik w województwo → mapa przybliża się, jego etykieta znika (przycisk „← Cała Polska” cofa widok).
-3. Wybór działki: klik w działkę (GUGiK ULDK) **lub** `Ctrl` (⌘ na Macu) + LPM + przeciągnięcie ramki. Tryb ramki przełącza się na górnym pasku:
+3. Wybór działki: klik na mapie, wpisanie identyfikatora lub `Ctrl` (⌘ na Macu) + LPM i przeciągnięcie ramki. Klik i wyszukiwanie po identyfikatorze korzystają z API Vedry i zapamiętują kontury już znalezionych działek w obrębie bieżącej sesji. Tryb ramki przełącza się na górnym pasku:
    - **Zwykły wybór** — ramka = dokładnie zaznaczony prostokąt (własny obszar, max 5000 ha).
    - **Inteligentny wybór** (domyślny) — zaznaczane są wszystkie działki z ramki (`findParcelsInArea`: siatka punktów co ≥12 m, limit 150 działek / 300 zapytań). Działka trafia do wyboru tylko, gdy **co najmniej 50% jej powierzchni** leży w ramce (`MIN_INSIDE_SHARE` w `services/parcelApi.ts`) — pola tylko zahaczone krawędzią są pomijane. Gdy w ramce nie ma działki albo ULDK nie odpowiada — używany jest sam prostokąt.
    - Znalezione działki są **łączone w jeden kontur** (`utils/union.ts`: usuwanie wspólnych krawędzi, sklejanie wierzchołków z tolerancją ~0,2 m, obsługa styków typu „T”, dziury). Działki rozdzielone drogą/rowem dają kilka części — luki nie są zamalowywane, bo to nie jest ziemia użytkownika.
@@ -36,7 +36,7 @@ src/
   pages/               LandingPage (/), MapPage (/map: mapa + panel), ReportPage (/report)
   features/analysis/   cała logika „analizy działki”
     store.ts             Zustand: działka + uprawy + data
-    hooks/               useAnalysis (React Query), useParcelSelect (ULDK)
+    hooks/               useAnalysis (React Query), useParcelSelect (klik, identyfikator, ramka)
     components/          CropSelect, DateField, MoistureCard, RecommendationsCard,
                          BasisCard (źródła/ograniczenia), AnalysisProgress, ParcelMap, AnalysisPanel
   components/          współdzielone, bez logiki biznesowej
@@ -44,7 +44,7 @@ src/
   services/            warstwa danych (jedyne miejsce rozmów z siecią)
     analysisApi.ts       uruchamianie zadania, odczyt postępu i adres PDF
     mockAnalysis.ts      deterministyczne dane demo
-    parcelApi.ts         GUGiK ULDK (kontur działki po ID / po kliknięciu)
+    parcelApi.ts         kontury i pamięć sesji, API Vedry dla pojedynczej działki
   types/               backendReport.ts (walidacja Zod), analysis.ts (model demo), parcel.ts
   constants/           pl.ts (wszystkie teksty), crops.ts, poland.ts
   utils/               geo, format, rng, validation
@@ -64,7 +64,7 @@ Grupy działek, własne obszary i zastępcze obrysy demo korzystają z jawnie oz
 
 | Wymaganie | Gdzie |
 |---|---|
-| ID działki lub punkt na mapie | `ParcelMap` + `useParcelSelect` (ULDK), `AreaSelect` (Ctrl + przeciągnięcie) |
+| ID działki lub punkt na mapie | `ParcelMap` + `useParcelSelect` (API Vedry), `AreaSelect` (Ctrl + przeciągnięcie) |
 | Potwierdzenie przed obliczeniem | `AnalysisPanel` (`store.confirmed`) |
 | Wybór uprawy | `CropSelect` |
 | Dowolna data z ostatnich 10 lat | `DateField` |
@@ -77,7 +77,7 @@ Grupy działek, własne obszary i zastępcze obrysy demo korzystają z jawnie oz
 
 - Granice województw ładowane z CDN w przeglądarce — nie mogłem ich zweryfikować w środowisku budowy (brak sieci). Jeśli nazwy się nie wyświetlą poprawnie, sprawdź pola w GeoJSON (`services/regionsApi.ts → NAME_KEYS`). Uproszczony kontur Polski w `constants/poland.ts` to tylko zapas na czas ładowania.
 - Tryb demo: wartości są losowe (deterministyczne), widoczny baner „dane demonstracyjne”.
-- ULDK bywa blokowany przez CORS — wtedy przy kliknięciu pokazywany jest kontur demo (z komunikatem); docelowo proxy przez backend.
+- Inteligentne zaznaczenie ramką używa bezpośrednich zapytań do ULDK, aby korzystać z dotychczasowej siatki punktów. W razie niedostępności rejestru obowiązują komunikaty i tryb demonstracyjny.
 - Brak testów automatycznych (do dodania: Vitest dla `utils/` i `services/mockAnalysis`).
 
 ## Licencje danych / komponentów

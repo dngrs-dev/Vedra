@@ -34,12 +34,12 @@ export function useParcelSelect() {
         } catch (e) {
           if (e instanceof DOMException && e.name === 'AbortError') return;
           if (e instanceof ParcelNotFoundError || !fallback) throw e;
-          parcel = fallback(); // ULDK недоступен (сеть/CORS) → демо-контур
+          parcel = fallback(); // An unavailable register leaves a labeled demonstration outline.
           toast(pl.search.demoFallback);
         }
         if (!ctrl.signal.aborted) setParcel(parcel);
       } catch (e) {
-        toast(e instanceof ParcelNotFoundError ? pl.search.notFound : 'Błąd pobierania działki', 'error');
+        toast(e instanceof ParcelNotFoundError ? pl.search.notFound : pl.search.unavailable, 'error');
       } finally {
         if (abortRef.current === ctrl) setLoading(false);
       }

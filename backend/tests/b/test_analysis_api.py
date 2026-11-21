@@ -241,7 +241,8 @@ def test_remaining_job_budget_caps_geo_collection(monkeypatch):
 
     assert job["status"] == "done"
     (geo_deadline,) = deadlines
-    assert 0 < geo_deadline < limited_budget_s - pipeline.REPORT_RESERVE_S
+    # A fast lookup can finish within the same event-loop clock tick on Windows.
+    assert 0 < geo_deadline <= limited_budget_s - pipeline.REPORT_RESERVE_S
 
 
 def test_all_assessment_sources_missing_still_yields_saved_report(monkeypatch):

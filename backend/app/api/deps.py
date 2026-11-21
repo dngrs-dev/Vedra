@@ -5,6 +5,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 
+from app.api.cadastral import CadastralProvider
 from app.config import settings
 from app.contracts.geo import GeoProvider
 from app.jobs.runner import AnalysisRunner
@@ -15,7 +16,7 @@ def get_geo_provider() -> GeoProvider:
     if settings.geo_provider == "real":
         from app.geo.provider import RealGeoProvider
 
-        return RealGeoProvider()
+        return CadastralProvider(RealGeoProvider())
     if settings.geo_provider == "fixtures":
         from app.fakes.fixture_geo import FixtureGeoProvider
 

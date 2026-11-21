@@ -8,7 +8,8 @@ export const pl = {
     hint: 'Kliknij na mapie lub wpisz ID działki',
     badFormat: 'Nieprawidłowy format ID. Przykład: 141201_1.0001.6509',
     notFound: 'Nie znaleziono działki o podanym ID',
-    demoFallback: 'Usługa ULDK niedostępna — pokazano przykładowy kształt działki (tryb demo)',
+    unavailable: 'Nie udało się pobrać granic działki.',
+    demoFallback: 'Rejestr działek jest chwilowo niedostępny. Pokazano przykładowy obrys (tryb demo).',
     outsidePoland: 'Wybierz lokalizację na terenie Polski'
   },
 

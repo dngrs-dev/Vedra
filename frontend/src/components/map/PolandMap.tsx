@@ -97,7 +97,7 @@ export function PolandMap({
 
       {showParcels && parcel && !parcel.parts && (
         <Polygon
-          positions={parcel.ring}
+          positions={parcel.outline ?? parcel.ring}
           pathOptions={{
             color: parcel.isCustom ? '#ffe27a' : '#ffffff',
             weight: 2.5,

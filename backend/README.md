@@ -33,14 +33,14 @@ sposób zgłaszania braków i maksymalny czas pobierania.
 
 ## 3. Stan integracji
 
-Gałąź `backend` zawiera obie części. Tryb `real` pobiera dane przestrzenne przez dostawcę części A,
-`fixtures` korzysta z jej zapisanych przypadków, a `fake` służy do demonstracji. Dostępność danych
-zależy od źródła i daty analizy. Raport pokazuje dostępne wyniki oraz powody braków.
+Tryb `real` wyszukuje kontur przez EGiB WFS lub źródła zapasowe i pobiera dane przestrzenne
+przez dostawcę części A. Tryb `fixtures` korzysta z zapisanych przypadków, a `fake` służy do
+demonstracji. Raport pokazuje dostępne wyniki oraz powody braków.
 [Źródła danych przestrzennych](docs/DATA_SOURCES.md).
 
-Frontend jest rozwijany na osobnej gałęzi. Jego klient demonstracyjny korzysta z własnych danych
-i wywołania `POST /api/analyze`. Połączenie z backendem wymaga obsługi `POST /api/analyses`,
-odpytywania statusu oraz odczytu modelu raportu opisanego poniżej.
+Frontend wyszukuje pojedynczą działkę przez API, uruchamia jej analizę przez `POST /api/analyses`
+i odczytuje postęp zadania. Grupy i własne obszary korzystają z wyników demonstracyjnych.
+[Uruchomienie frontendu](../frontend/README.md).
 
 ## 4. API
 
@@ -128,7 +128,7 @@ W Dockerze można oddzielić dane raportów od dołączonych danych źródłowyc
 | --- | --- | --- |
 | Open-Meteo, ERA5 / ERA5-Land | Pobieranie na żądanie od 1 stycznia 1991 r. do daty analizy. Dzienne opady, ET0, temperatura, usłonecznienie i długość dnia oraz średnie dobowe wilgotności gleby. Prognoza uzupełnia końcową lukę archiwum i może posłużyć jako dane do planowania nawadniania dla bieżącej daty. | Dane CC BY 4.0 z przypisaniem autorstwa. Bezpłatna usługa ma limity i warunki użycia niekomercyjnego. [Warunki Open-Meteo](https://open-meteo.com/en/terms). |
 | IMGW-PIB, dobowe SYNOP | Dołączona baza SQLite obejmuje opad, temperaturę i usłonecznienie z 63 stacji. Zakres dostępnych plików to 1991-01-01 – 2026-10-31. Dane pobrano 21.11.2026. Daty pobrań i sumy kontrolne plików są w tabeli `input`. | Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone. [Regulamin](https://danepubliczne.imgw.pl/pl/regulations). |
-| ULDK i mapa glebowo-rolnicza | Geometria i dane opisowe działki oraz kategoria gleby. Część A odpytuje usługi na żądanie i odczytuje zapisane odpowiedzi z pamięci podręcznej. | [ULDK GUGiK](https://uldk.gugik.gov.pl/), [informacja o usłudze WMS](https://www.geoportal.gov.pl/aktualnosci/usluga-wms-prezentujaca-mape-glebowo-rolnicza-dostepna-w-serwisie-www-geoportal-gov-pl/). |
+| EGiB, PRG i mapa glebowo-rolnicza | Tryb `real` pobiera granice działki po identyfikatorze lub punkcie z krajowego EGiB WFS. Nazwy województw i powiatów pochodzą z dołączonego zestawienia PRG. Przy braku wyniku backend próbuje ULDK i krajowego eksportu GeoParquet. Kategoria gleby pochodzi z odrębnych źródeł glebowych. | [EGiB WFS](https://mapy.geoportal.gov.pl/wss/service/PZGIK/EGIB/WFS/UslugaZbiorcza), [PRG](https://www.geoportal.gov.pl/pl/dane/panstwowy-rejestr-granic-prg/), [ULDK GUGiK](https://uldk.gugik.gov.pl/), [informacja o usłudze WMS](https://www.geoportal.gov.pl/aktualnosci/usluga-wms-prezentujaca-mape-glebowo-rolnicza-dostepna-w-serwisie-www-geoportal-gov-pl/). |
 | SoilGrids 2.0 | Profil glebowy o rozdzielczości 250 m. Dla działek kontrolnych część A korzysta także z odpowiedzi pobranych 21.11.2026. | CC BY 4.0, ISRIC. [Warunki SoilGrids](https://isric.org/explore/soilgrids/). |
 | Sentinel-2, NMT, hydrografia, pokrycie terenu, EDO i IMGW | Docelowe źródła części A to Sentinel-2 przez Earth Search, GUGiK lub Copernicus DEM, MPHP lub OSM, ESA WorldCover, Copernicus EDO oraz bieżące dane IMGW. Potok B przyjmuje zakresy i metadane zwracane przez część A. W sprawdzonej integracji te źródła były niedostępne. | Źródła i status sprawdzenia warunków opisuje konfiguracja części A `config/geo_sources.yaml` na gałęzi `part_A`. |
 | MRiRW, obwieszczenia KBW | Załączniki dla okresów kończących się 10.07.2018 i 31.05.2023 pobrano 21.11.2026. Parquet i sumy kontrolne dokumentują walidację. Progi z Dz.U. 2019 poz. 739 i współczynniki literaturowe są w wersjonowanej konfiguracji. | Dokumenty urzędowe. [Manifest](data/b/manifest.json), [porównanie z obwieszczeniami](docs/VALIDATION.md), [progi](https://eli.gov.pl/eli/DU/2019/739/ogl). |
@@ -137,6 +137,12 @@ Zapisane odpowiedzi geo z 21.11.2026 służą lokalnym testom oraz demonstracji 
 Potok za każdym uruchomieniem oblicza wynik i zalecenia na podstawie wejściowych danych.
 Raport wskazuje źródło, datę pobrania, warunki i przypisanie autorstwa w zakresie dostępnych metadanych.
 [Metodyka](docs/METHODOLOGY.md).
+
+Wyniki wyszukiwania w trybie `real` są buforowane przez dobę. Potwierdzenie działki po kliknięciu
+może użyć już zapisanego konturu zamiast ponownie pobierać go po identyfikatorze. Nazwy administracyjne
+zapisano 21.11.2026 w `config/cadastral_teryt.json` z warstw województw i powiatów usługi PRG WFS.
+Backend pobiera wyłącznie dane potrzebne przy danym wyborze. Docelowy wariant bez zależności od
+zapytań na żywo może utrzymywać aktualizowany indeks przestrzenny krajowego eksportu na serwerze.
 
 Aby odtworzyć bazę IMGW-PIB, uruchom w katalogu `backend` polecenie
 `python -m scripts.b.build_imgw_weather --cache-dir <katalog-roboczy>`. Budowa pobiera
