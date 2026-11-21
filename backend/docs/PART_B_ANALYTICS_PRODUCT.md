@@ -163,7 +163,7 @@ def get_geo_provider() -> GeoProvider:
 - [x] Local HTTP smoke test with `GEO_PROVIDER=fake`. Public deployment is scheduled for the final CP5 task.
 
 ### CP2 — full assessment (→ 23:00)
-- [ ] `spi.py`, `soil_moisture.py`, `vegetation_signal.py`, `vulnerability.py`, `causes.py`, `uncertainty.py`.
+- [x] `spi.py`, `soil_moisture.py`, `vegetation_signal.py`, `vulnerability.py`, `causes.py`, `uncertainty.py`.
 - [ ] `season.py` + off-season behaviour of every stage (jury may enter today's date — November).
 
 ### CP3 — recommendations and report (→ 03:00)

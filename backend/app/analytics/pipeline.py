@@ -3,50 +3,48 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from dataclasses import replace
+from datetime import date
 
-from app.analytics import crops, kbw, open_meteo
-from app.analytics.models import AnalysisContext, AnalysisRequest, KbwResult, WeatherData
-from app.contracts.common import SourceResult
+from app.analytics import causes, crops, edo_signal, kbw, open_meteo, soil_moisture, spi, vegetation_signal, vulnerability
+from app.analytics.models import AnalysisContext, AnalysisRequest, WeatherData
+from app.contracts.common import SourceResult, SourceStatus
 from app.contracts.errors import ParcelNotFound
-from app.contracts.geo import GeoProvider, GeoRequest
-from app.contracts.report import Cause, Metric, Report
+from app.contracts.geo import GeoBundle, GeoProvider, GeoRequest, KbwSoilCategory
+from app.contracts.report import Metric, Report, Signal
 from app.recommendations import texts_pl as text
 from app.reports import builder
 
 
-def _weather_metrics(weather: SourceResult[WeatherData], assessment: KbwResult) -> list[Metric]:
-    period = assessment.period
-    if period is None or assessment.kbw_mm is None or weather.data is None:
-        return []
-
-    # A numeric KBW result guarantees complete precipitation within its period (kbw.py).
-    precipitation = sum(
-        row.precipitation_mm for day, row in weather.data.days.items() if period.start <= day <= period.end
-    )
-    source_ids = [source.source_id for source in weather.provenance]
+def _signals(
+    weather: SourceResult[WeatherData],
+    bundle: GeoBundle,
+    crop: str,
+    analysis_date: date,
+    soil_category: KbwSoilCategory | None,
+    metrics: list[Metric],
+) -> list[Signal]:
+    weather_summaries = {
+        SourceStatus.OK: text.WEATHER_AVAILABLE,
+        SourceStatus.PARTIAL: text.WEATHER_COVERAGE_INCOMPLETE,
+        SourceStatus.MISSING: text.WEATHER_UNAVAILABLE,
+    }
+    ids = [source.source_id for source in weather.provenance]
+    soil_ids = [item.source_id for item in weather.provenance if item.url == open_meteo.ARCHIVE_URL]
     return [
-        Metric(code="precipitation", label_pl=text.PRECIPITATION_LABEL, value=precipitation, unit="mm", source_ids=source_ids),
-        Metric(
-            code="potential_evapotranspiration",
-            label_pl=text.ETP_LABEL,
-            # IUNG equation (1): ETP = precipitation - KBW (see evapotranspiration.py).
-            value=precipitation - assessment.kbw_mm,
-            unit="mm",
-            source_ids=source_ids,
+        Signal(code="weather", status=weather.status, summary_pl=weather_summaries[weather.status], metrics=metrics),
+        spi.assess(weather.data, analysis_date, ids),
+        soil_moisture.anomaly(weather.data, analysis_date, soil_ids),
+        vegetation_signal.interpret(
+            bundle.vegetation.data,
+            crop,
+            analysis_date,
+            soil_category=soil_category,
+            source_ids=[item.source_id for item in bundle.vegetation.provenance],
+            status=bundle.vegetation.status,
         ),
+        edo_signal.interpret(bundle.edo, analysis_date),
     ]
-
-
-def _causes(assessment: KbwResult, metrics: list[Metric]) -> list[Cause]:
-    # The sign of the physical water balance determines whether the weather inputs show a deficit.
-    if assessment.kbw_mm is None or assessment.kbw_mm >= 0 or not metrics:
-        return []
-    return [Cause(
-        code="meteorological_deficit",
-        title_pl=text.WEATHER_DEFICIT_TITLE,
-        explanation_pl=text.WEATHER_DEFICIT_EXPLANATION,
-        evidence=metrics,
-    )]
 
 
 async def run_analysis(req: AnalysisRequest, geo: GeoProvider, progress: Callable[[str], None]) -> Report:
@@ -66,11 +64,21 @@ async def run_analysis(req: AnalysisRequest, geo: GeoProvider, progress: Callabl
 
     progress(text.PROGRESS_ASSESSMENT)
     assessment = kbw.assess(weather.data, soil_category, req.crop_code, req.analysis_date)
-    history = await asyncio.to_thread(kbw.history, weather.data, soil_category, req.crop_code, req.analysis_date)
+    metrics = causes.weather_metrics(weather, assessment)
+    history, signals = await asyncio.gather(
+        asyncio.to_thread(kbw.history, weather.data, soil_category, req.crop_code, req.analysis_date),
+        asyncio.to_thread(_signals, weather, bundle, req.crop_code, req.analysis_date, soil_category, metrics),
+    )
+    historical_risk = vulnerability.assess(
+        history,
+        bundle.vegetation.data,
+        req.analysis_date,
+        weather_sources=[item.source_id for item in weather.provenance],
+        vegetation_sources=[item.source_id for item in bundle.vegetation.provenance],
+    )
+    context = AnalysisContext(req, parcel, crop, weather, bundle, assessment, history, metrics, signals, historical_risk)
 
     progress(text.PROGRESS_CAUSES)
-    metrics = _weather_metrics(weather, assessment)
-    causes = _causes(assessment, metrics)
-
+    context = replace(context, causes=causes.rank(context))
     progress(text.PROGRESS_REPORT)
-    return builder.build(AnalysisContext(req, parcel, crop, weather, bundle, assessment, history, metrics, causes))
+    return builder.build(context)

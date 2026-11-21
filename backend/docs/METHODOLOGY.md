@@ -34,3 +34,35 @@ flags a borderline result when the statutory threshold lies between the two bala
 primary balance equals it. The spread describes sensitivity to the ETP method. Official SMSR
 determinations use IUNG's own weather inputs and estimation methodology.
 [IUNG SMSR](https://susza.iung.pulawy.pl/system/).
+
+## Corroborating signals and causes
+
+SPI-1 and SPI-3 use complete months. A separate gamma distribution is fitted for each calendar
+month of the accumulation end within the 1991–2020 reference. Months with zero rainfall contribute
+an empirical probability mass. A shorter available reference gives an indicative result with its
+sample count. [McKee et al. (1993)](https://www.droughtmanagement.info/literature/AMS_Relationship_Drought_Frequency_Duration_Time_Scales_1993.pdf)
+and [WMO-No. 1090](https://www.droughtmanagement.info/literature/WMO_standardized_precipitation_index_user_guide_en_2012.pdf).
+
+Soil moisture uses the latest available ERA5-Land value at or before the selected date. It
+compares each layer against the same calendar day in the previous ten years. The 20th percentile
+from the European Climate Data Explorer soil drought product is used here as an indicative cutoff
+for daily layer values. The report gives the observation date and sample counts.
+[ECMWF European Climate Data Explorer](https://confluence.ecmwf.int/spaces/CKB/pages/453680707).
+
+The satellite signal computes a parcel VCI from the median NDVI in the current window and the
+minimum and maximum of the annual medians for comparable windows. Crop-sensitive dates use the
+statutory KBW windows as a proxy, since sowing, emergence and harvest dates are usually unknown.
+POLSA §6.3.4 describes phenological effects qualitatively. The numeric VCI interpretation uses
+the NOAA STAR experimental cutoffs as indicative values for the prototype's parcel-scale index.
+[FAO VCI definition](https://www.fao.org/giews/earthobservation/asis/index_2.jsp?lang=en),
+[POLSA handbook](https://polsa.gov.pl/wp-content/themes/polsa/files/Podrecznik.pdf#page=293) and
+[NOAA STAR VCI](https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_browseByCountry_province.php).
+
+Confidence uses two different forms of corroboration, modelled deep-layer soil moisture and
+satellite vegetation. ERA5-Land and ERA5 share atmospheric forcing, so this is a qualitative
+confidence level. SPI reuses the precipitation input and CDI combines several regional inputs.
+Both appear as context. The model-derived runoff and land-cover findings describe possible local
+contributors. The ranking places the strongest quantified weather departures first, followed by
+soil, runoff, surroundings and crop demand. Historical NDVI comparisons use completed April–August
+seasons, with sample counts for both sets of years.
+[Copernicus EDO CDI](https://drought.emergency.copernicus.eu/data/factsheets/factsheet_combinedDroughtIndicator_v4.pdf).

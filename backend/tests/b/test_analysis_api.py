@@ -95,6 +95,8 @@ def test_can_analyze_the_parcel_returned_by_map_click(monkeypatch):
     report = Report.model_validate(job["report"])
     assert report.parcel.parcel_id == parcel_id
     assert report.assessment.kbw.verdict == "drought"
+    assert {item.code for item in report.assessment.signals} == {"weather", "spi", "soil_moisture", "vegetation", "edo"}
+    assert report.assessment.confidence == "low"
     assert report.causes[0].evidence[0].value == 0
     assert report.assessment.vulnerability.drought_years == [ANALYSIS_DATE.year]
     assert report.irrigation.why_pl == text.IRRIGATION_UNAVAILABLE

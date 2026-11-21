@@ -11,7 +11,7 @@ from app.analytics.crops import Crop, Threshold
 from app.contracts.common import SourceResult
 from app.contracts.geo import GeoBundle, KbwSoilCategory
 from app.contracts.parcel import Parcel
-from app.contracts.report import Cause, Metric
+from app.contracts.report import Cause, Metric, Signal, Vulnerability
 
 KbwVerdict = Literal["drought", "no_drought", "not_applicable", "not_recommended", "off_season", "unavailable"]
 
@@ -86,4 +86,6 @@ class AnalysisContext:
     assessment: KbwResult
     history: KbwHistory
     weather_metrics: list[Metric]
-    causes: list[Cause]
+    signals: list[Signal]
+    vulnerability: Vulnerability
+    causes: list[Cause] = field(default_factory=list)
