@@ -178,7 +178,7 @@ def get_geo_provider() -> GeoProvider:
   Local integration of Part A `8a4099b` finished all 24 API scenarios on both passes.
   The eight first-lookups took 0.453–2.110 s; the 24 repeated analyses took 0.062–0.079 s.
   Timings include live geo access or its cache and the missing-weather path after the verified archive quota error.
-- [ ] Error paths: 422/404/503 with Polish messages; job timeout; every source `missing` → still a report.
+- [x] Error paths: 422/404/503 with Polish messages; job timeout; every source `missing` → still a report.
 
 ### CP5 — docs and release (→ 10:00)
 - [ ] `README.md` (9 mandatory points of the task §4.2), `METHODOLOGY.md`, `SCALABILITY.md`, `SECURITY.md`, `AI_USAGE.md`.

@@ -1,3 +1,4 @@
+from asyncio import Event
 from datetime import date, datetime, timedelta, timezone
 from http import HTTPStatus
 from time import monotonic, sleep
@@ -14,6 +15,7 @@ from app.contracts.common import Provenance, SourceResult, SourceStatus
 from app.contracts.errors import UpstreamUnavailable
 from app.contracts.report import Report
 from app.fakes.fake_geo import EXAMPLE_PARCEL_ID, EXAMPLE_POINT, FakeGeoProvider
+from app.fakes.geo_helpers import bundle_with_missing_sources
 from app.jobs.runner import ANALYSIS_TIMEOUT_S
 from app.main import app
 from app.recommendations import texts_pl as text
@@ -166,6 +168,18 @@ def test_reports_polish_errors_for_invalid_requests_and_missing_resources(monkey
         assert future.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
         assert future.json()["detail"] == text.ANALYSIS_DATE_RANGE
 
+        broken_request = client.post("/api/analyses", json={})
+        assert broken_request.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+        assert broken_request.json()["detail"] == text.API_INVALID_REQUEST
+
+        absent_parcel = client.get("/api/parcels/by-point", params={"lat": 0, "lon": 0})
+        assert absent_parcel.status_code == HTTPStatus.NOT_FOUND
+        assert absent_parcel.json()["detail"] == text.PARCEL_NOT_FOUND
+
+        absent_report = client.get("/api/reports/unknown")
+        assert absent_report.status_code == HTTPStatus.NOT_FOUND
+        assert absent_report.json()["detail"] == text.REPORT_NOT_FOUND
+
 
 def test_geo_outage_returns_service_unavailable(monkeypatch):
     class OfflineGeoProvider(FakeGeoProvider):
@@ -178,3 +192,56 @@ def test_geo_outage_returns_service_unavailable(monkeypatch):
 
     assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
     assert response.json()["detail"] == text.GEO_SERVICE_UNAVAILABLE
+
+
+def test_job_timeout_returns_polish_error_without_saving_a_report(monkeypatch):
+    class UnresponsiveGeoProvider(FakeGeoProvider):
+        async def find_parcels(self, query):
+            await Event().wait()
+
+    monkeypatch.setattr(routes_analyses, "analysis_today", lambda: TODAY)
+    monkeypatch.setitem(app.dependency_overrides, get_geo_provider, UnresponsiveGeoProvider)
+    with TestClient(app) as client:
+        # Use an immediate deadline to exercise cancellation without waiting the real budget.
+        app.state.analysis_runner.timeout_s = 0
+        started = client.post("/api/analyses", json=_request())
+        assert started.status_code == HTTPStatus.ACCEPTED
+        analysis_id = started.json()["analysis_id"]
+        job = _poll(client, analysis_id)
+        absent_pdf = client.get(f"/api/analyses/{analysis_id}/report.pdf")
+
+    assert job["status"] == "error"
+    assert job["error"] == text.ANALYSIS_TIMEOUT
+    assert job["report"] is None
+    assert absent_pdf.status_code == HTTPStatus.NOT_FOUND
+    assert absent_pdf.json()["detail"] == text.REPORT_NOT_FOUND
+
+
+def test_all_assessment_sources_missing_still_yields_saved_report(monkeypatch):
+    class MissingGeoSources(FakeGeoProvider):
+        async def collect(self, req):
+            return bundle_with_missing_sources(text.GEO_FIXTURE_UNAVAILABLE)
+
+    monkeypatch.setattr(routes_analyses, "analysis_today", lambda: TODAY)
+    monkeypatch.setitem(app.dependency_overrides, get_geo_provider, MissingGeoSources)
+    monkeypatch.setattr(open_meteo, "fetch_weather", AsyncMock(return_value=SourceResult[WeatherData](
+        status=SourceStatus.MISSING, notes_pl=[text.WEATHER_ARCHIVE_UNAVAILABLE],
+    )))
+
+    with TestClient(app) as client:
+        started = client.post("/api/analyses", json=_request())
+        assert started.status_code == HTTPStatus.ACCEPTED
+        job = _poll(client, started.json()["analysis_id"])
+        assert job["status"] == "done"
+        report = Report.model_validate(job["report"])
+        saved = client.get(f"/api/reports/{report.report_id}")
+
+    assert report.assessment.kbw.verdict == "unavailable"
+    assert all(signal.status is SourceStatus.MISSING for signal in report.assessment.signals)
+    assert {text.GEO_FIXTURE_UNAVAILABLE, text.WEATHER_ARCHIVE_UNAVAILABLE} <= set(report.limitations_pl)
+    assert report.data_sources == []
+    assert report.causes == []
+    assert report.recommendations == []
+    assert report.irrigation.net_dose_mm is None
+    assert saved.status_code == HTTPStatus.OK
+    assert saved.json() == job["report"]
