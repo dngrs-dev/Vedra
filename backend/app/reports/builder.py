@@ -9,6 +9,7 @@ from app.analytics.models import AnalysisContext
 from app.contracts.common import Provenance
 from app.contracts.geo import GeoBundle
 from app.contracts.report import Assessment, IrrigationAdvice, KbwAssessment, MapLayer, Reference, Report
+from app.recommendations import references
 from app.recommendations import texts_pl as text
 
 # The primary ETP and KBW equations are documented in docs/METHODOLOGY.md.
@@ -27,10 +28,12 @@ def _sources(ctx: AnalysisContext) -> list[Provenance]:
 def build(ctx: AnalysisContext) -> Report:
     confidence, limitations = uncertainty.assess(ctx)
     off_season = ctx.assessment.verdict == "off_season"
-    irrigation = None
-    if ctx.request.include_irrigation:
+    irrigation = ctx.irrigation
+    if irrigation is None and ctx.request.include_irrigation:
         explanation = text.IRRIGATION_OFF_SEASON if off_season else text.IRRIGATION_UNAVAILABLE
         irrigation = IrrigationAdvice(justified=None, why_pl=explanation)
+    ids = dict.fromkeys(reference for recommendation in ctx.recommendations for reference in recommendation.reference_ids)
+    recommendations_refs = [references.load()[reference_id] for reference_id in ids]
     return Report(
         report_id=str(uuid4()),
         parcel=ctx.parcel,
@@ -45,7 +48,12 @@ def build(ctx: AnalysisContext) -> Report:
             vulnerability=ctx.vulnerability,
         ),
         causes=ctx.causes,
-        map_layers=[MapLayer(id="parcel", name_pl=text.PARCEL_LAYER_NAME, geojson=ctx.parcel.geometry_wgs84)],
+        recommendations=ctx.recommendations,
+        map_layers=[
+            MapLayer(id="parcel", name_pl=text.PARCEL_LAYER_NAME, geojson=ctx.parcel.geometry_wgs84),
+            *(MapLayer(id=item.id, name_pl=item.title_pl, geojson=item.geometry)
+              for item in ctx.recommendations if item.geometry is not None),
+        ],
         irrigation=irrigation,
         limitations_pl=limitations,
         data_sources=_sources(ctx),
@@ -57,5 +65,6 @@ def build(ctx: AnalysisContext) -> Report:
                       url="https://www.droughtmanagement.info/literature/WMO_standardized_precipitation_index_user_guide_en_2012.pdf"),
             Reference(id="polsa_vegetation", title_pl=text.POLSA_REFERENCE_TITLE,
                       url="https://polsa.gov.pl/aktywnosci/obserwacja-ziemi/dane-satelitarne/"),
+            *recommendations_refs,
         ],
     )

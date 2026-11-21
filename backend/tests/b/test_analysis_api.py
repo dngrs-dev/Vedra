@@ -89,6 +89,7 @@ def test_can_analyze_the_parcel_returned_by_map_click(monkeypatch):
         text.PROGRESS_DATA,
         text.PROGRESS_ASSESSMENT,
         text.PROGRESS_CAUSES,
+        text.PROGRESS_RECOMMENDATIONS,
         text.PROGRESS_REPORT,
         text.PROGRESS_DONE,
     ]
@@ -99,6 +100,9 @@ def test_can_analyze_the_parcel_returned_by_map_click(monkeypatch):
     assert report.assessment.confidence == "low"
     assert report.causes[0].evidence[0].value == 0
     assert report.assessment.vulnerability.drought_years == [ANALYSIS_DATE.year]
+    assert [action.category for action in report.recommendations] == ["soil_retention", "soil_retention", "agrotechnics", "agrotechnics"]
+    source_ids = {reference.id for reference in report.references}
+    assert all(action.evidence and set(action.reference_ids) <= source_ids for action in report.recommendations)
     assert report.irrigation.why_pl == text.IRRIGATION_UNAVAILABLE
     assert {source.source_id for source in report.data_sources} == {"open_meteo_archive", "fake_geo"}
     fetch.assert_awaited_once_with(lat, lon, ANALYSIS_DATE)
@@ -141,6 +145,7 @@ def test_november_analysis_keeps_background_signals_without_a_current_drought_ve
     assert len(report.assessment.signals) >= 3  # Minimum report coverage in Part B §5.
     assert report.causes == []
     assert report.irrigation.why_pl == text.IRRIGATION_OFF_SEASON
+    assert report.recommendations[0].id == "plan_retention_before_season"
     assert text.OFF_SEASON_SIGNALS in report.limitations_pl
 
 

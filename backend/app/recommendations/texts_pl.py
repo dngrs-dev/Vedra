@@ -150,3 +150,54 @@ CAUSE_CROP = "Zapotrzebowanie uprawy na wodę w pełni rozwoju"
 CAUSE_CROP_WHY = "Według przyjętego profilu FAO rośliny w pełni rozwoju mogą zużywać więcej wody niż roślinność referencyjna."
 CAUSE_CROP_KC = "Dolna wartość współczynnika Kc w pełni rozwoju"
 CAUSE_CROP_PROFILE = "Profil uprawy użyty do interpretacji"
+PROGRESS_RECOMMENDATIONS = "Dobieranie zaleceń na podstawie oceny działki."
+KBW_LABEL = "Klimatyczny bilans wodny"
+RETENTION_HISTORY_YEARS = "Lata z bilansem poniżej progu suszy"
+RETENTION_SITE_LABEL = "Obiekt wyznaczony z rzeźby terenu"
+RETENTION_VOLUME = "Szacowana pojemność zagłębienia"
+RETENTION_AREA = "Powierzchnia zagłębienia"
+RETENTION_OUTSIDE_PARCEL = "Miejsce leży poza działką. Uzgodnij wizję z właścicielem terenu."
+RETENTION_SPOT_TEXTS = {
+    "depression": (
+        "Rozważ wykorzystanie naturalnego zagłębienia",
+        "Sprawdź w terenie, czy istniejące obniżenie może bezpiecznie zatrzymać wodę okresowo.",
+        "Model wysokościowy wskazuje zagłębienie, w którym może gromadzić się spływ.",
+        "nwrm",
+    ),
+    "flow_concentration": (
+        "Sprawdź miejsce skupionego spływu",
+        "Rozważ pas roślinności poprzeczny do kierunku spływu i sprawdź jego położenie w terenie.",
+        "Rzeźba terenu wskazuje skupienie odpływu, które pas roślinności może spowolnić.",
+        "buffer_strips",
+    ),
+    "ditch_outlet": (
+        "Sprawdź odpływ przy wylocie rowu",
+        "Skonsultuj z zarządcą rowu możliwość okresowego zatrzymania wody przy wylocie.",
+        "Wskazany wylot rowu jest miejscem możliwego odpływu wody z analizowanego terenu.",
+        "nwrm",
+    ),
+}
+RETENTION_DITCH_COUNT = "Liczba rowów przecinających granicę działki"
+RETENTION_DITCH_TITLE = "Sprawdź retencję w rowie przy działce"
+RETENTION_DITCH_ACTION = "Ustal z zarządcą rowu, czy warunki pozwalają spowolnić odpływ wody."
+RETENTION_DITCH_WHY = "Dane hydrologiczne wskazują rów przecinający granicę działki."
+RESIDUE_TITLE = "Zostaw resztki pożniwne na powierzchni"
+RESIDUE_ACTION = "Tam, gdzie płodozmian i stan sanitarny na to pozwalają, pozostaw okrywę z resztek roślinnych."
+RESIDUE_WHY = "Okrywa może zmniejszyć parowanie z gleby i ułatwić wsiąkanie wody opadowej."
+ORGANIC_MATTER_TITLE = "Zaplanuj odbudowę materii organicznej"
+ORGANIC_MATTER_ACTION = "Zbadaj zawartość materii organicznej i dostosuj do wyniku gospodarowanie resztkami oraz dobór upraw."
+ORGANIC_MATTER_WHY = "Gleba podatna na suszę może skorzystać na poprawie struktury i okrywy."
+COVER_CROP_TITLE = "Zaplanuj międzyplon w przerwie między uprawami"
+COVER_CROP_ACTION = "Dobierz międzyplon do płodozmianu i wilgotności gleby. W razie suszy uwzględnij jego zużycie wody."
+COVER_CROP_WHY = "Okrywa ogranicza erozję i wspiera infiltrację podczas okresu bez uprawy głównej."
+RECOMMENDATION_CROP = "Wybrana uprawa"
+TILLAGE_TITLE = "Sprawdź ograniczenie intensywności uprawy gleby"
+TILLAGE_ACTION = "Rozważ próbę płytszej lub rzadszej uprawy na części pola, dobierając ją do stanu gleby."
+TILLAGE_WHY = "Mniejsze naruszanie gleby w połączeniu z okrywą może poprawić strukturę i ograniczyć straty wody."
+OFF_SEASON_RETENTION_TITLE = "Przygotuj miejsca retencji przed sezonem"
+OFF_SEASON_RETENTION_ACTION = "Po opadach obejdź działkę i oznacz zagłębienia oraz miejsca wypływu wody."
+OFF_SEASON_RETENTION_WHY = "Rozpoznana podatność na niedobór wody uzasadnia sprawdzenie miejsc, w których można zatrzymać odpływ."
+IRRIGATION_NET_DOSE = "Szacowana dawka netto nawadniania"
+IRRIGATION_DATE = "Szacowany termin nawadniania"
+IRRIGATION_TITLE = "Rozważ opcjonalne nawadnianie"
+IRRIGATION_ACTION = "Przed zabiegiem potwierdź wilgotność gleby i dostępność wody."

@@ -12,6 +12,7 @@ from app.contracts.common import SourceResult, SourceStatus
 from app.contracts.errors import ParcelNotFound
 from app.contracts.geo import GeoBundle, GeoProvider, GeoRequest, KbwSoilCategory
 from app.contracts.report import Metric, Report, Signal
+from app.recommendations import engine
 from app.recommendations import texts_pl as text
 from app.reports import builder
 
@@ -80,5 +81,7 @@ async def run_analysis(req: AnalysisRequest, geo: GeoProvider, progress: Callabl
 
     progress(text.PROGRESS_CAUSES)
     context = replace(context, causes=causes.rank(context))
+    progress(text.PROGRESS_RECOMMENDATIONS)
+    context = replace(context, recommendations=engine.run(context))
     progress(text.PROGRESS_REPORT)
     return builder.build(context)

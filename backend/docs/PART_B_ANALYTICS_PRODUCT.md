@@ -167,7 +167,7 @@ def get_geo_provider() -> GeoProvider:
 - [x] `season.py` + off-season behaviour of every stage (jury may enter today's date — November).
 
 ### CP3 — recommendations and report (→ 03:00)
-- [ ] `recommendations/engine.py` + rules (landscape uses A's `retention_spots`, ditches; soil; agrotech; off-season); `texts_pl.py`.
+- [x] `recommendations/engine.py` + rules (landscape uses A's `retention_spots`, ditches; soil; agrotech; off-season); `texts_pl.py`.
 - [ ] `soil_water.py`, `water_balance.py`, `irrigation.py`.
 - [ ] `reports/charts.py`, `pdf.py`, templates; `storage/db.py`; `routes_reports.py`; PDF endpoint.
 
