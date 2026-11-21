@@ -160,7 +160,7 @@ def get_geo_provider() -> GeoProvider:
 ### CP1 — vertical slice (→ 19:00)
 - [x] `open_meteo.py` (+ verify variable names), `periods.py`, `evapotranspiration.py`, `kbw.py` (+ unit tests).
 - [x] `pipeline.py` with stages 1–2 minimal, `builder.py` minimal, `jobs/runner.py`, `routes_parcels.py`, `routes_analyses.py`.
-- [ ] First deploy (VPS + HTTPS) with `GEO_PROVIDER=fake`; switch to `fixtures`/`real` as soon as A pushes.
+- [x] Local HTTP smoke test with `GEO_PROVIDER=fake`. Public deployment is scheduled for the final CP5 task.
 
 ### CP2 — full assessment (→ 23:00)
 - [ ] `spi.py`, `soil_moisture.py`, `vegetation_signal.py`, `vulnerability.py`, `causes.py`, `uncertainty.py`.
@@ -179,7 +179,8 @@ def get_geo_provider() -> GeoProvider:
 ### CP5 — docs and release (→ 10:00)
 - [ ] `README.md` (9 mandatory points of the task §4.2), `METHODOLOGY.md`, `SCALABILITY.md`, `SECURITY.md`, `AI_USAGE.md`.
 - [ ] `scripts/b/generate_sample_reports.py` → `samples/reports/*.pdf`.
-- [ ] Final deploy with `GEO_PROVIDER=real`; smoke test from a clean browser.
+- [ ] Deploy the validated backend with `GEO_PROVIDER=real` over HTTPS and smoke-test it from a clean browser.
+  This is the final task. Earlier checkpoints run locally with `fake`, `fixtures`, or `real` as available.
 
 ---
 

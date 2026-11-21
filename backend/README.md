@@ -135,13 +135,17 @@ reaches the same job registry. Use `GEO_PROVIDER=fake` to exercise the flow with
 
 ---
 
-## 5. Running (planned)
+## 5. Running
 
-Docker (recommended, also on Windows — WeasyPrint needs GTK/Pango which the image contains):
+Docker from the repository root:
 
 ```bash
-docker compose up --build          # from the repository root; API on http://localhost:8000
+docker build -t vedra-backend backend
+docker run --rm -e GEO_PROVIDER=fake -p 127.0.0.1:8000:8000 vedra-backend
 ```
+
+The local API is available at `http://localhost:8000`. Build the `test` target with
+`docker build --target test backend` to run Part B's tests in the same container environment.
 
 Local (Linux / WSL2):
 
@@ -149,7 +153,7 @@ Local (Linux / WSL2):
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements/base.txt -r requirements/a-geo.txt -r requirements/b-app.txt
-uvicorn app.main:app --reload
+GEO_PROVIDER=fake uvicorn app.main:app --reload
 pytest
 ```
 
