@@ -155,7 +155,7 @@ Cache: `geo.uldk`, no expiry.
 
 ### CP3 — terrain, hydrology, land cover, static map (→ 03:00)
 - [x] `hydro.py` (MPHP + OSM fallback), `landcover.py`.
-- [ ] `dem.py`, `terrain.py` (+ unit test: artificial bowl with known volume; flat plane → no depressions).
+- [x] `dem.py`, `terrain.py` (+ unit test: artificial bowl with known volume; flat plane → no depressions).
 - [ ] `static_map.py` + `render_static_map`.
 - [ ] Re-record fixtures for all test parcels; push.
 

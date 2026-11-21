@@ -10,7 +10,7 @@ from app.contracts.common import SourceResult, SourceStatus
 from app.contracts.errors import InvalidParcelQuery, ParcelNotFound
 from app.contracts.geo import GeoBundle, GeoRequest
 from app.contracts.parcel import Parcel
-from app.geo import edo, hydro, imgw, landcover, soil, uldk, vegetation
+from app.geo import edo, hydro, imgw, landcover, soil, terrain, uldk, vegetation
 
 log = logging.getLogger(__name__)
 
@@ -18,9 +18,6 @@ log = logging.getLogger(__name__)
 # Our choice; CONTRACTS.md allows the deadline + 0.5 s.
 _INNER_MARGIN_S = 1.0
 
-_NOT_YET_PL = {
-    "terrain": "Analiza ukształtowania terenu (NMT) nie jest jeszcze dostępna w tej wersji prototypu.",
-}
 _FAILED_PL = "Źródło danych nie odpowiedziało poprawnie; wynik analizy nie uwzględnia tych danych."
 _TIMEOUT_PL = "Źródło danych nie odpowiedziało w wyznaczonym czasie; wynik analizy nie uwzględnia tych danych."
 
@@ -45,12 +42,6 @@ async def _guard(name: str, make: Callable[[float], Awaitable[SourceResult]], de
     return res
 
 
-def _not_yet(name: str) -> Callable[[float], Awaitable[SourceResult]]:
-    async def run(_budget: float) -> SourceResult:
-        return _missing(_NOT_YET_PL[name], f"{name}: not implemented yet")
-    return run
-
-
 class RealGeoProvider:
     async def find_parcels(self, query: str) -> list[Parcel]:
         q = uldk.parse_query(query)
@@ -71,11 +62,17 @@ class RealGeoProvider:
     async def collect(self, req: GeoRequest) -> GeoBundle:
         deadline = time.monotonic() + req.deadline_s
         parcel = req.parcel
+        # hydro runs once; terrain fetches its DEM in parallel and waits for hydro only before the analysis
+        hydro_task = asyncio.ensure_future(
+            _guard("hydro", lambda budget: hydro.water_features(parcel, req.hydro_buffer_m), deadline))
+
+        async def hydro_result(_budget: float) -> SourceResult:
+            return await asyncio.shield(hydro_task)
         sources: dict[str, Callable[[float], Awaitable[SourceResult]]] = {
             "soil": lambda budget: soil.soil_info(parcel, budget),
             "vegetation": lambda budget: vegetation.vegetation_data(parcel, req, budget),
-            "terrain": _not_yet("terrain"),
-            "hydro": lambda budget: hydro.water_features(parcel, req.hydro_buffer_m),
+            "terrain": lambda budget: terrain.terrain_data(parcel, hydro_task, budget),
+            "hydro": hydro_result,
             "landcover": lambda budget: landcover.landcover(parcel, req.hydro_buffer_m),
             "edo": lambda budget: edo.edo_signal(parcel.centroid_lat, parcel.centroid_lon, req.analysis_date),
             "imgw": lambda budget: imgw.imgw_context(parcel, req.analysis_date),

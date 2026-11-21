@@ -49,6 +49,13 @@ def _offline_sources(monkeypatch):
 
     monkeypatch.setattr(hydro, "water_features", two_arg_stub)
     monkeypatch.setattr(landcover, "landcover", two_arg_stub)
+    from app.geo import terrain
+
+    async def terrain_stub(p, hydro_task, budget):
+        await hydro_task                     # terrain waits for the shared hydro result
+        return SourceResult(status=SourceStatus.MISSING, notes_pl=["stub"])
+
+    monkeypatch.setattr(terrain, "terrain_data", terrain_stub)
 
 
 @pytest.mark.asyncio

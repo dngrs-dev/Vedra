@@ -189,6 +189,8 @@ copernicus_dem:
   url_template: "https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N{lat:02d}_00_E{lon:03d}_00_DEM/Copernicus_DSM_COG_10_N{lat:02d}_00_E{lon:03d}_00_DEM.tif"
   source: STAC item cop-dem-glo-30 (asset href s3://copernicus-dem-30m/...) ; https read spike 2026-11-21
   tile_naming_note: lat/lon = floor of the point's latitude/longitude (1 degree tiles, from the STAC item id)
+  model_type: DSM   # Copernicus DEM is a Digital Surface Model incl. buildings, infrastructure and vegetation
+                    # (Copernicus DEM product handbook, https://spacedata.copernicus.eu/collections/copernicus-digital-elevation-model)
   crs: EPSG:4326
   resolution: "1 arc-second (~30 m)"
   observed_latency_s: 0.5-31
