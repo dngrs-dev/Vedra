@@ -1,1 +1,2 @@
 PyYAML  # Parses the crop configuration described in docs/PART_B_ANALYTICS_PRODUCT.md.
+tzdata; platform_system == "Windows"  # Python zoneinfo needs an IANA time zone database on Windows.

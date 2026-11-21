@@ -1,12 +1,20 @@
 """Runtime configuration for the backend."""
 from __future__ import annotations
 
+from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from pydantic_settings import BaseSettings
 
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "config"
+# Analysis dates use the task's Polish civil time zone.
+ANALYSIS_TIMEZONE = "Europe/Warsaw"
+
+
+def analysis_today() -> date:
+    return datetime.now(ZoneInfo(ANALYSIS_TIMEZONE)).date()
 
 
 class Settings(BaseSettings):
