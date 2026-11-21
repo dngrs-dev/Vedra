@@ -95,7 +95,7 @@ wśród okresów z werdyktem liczbowym. Porównanie szczytów NDVI w latach z su
 suszy wykorzystuje zakończone sezony kwiecień–sierpień, z podaniem liczebności obu grup.
 Poza okresem od 21 marca do 30 września raport pokazuje osobny wynik poza sezonem,
 obserwacje opisowe i dostępną historię. Pierwszy okres monitoringu kończy się 20 maja.
-Jeżeli dla daty analizy brak wartości KBW, sekcja historyczna pokazuje ostatni okres
+Jeżeli dla daty analizy brak wartości KBW, karta KBW pokazuje osobno ostatni okres
 z dostępną oceną dla tej uprawy, wraz z datami i wartością bilansu. Aktualne przyczyny
 suszy i dawka nawadniania poza sezonem nie są wyznaczane.
 [Okresy z załącznika do rozporządzenia](https://eli.gov.pl/api/acts/DU/2019/739/text.pdf).

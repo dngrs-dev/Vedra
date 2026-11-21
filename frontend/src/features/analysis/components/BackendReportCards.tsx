@@ -15,9 +15,9 @@ function formatRange({ low, mid, high }: BackendRange): string {
     : number.format(mid);
 }
 
-function formatMetric({ code, value, unit }: BackendMetric): string {
+function formatMetric({ value, unit }: BackendMetric, format = number): string {
   if (value === null) return pl.moisture.noData;
-  const display = typeof value === 'number' ? (code === 'kbw_last_balance' ? balance : number).format(value)
+  const display = typeof value === 'number' ? format.format(value)
     : typeof value === 'string' ? value : formatRange(value);
   return unit ? `${display} ${unit}` : display;
 }
@@ -41,13 +41,16 @@ export function BackendReportCards({ report }: { report: BackendReport }) {
   const { assessment, causes, recommendations, irrigation, data_sources, limitations_pl, references } = report;
   const { kbw, confidence, signals, vulnerability } = assessment;
   const { backend: copy } = pl;
-  const waitingForPeriod = kbw.verdict === 'unavailable' && kbw.period === null;
   const showBalance = kbw.kbw_mm !== null || (kbw.period !== null && kbw.verdict === 'unavailable');
+  const { verdict } = kbw;
+  const historyMetrics = vulnerability?.metrics ?? [];
+  const lastPeriod = historyMetrics.find((metric) => metric.code === 'kbw_last_period');
+  const lastBalance = historyMetrics.find((metric) => metric.code === 'kbw_last_balance');
 
   return (
     <>
       <Card title={copy.kbw}>
-        <p><strong>{waitingForPeriod ? copy.firstKbwPeriod : copy.verdict[kbw.verdict]}</strong></p>
+        {(verdict === 'drought' || verdict === 'no_drought') && <p><strong>{copy.verdict[verdict]}</strong></p>}
         <p>{report.summary}</p>
         <p className="muted small">{copy.kbwDefinition}</p>
         <dl className="factors">
@@ -60,6 +63,15 @@ export function BackendReportCards({ report }: { report: BackendReport }) {
           )}
         </dl>
         {confidence && <ConfidenceBadge value={confidence} />}
+        {lastPeriod && lastBalance && (
+          <section className="kbw-latest">
+            <h3>{copy.lastKbwAssessment}</h3>
+            <dl className="factors">
+              <div><dt>{copy.period}</dt><dd>{formatMetric(lastPeriod)}</dd></div>
+              <div><dt>{copy.balance}</dt><dd>{formatMetric(lastBalance, balance)}</dd></div>
+            </dl>
+          </section>
+        )}
       </Card>
 
       {vulnerability && (
@@ -71,7 +83,9 @@ export function BackendReportCards({ report }: { report: BackendReport }) {
               <div><dt>{copy.droughtYears}</dt><dd>{vulnerability.drought_years.join(', ') || copy.noDroughtYears}</dd></div>
             </dl>
           )}
-          <Metrics items={vulnerability.metrics} />
+          <Metrics items={lastPeriod && lastBalance
+            ? historyMetrics.filter((metric) => metric !== lastPeriod && metric !== lastBalance)
+            : historyMetrics} />
         </Card>
       )}
 

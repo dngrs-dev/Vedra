@@ -25,6 +25,9 @@
   </dl>
 </header>
 <main>
+  {% set history_metrics = report.assessment.vulnerability.metrics if report.assessment.vulnerability else [] %}
+  {% set last_period = history_metrics | selectattr("code", "equalto", "kbw_last_period") | first %}
+  {% set last_balance = history_metrics | selectattr("code", "equalto", "kbw_last_balance") | first %}
   <section class="summary">
     <h2>Sytuacja wodna działki</h2>
     <p>{{ report.summary }}</p>
@@ -36,6 +39,13 @@
       {% if show_balance %}<div><dt>Klimatyczny bilans wodny</dt><dd>{{ kbw.kbw_mm | display_value }}{% if kbw.kbw_mm is not none %} mm{% endif %}</dd></div>{% endif %}
       {% if kbw.threshold_mm is number %}<div><dt>Próg dla uprawy i gleby</dt><dd>{{ kbw.threshold_mm | display_value }} mm</dd></div>{% endif %}
       {% if report.assessment.confidence %}<div><dt>Pewność oceny</dt><dd>{{ confidence_labels[report.assessment.confidence] }}</dd></div>{% endif %}
+    </dl>
+    {% endif %}
+    {% if last_period and last_balance %}
+    <h3>Ostatnia dostępna ocena KBW</h3>
+    <dl class="metrics">
+      <div><dt>Okres oceny</dt><dd>{{ last_period.value }}</dd></div>
+      <div><dt>Wynik</dt><dd>{{ last_balance.value | display_value }} {{ last_balance.unit }}</dd></div>
     </dl>
     {% endif %}
   </section>
@@ -54,7 +64,11 @@
     <h2>Podatność w poprzednich latach</h2>
     <p>{{ report.assessment.vulnerability.summary_pl }}</p>
     {% if chart_url %}<img class="visual" src="{{ chart_url }}" alt="Udział okresów z niedoborem wody według miesiąca">{% endif %}
-    {{ metrics(report.assessment.vulnerability.metrics) }}
+    {% if last_period and last_balance %}
+      {{ metrics(history_metrics | rejectattr("code", "in", ["kbw_last_period", "kbw_last_balance"]) | list) }}
+    {% else %}
+      {{ metrics(history_metrics) }}
+    {% endif %}
   </section>
   {% endif %}
   {% if report.causes %}

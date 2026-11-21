@@ -5,7 +5,7 @@ import { fmtDateTime } from '@/utils/format';
 
 export function Footer() {
   const navigate = useNavigate();
-  const { demo, jobs } = useAnalysis();
+  const { demo, jobs } = useAnalysis({ active: false });
   const reports = jobs.flatMap(({ report }) => report ? [report] : []);
   const parcel = reports[0]?.parcel;
   const region = demo.data?.region || parcel?.voivodeship || '—';

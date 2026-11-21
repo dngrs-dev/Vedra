@@ -111,14 +111,11 @@ export const pl = {
     preparing: 'Uruchamiam analizę…',
     kbw: 'Klimatyczny bilans wodny (KBW)',
     kbwDefinition: 'Bilans to różnica między opadem a szacowanym parowaniem gleby i roślin przy dostatecznej ilości wody.',
-    firstKbwPeriod: 'Przed pierwszą oceną KBW w sezonie',
+    lastKbwAssessment: 'Ostatnia dostępna ocena',
+    balance: 'Wynik',
     verdict: {
-      drought: 'Susza rolnicza według KBW',
-      no_drought: 'Brak suszy rolniczej według KBW',
-      not_applicable: 'Próg KBW nie ma zastosowania',
-      not_recommended: 'Uprawa niezalecana na tej glebie',
-      off_season: 'Poza okresem oceny KBW',
-      unavailable: 'Ocena KBW niedostępna'
+      drought: 'Susza rolnicza',
+      no_drought: 'Brak suszy rolniczej'
     },
     period: 'Okres oceny',
     soilCategory: 'Kategoria gleby',

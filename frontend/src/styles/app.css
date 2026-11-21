@@ -105,6 +105,8 @@ button { font: inherit; cursor: pointer; }
 .card--error { border-color: #e7b9b3; }
 .card__title { margin: 0 0 10px; font-size: 16px; font-weight: 700; line-height: 1.25; }
 .card__foot { margin-top: 10px; }
+.kbw-latest { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.kbw-latest h3 { margin: 0 0 6px; font-size: 14px; }
 .results { display: flex; flex-direction: column; gap: 12px; transition: opacity 0.2s; }
 .analysis-crop { margin: 0; font-size: 16px; }
 .backend-report + .backend-report { margin-top: 16px; }

@@ -56,7 +56,7 @@ Komponenty korzystają z API przez `services/` i hooki. `types/backendReport.ts`
 
 Uruchom aplikację z gałęzi `backend` na `127.0.0.1:8000` zgodnie z `backend/README.md`. Vite domyślnie przekazuje żądania `/api` na ten adres. Do lokalnej próby z `GEO_PROVIDER=fixtures` wybierz zapisaną działkę, np. `040704_2.0012.63/1` z datą `2023-05-31`. Do hostingu ustaw `VITE_API_URL` na publiczny adres zakończony `/api` lub skonfiguruj reverse proxy.
 
-Dla jednej potwierdzonej działki ewidencyjnej frontend przesyła `parcel_id`, `crop_code` i `analysis_date` do `POST /api/analyses`. Następnie odczytuje stan i raport przez `GET /api/analyses/{analysis_id}` oraz udostępnia plik z `GET /api/analyses/{analysis_id}/report.pdf`. Każda wybrana kategoria uprawy otrzymuje osobny raport. Przypisanie opcji formularza do kategorii backendu znajduje się w `src/constants/crops.ts`.
+Dla jednej potwierdzonej działki ewidencyjnej frontend przesyła `parcel_id`, `crop_code` i `analysis_date` do `POST /api/analyses`. Po przyjęciu zadania odczytuje jego stan przez `GET /api/analyses/{analysis_id}` co dwie sekundy. Po zakończeniu używa odebranego raportu i udostępnia plik z `GET /api/analyses/{analysis_id}/report.pdf`. Każda wybrana kategoria uprawy otrzymuje osobny raport. Przypisanie opcji formularza do kategorii backendu znajduje się w `src/constants/crops.ts`.
 
 Grupy działek, własne obszary i zastępcze obrysy demo korzystają z jawnie oznaczonych danych demonstracyjnych. `VITE_USE_MOCK=true` uruchamia tryb demo dla każdego wyboru. Błąd analizy działki ewidencyjnej jest widoczny w panelu i można ponowić próbę.
 

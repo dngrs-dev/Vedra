@@ -7,10 +7,10 @@ import { mockAnalyze } from '@/services/mockAnalysis';
 import { isParcelId } from '@/utils/validation';
 import { useAnalysisStore } from '../store';
 
-// Poll once per second during the 30-second job budget in backend/README.md.
-const POLL_INTERVAL_MS = 1_000;
+// Two-second refresh cadence for the 30-second job budget in backend/README.md.
+const POLL_INTERVAL_MS = 2_000;
 
-export function useAnalysis() {
+export function useAnalysis({ active = true }: { active?: boolean } = {}) {
   const confirmed = useAnalysisStore((s) => s.confirmed);
   const cropIds = useAnalysisStore((s) => s.cropIds);
   const date = useAnalysisStore((s) => s.date);
@@ -30,7 +30,7 @@ export function useAnalysis() {
         date
       }, signal);
     },
-    enabled: demoMode && confirmed !== null && cropIds.length > 0,
+    enabled: active && demoMode && confirmed !== null && cropIds.length > 0,
     staleTime: Infinity,
     retry: false
   });
@@ -50,6 +50,7 @@ export function useAnalysis() {
       queryKey: ['analysis-job', parcelId, code, date],
       // A POST may have succeeded when its response is interrupted. Only an explicit retry submits again.
       queryFn: () => startAnalysis(parcelId!, code, date),
+      enabled: active,
       staleTime: Infinity,
       retry: false,
       retryOnMount: false,
@@ -63,12 +64,12 @@ export function useAnalysis() {
       return queryOptions({
         queryKey: ['analysis-status', code, analysisId],
         queryFn: ({ signal }) => getAnalysisStatus(analysisId!, signal),
-        enabled: analysisId !== undefined,
+        enabled: active && analysisId !== undefined,
         staleTime: Infinity,
         retry: 1,
         refetchInterval: (query) => {
           const status = query.state.data?.status;
-          return query.state.status === 'error' || status === 'done' || status === 'error'
+          return !active || query.state.status === 'error' || status === 'done' || status === 'error'
             ? false
             : POLL_INTERVAL_MS;
         }
