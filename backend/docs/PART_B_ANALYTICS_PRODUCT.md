@@ -100,7 +100,7 @@ def get_geo_provider() -> GeoProvider:
 ### `open_meteo.py`
 | Function | Spec |
 | --- | --- |
-| `async fetch_weather(lat, lon, analysis_date) -> SourceResult[WeatherData]` | One archive call `1991-01-01 … analysis_date` (daily: precipitation_sum, et0_fao_evapotranspiration, temperature_2m_mean/max/min, sunshine_duration, daylight_duration; hourly: soil_moisture_0_to_7cm, 7_to_28cm, 28_to_100cm → aggregate to daily). If `analysis_date` > today − 5 days: fill the gap from the forecast API with `past_days`. Verify variable names in the spike. Truncate to ≤ `analysis_date`. Cache `an.openmeteo` per 0.1° cell + date. |
+| `async fetch_weather(lat, lon, analysis_date) -> SourceResult[WeatherData]` | Keep a complete daily ERA5-Seamless archive from `1991-01-01` in `an.openmeteo` per 0.1° cell. Request only missing dates and use Open-Meteo's daily soil-moisture means. If `analysis_date` > today − 5 days, fill the gap from the forecast API with `past_days`. Truncate to ≤ `analysis_date` and keep cached days if a refresh is limited. [Methodology](METHODOLOGY.md#dane-pogodowe). |
 | `async fetch_forecast(lat, lon) -> SourceResult[Forecast]` | 7 days; only called when `analysis_date == today`. |
 
 ### `crops.py`, `periods.py`, `evapotranspiration.py`, `kbw.py`

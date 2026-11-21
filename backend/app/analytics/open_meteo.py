@@ -4,10 +4,12 @@ from __future__ import annotations
 import asyncio
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
-from itertools import groupby
+from email.utils import parsedate_to_datetime
 from math import isfinite
-from statistics import mean
 from time import monotonic
+from weakref import WeakValueDictionary
+
+import httpx
 
 from app.analytics.models import Forecast, WeatherData, WeatherDay
 from app.config import ANALYSIS_TIMEZONE, analysis_today
@@ -21,11 +23,12 @@ ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 ARCHIVE_MODEL = "era5_seamless"
 ARCHIVE_LAG = timedelta(days=5)
 ARCHIVE_RESOLUTION = "0,25° (ERA5), 0,1° (ERA5-Land)"
-SOIL_VARIABLES = (
-    "soil_moisture_0_to_7cm",
-    "soil_moisture_7_to_28cm",
-    "soil_moisture_28_to_100cm",
-)
+# https://github.com/open-meteo/open-meteo/blob/main/openapi/historical-weather.yml documents these daily means.
+DAILY_SOIL_VARIABLES = {
+    "soil_moisture_0_to_7cm_mean": "soil_moisture_0_to_7cm",
+    "soil_moisture_7_to_28cm_mean": "soil_moisture_7_to_28cm",
+    "soil_moisture_28_to_100cm_mean": "soil_moisture_28_to_100cm",
+}
 # Forecast API: https://open-meteo.com/en/docs
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 FORECAST_DAYS = 7
@@ -50,6 +53,9 @@ REQUEST_TIMEOUT_S = 10.0
 # Data licence: https://open-meteo.com/en/license
 LICENCE = "CC BY 4.0"
 
+_archive_locks: WeakValueDictionary[tuple[float, float], asyncio.Lock] = WeakValueDictionary()
+_archive_retry_at = 0.0
+
 
 def _value(column: list | None, index: int) -> float | None:
     if column is None or index >= len(column):
@@ -58,40 +64,42 @@ def _value(column: list | None, index: int) -> float | None:
     return float(value) if isinstance(value, (int, float)) and isfinite(value) else None
 
 
-def _soil_means(hourly: dict, start: date, end: date) -> dict[date, dict[str, float | None]]:
-    result = {}
-    timestamps = hourly.get("time", [])
-    for timestamp, positions in groupby(range(len(timestamps)), key=lambda idx: timestamps[idx].partition("T")[0]):
-        day = date.fromisoformat(timestamp)
-        if not start <= day <= end:
-            continue
-        indices = list(positions)
-        means: dict[str, float | None] = {}
-        for variable in SOIL_VARIABLES:
-            values = [_value(hourly.get(variable), index) for index in indices]
-            means[variable] = mean(values) if all(value is not None for value in values) else None
-        result[day] = means
-    return result
-
-
-def _decode(payload: dict, start: date, end: date, lat: float, lon: float) -> WeatherData:
+def _decode(
+    payload: dict, start: date, end: date, lat: float, lon: float, variables: dict[str, str]
+) -> WeatherData:
     daily = payload["daily"]
-    soil_by_day = _soil_means(payload.get("hourly", {}), start, end)
     days: dict[date, WeatherDay] = {}
     for index, timestamp in enumerate(daily["time"]):
         day = date.fromisoformat(timestamp)
         if not start <= day <= end:
             continue
         fields = {}
-        for variable, target in DAILY_VARIABLES.items():
+        for variable, target in variables.items():
             value = _value(daily.get(variable), index)
             if value is not None and variable in HOUR_VARIABLES:
                 value /= SECONDS_PER_HOUR
             fields[target] = value
-        soil = soil_by_day.get(day, {})
-        if any(value is not None for value in (*fields.values(), *soil.values())):
-            days[day] = WeatherDay(**fields, **soil)
+        if any(value is not None for value in fields.values()):
+            days[day] = WeatherDay(**fields)
     return WeatherData(lat, lon, dict(sorted(days.items())))
+
+
+def _archive_rate_limited(exc: Exception) -> bool:
+    global _archive_retry_at
+
+    # RFC 6585 §4 (429) and RFC 9110 §10.2.3 (Retry-After).
+    cause = exc.__cause__
+    if not isinstance(cause, httpx.HTTPStatusError) or cause.response.status_code != 429:
+        return False
+    retry_after = cause.response.headers.get("Retry-After", "")
+    try:
+        wait = int(retry_after) if retry_after.isascii() and retry_after.isdigit() else (
+            parsedate_to_datetime(retry_after).timestamp() - datetime.now(timezone.utc).timestamp()
+        )
+        _archive_retry_at = max(_archive_retry_at, monotonic() + wait)
+    except (ValueError, OverflowError, OSError):
+        pass
+    return True
 
 
 async def _fetch(
@@ -99,13 +107,18 @@ async def _fetch(
 ) -> SourceResult[WeatherData]:
     started = monotonic()
     unavailable = text.WEATHER_ARCHIVE_UNAVAILABLE if archive else text.WEATHER_FORECAST_UNAVAILABLE
-    params = {"latitude": lat, "longitude": lon, "timezone": ANALYSIS_TIMEZONE, "daily": ",".join(DAILY_VARIABLES)}
+    if archive and started < _archive_retry_at:
+        return SourceResult[WeatherData](status=SourceStatus.MISSING, notes_pl=[text.WEATHER_ARCHIVE_RATE_LIMITED])
+    variables = DAILY_VARIABLES | DAILY_SOIL_VARIABLES if archive else DAILY_VARIABLES
+    params = {"latitude": lat, "longitude": lon, "timezone": ANALYSIS_TIMEZONE, "daily": ",".join(variables)}
     params.update(query)
     try:
         response = await http.get(url, params=params, timeout=REQUEST_TIMEOUT_S, retries=0)
         stamp = datetime.now(timezone.utc)
-        data = await asyncio.to_thread(lambda: _decode(response.json(), start, end, lat, lon))
+        data = await asyncio.to_thread(lambda: _decode(response.json(), start, end, lat, lon, variables))
     except (UpstreamUnavailable, KeyError, ValueError, TypeError, AttributeError) as exc:
+        if archive and _archive_rate_limited(exc):
+            unavailable = text.WEATHER_ARCHIVE_RATE_LIMITED
         return SourceResult[WeatherData](
             status=SourceStatus.MISSING, notes_pl=[unavailable], error=str(exc), elapsed_s=monotonic() - started
         )
@@ -114,9 +127,8 @@ async def _fetch(
             status=SourceStatus.MISSING, notes_pl=[unavailable], elapsed_s=monotonic() - started
         )
 
-    fields = (*DAILY_VARIABLES.values(), *SOIL_VARIABLES) if archive else tuple(DAILY_VARIABLES.values())
     complete = len(data.days) == (end - start).days + 1 and all(
-        getattr(row, field) is not None for row in data.days.values() for field in fields
+        getattr(row, field) is not None for row in data.days.values() for field in variables.values()
     )
     provenance = Provenance(
         source_id="open_meteo_archive" if archive else "open_meteo_forecast",
@@ -138,28 +150,64 @@ async def _fetch(
     )
 
 
-async def _archive(lat: float, lon: float, end: date) -> SourceResult[WeatherData]:
-    started = monotonic()
-    key = cache.make_key(CACHE_NAMESPACE, lat=lat, lon=lon, end=end)
+async def _extend_archive(lat: float, lon: float, end: date, started: float) -> SourceResult[WeatherData]:
+    # Keep a complete prefix per cell. Import a complete old per-date entry on first use when available.
+    key = cache.make_key(CACHE_NAMESPACE, lat=lat, lon=lon, aggregation="daily")
     cached = await asyncio.to_thread(cache.get, key)
-    if isinstance(cached, SourceResult) and cached.data is not None:
-        return cached.model_copy(update={
-            "provenance": [item.model_copy(update={"live": False}) for item in cached.provenance],
-            "elapsed_s": monotonic() - started,
-        })
+    if cached is None:
+        legacy_key = cache.make_key(CACHE_NAMESPACE, lat=lat, lon=lon, end=end)
+        cached = await asyncio.to_thread(cache.get, legacy_key)
+        if isinstance(cached, SourceResult) and cached.status is SourceStatus.OK and cached.data is not None:
+            await asyncio.to_thread(cache.set, key, cached)
+    previous_days: dict[date, WeatherDay] = {}
+    previous_provenance: list[Provenance] = []
+    if isinstance(cached, SourceResult) and cached.data is not None and cached.provenance:
+        previous_days = {day: row for day, row in cached.data.days.items() if day <= end}
+        if previous_days:
+            previous_provenance = [cached.provenance[0].model_copy(update={
+                "live": False,
+                "data_period": f"{min(previous_days).isoformat()}..{max(previous_days).isoformat()}",
+            })]
+        if end in previous_days:
+            return SourceResult[WeatherData](
+                status=SourceStatus.OK, data=WeatherData(lat, lon, previous_days),
+                provenance=previous_provenance, elapsed_s=monotonic() - started,
+            )
 
+    start = max(previous_days) + timedelta(days=1) if previous_days else ARCHIVE_START
     result = await _fetch(
         ARCHIVE_URL,
         lat=lat,
         lon=lon,
-        start=ARCHIVE_START,
+        start=start,
         end=end,
-        query={"start_date": ARCHIVE_START, "end_date": end, "models": ARCHIVE_MODEL, "hourly": ",".join(SOIL_VARIABLES)},
+        query={"start_date": start, "end_date": end, "models": ARCHIVE_MODEL},
         archive=True,
     )
+    days = {**previous_days, **(result.data.days if result.data is not None else {})}
     if result.status is SourceStatus.OK:
-        await asyncio.to_thread(cache.set, key, result)
-    return result
+        snapshot = result.model_copy(update={
+            "data": WeatherData(lat, lon, days),
+            "provenance": [result.provenance[0].model_copy(update={
+                "data_period": f"{ARCHIVE_START.isoformat()}..{end.isoformat()}",
+            })],
+        })
+        await asyncio.to_thread(cache.set, key, snapshot)
+    if not previous_days:
+        return result
+    return result.model_copy(update={
+        "status": SourceStatus.OK if result.status is SourceStatus.OK else SourceStatus.PARTIAL,
+        "data": WeatherData(lat, lon, days),
+        "provenance": [*previous_provenance, *result.provenance],
+        "elapsed_s": monotonic() - started,
+    })
+
+
+async def _archive(lat: float, lon: float, end: date) -> SourceResult[WeatherData]:
+    started = monotonic()
+    lock = _archive_locks.setdefault((lat, lon), asyncio.Lock())
+    async with lock:
+        return await _extend_archive(lat, lon, end, started)
 
 
 async def fetch_weather(lat: float, lon: float, analysis_date: date) -> SourceResult[WeatherData]:

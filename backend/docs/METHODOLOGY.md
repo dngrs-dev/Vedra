@@ -2,9 +2,11 @@
 
 ## Dane pogodowe
 
-Seria Open-Meteo ERA5-Seamless zaczyna się 1 stycznia 1991 r. Backend buforuje kompletne
-archiwum według komórki 0,1° i daty końcowej. Średnia z godzinowych wartości wilgotności
-gleby dotyczy doby w polskiej strefie czasowej. Długość dnia i usłonecznienie są przeliczane
+Seria Open-Meteo ERA5-Seamless w aplikacji zaczyna się 1 stycznia 1991 r. Backend zachowuje
+kompletne dane w komórce 0,1° i przy późniejszej analizie pobiera tylko brakujące dni.
+Wilgotność gleby pochodzi z gotowych średnich dobowych Open-Meteo dla polskiej strefy
+czasowej. Przy ograniczeniu HTTP 429 backend respektuje wskazany czas ponowienia
+i nadal wykorzystuje dostępne dni z pamięci podręcznej. Długość dnia i usłonecznienie są przeliczane
 z sekund na godziny. Bieżący model pogodowy uzupełnia dni oczekujące na publikację
 archiwum, z wyjątkiem wilgotności gleby. Obliczenia używają wyłącznie danych do daty
 analizy. Prognoza na kolejne dni jest osobnym wejściem dla bieżącej oceny nawadniania.
