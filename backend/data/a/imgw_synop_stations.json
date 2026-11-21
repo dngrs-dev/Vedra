@@ -1,0 +1,540 @@
+{
+ "stations": [
+  {
+   "id_stacji": "12295",
+   "stacja": "Białystok",
+   "lat": 53.107222,
+   "lon": 23.162222,
+   "meteo_kod_stacji": "353230295",
+   "meteo_nazwa_stacji": "BIAŁYSTOK",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12600",
+   "stacja": "Bielsko Biała",
+   "lat": 49.806667,
+   "lon": 19.002222,
+   "meteo_kod_stacji": "349190600",
+   "meteo_nazwa_stacji": "BIELSKO-BIAŁA",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12235",
+   "stacja": "Chojnice",
+   "lat": 53.715278,
+   "lon": 17.5325,
+   "meteo_kod_stacji": "353170235",
+   "meteo_nazwa_stacji": "CHOJNICE",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12550",
+   "stacja": "Częstochowa",
+   "lat": 50.811944,
+   "lon": 19.091667,
+   "meteo_kod_stacji": "350190550",
+   "meteo_nazwa_stacji": "CZĘSTOCHOWA",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12160",
+   "stacja": "Elbląg",
+   "lat": 54.161944,
+   "lon": 19.431389,
+   "meteo_kod_stacji": "254190190",
+   "meteo_nazwa_stacji": "ELBLĄG",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12300",
+   "stacja": "Gorzów",
+   "lat": 52.741111,
+   "lon": 15.277222,
+   "meteo_kod_stacji": "352150300",
+   "meteo_nazwa_stacji": "GORZÓW WIELKOPOLSKI",
+   "method": "name_prefix"
+  },
+  {
+   "id_stacji": "12135",
+   "stacja": "Hel",
+   "lat": 54.603611,
+   "lon": 18.811944,
+   "meteo_kod_stacji": "354180135",
+   "meteo_nazwa_stacji": "HEL",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12500",
+   "stacja": "Jelenia Góra",
+   "lat": 50.900278,
+   "lon": 15.788889,
+   "meteo_kod_stacji": "350150500",
+   "meteo_nazwa_stacji": "JELENIA GÓRA",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12435",
+   "stacja": "Kalisz",
+   "lat": 51.781111,
+   "lon": 18.080833,
+   "meteo_kod_stacji": "351180435",
+   "meteo_nazwa_stacji": "KALISZ",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12650",
+   "stacja": "Kasprowy Wierch",
+   "lat": 49.2325,
+   "lon": 19.981944,
+   "meteo_kod_stacji": "349190650",
+   "meteo_nazwa_stacji": "KASPROWY WIERCH",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12185",
+   "stacja": "Kętrzyn",
+   "lat": 54.067222,
+   "lon": 21.366667,
+   "meteo_kod_stacji": "354210185",
+   "meteo_nazwa_stacji": "KĘTRZYN",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12570",
+   "stacja": "Kielce",
+   "lat": 50.810556,
+   "lon": 20.692222,
+   "meteo_kod_stacji": "350200570",
+   "meteo_nazwa_stacji": "KIELCE-SUKÓW",
+   "method": "name_prefix"
+  },
+  {
+   "id_stacji": "12520",
+   "stacja": "Kłodzko",
+   "lat": 50.436944,
+   "lon": 16.614167,
+   "meteo_kod_stacji": "350160520",
+   "meteo_nazwa_stacji": "KŁODZKO",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12345",
+   "stacja": "Koło",
+   "lat": 52.361944,
+   "lon": 18.706111,
+   "meteo_kod_stacji": "352180345",
+   "meteo_nazwa_stacji": "KOŁO-RADOSZEWICE",
+   "method": "name_prefix"
+  },
+  {
+   "id_stacji": "12100",
+   "stacja": "Kołobrzeg",
+   "lat": 54.158333,
+   "lon": 15.388889,
+   "meteo_kod_stacji": "354150100",
+   "meteo_nazwa_stacji": "KOŁOBRZEG-DŹWIRZYNO",
+   "method": "name_prefix"
+  },
+  {
+   "id_stacji": "12105",
+   "stacja": "Koszalin",
+   "lat": 54.204444,
+   "lon": 16.155278,
+   "meteo_kod_stacji": "354160105",
+   "meteo_nazwa_stacji": "KOSZALIN",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12488",
+   "stacja": "Kozienice",
+   "lat": 51.564722,
+   "lon": 21.543611,
+   "meteo_kod_stacji": "351210488",
+   "meteo_nazwa_stacji": "KOZIENICE",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12670",
+   "stacja": "Krosno",
+   "lat": 49.706667,
+   "lon": 21.769167,
+   "meteo_kod_stacji": "349210670",
+   "meteo_nazwa_stacji": "KROSNO",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12415",
+   "stacja": "Legnica",
+   "lat": 51.1925,
+   "lon": 16.207778,
+   "meteo_kod_stacji": "351160415",
+   "meteo_nazwa_stacji": "LEGNICA",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12690",
+   "stacja": "Lesko",
+   "lat": 49.466389,
+   "lon": 22.341667,
+   "meteo_kod_stacji": "349220690",
+   "meteo_nazwa_stacji": "LESKO",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12418",
+   "stacja": "Leszno",
+   "lat": 51.835556,
+   "lon": 16.534722,
+   "meteo_kod_stacji": "351160418",
+   "meteo_nazwa_stacji": "LESZNO",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12125",
+   "stacja": "Lębork",
+   "lat": 54.553056,
+   "lon": 17.756944,
+   "meteo_kod_stacji": "354170125",
+   "meteo_nazwa_stacji": "LĘBORK",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12495",
+   "stacja": "Lublin",
+   "lat": 51.216667,
+   "lon": 22.393056,
+   "meteo_kod_stacji": "351220495",
+   "meteo_nazwa_stacji": "LUBLIN-RADAWIEC",
+   "method": "name_prefix"
+  },
+  {
+   "id_stacji": "12120",
+   "stacja": "Łeba",
+   "lat": 54.753611,
+   "lon": 17.534722,
+   "meteo_kod_stacji": "354170120",
+   "meteo_nazwa_stacji": "ŁEBA",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12465",
+   "stacja": "Łódź",
+   "lat": 51.718333,
+   "lon": 19.387222,
+   "meteo_kod_stacji": "351190465",
+   "meteo_nazwa_stacji": "ŁÓDŹ-LUBLINEK",
+   "method": "name_prefix"
+  },
+  {
+   "id_stacji": "12280",
+   "stacja": "Mikołajki",
+   "lat": 53.789167,
+   "lon": 21.589722,
+   "meteo_kod_stacji": "353210280",
+   "meteo_nazwa_stacji": "MIKOŁAJKI",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12270",
+   "stacja": "Mława",
+   "lat": 53.104167,
+   "lon": 20.361111,
+   "meteo_kod_stacji": "353200270",
+   "meteo_nazwa_stacji": "MŁAWA",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12660",
+   "stacja": "Nowy Sącz",
+   "lat": 49.627222,
+   "lon": 20.688611,
+   "meteo_kod_stacji": "349200660",
+   "meteo_nazwa_stacji": "NOWY SĄCZ",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12272",
+   "stacja": "Olsztyn",
+   "lat": 53.768611,
+   "lon": 20.421389,
+   "meteo_kod_stacji": "353200272",
+   "meteo_nazwa_stacji": "OLSZTYN",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12530",
+   "stacja": "Opole",
+   "lat": 50.626944,
+   "lon": 17.968889,
+   "meteo_kod_stacji": "350170530",
+   "meteo_nazwa_stacji": "OPOLE",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12285",
+   "stacja": "Ostrołęka",
+   "lat": 53.065833,
+   "lon": 21.533889,
+   "meteo_kod_stacji": "353210285",
+   "meteo_nazwa_stacji": "OSTROŁĘKA",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12230",
+   "stacja": "Piła",
+   "lat": 53.130556,
+   "lon": 16.747222,
+   "meteo_kod_stacji": "353160230",
+   "meteo_nazwa_stacji": "PIŁA",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12360",
+   "stacja": "Płock",
+   "lat": 52.588333,
+   "lon": 19.725833,
+   "meteo_kod_stacji": "352190360",
+   "meteo_nazwa_stacji": "PŁOCK",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12330",
+   "stacja": "Poznań",
+   "lat": 52.416667,
+   "lon": 16.834722,
+   "meteo_kod_stacji": "352160330",
+   "meteo_nazwa_stacji": "POZNAŃ-ŁAWICA",
+   "method": "name_prefix"
+  },
+  {
+   "id_stacji": "12695",
+   "stacja": "Przemyśl",
+   "lat": 49.804167,
+   "lon": 22.771944,
+   "meteo_kod_stacji": "349220695",
+   "meteo_nazwa_stacji": "PRZEMYŚL",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12540",
+   "stacja": "Racibórz",
+   "lat": 50.061111,
+   "lon": 18.190833,
+   "meteo_kod_stacji": "350180540",
+   "meteo_nazwa_stacji": "RACIBÓRZ",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12210",
+   "stacja": "Resko",
+   "lat": 53.763611,
+   "lon": 15.393333,
+   "meteo_kod_stacji": "353150210",
+   "meteo_nazwa_stacji": "RESKO-SMÓLSKO",
+   "method": "name_prefix"
+  },
+  {
+   "id_stacji": "12580",
+   "stacja": "Rzeszów",
+   "lat": 50.110833,
+   "lon": 22.042222,
+   "meteo_kod_stacji": "350220580",
+   "meteo_nazwa_stacji": "RZESZÓW-JASIONKA",
+   "method": "name_prefix"
+  },
+  {
+   "id_stacji": "12585",
+   "stacja": "Sandomierz",
+   "lat": 50.696667,
+   "lon": 21.715833,
+   "meteo_kod_stacji": "350210585",
+   "meteo_nazwa_stacji": "SANDOMIERZ",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12385",
+   "stacja": "Siedlce",
+   "lat": 52.181111,
+   "lon": 22.244722,
+   "meteo_kod_stacji": "352220385",
+   "meteo_nazwa_stacji": "SIEDLCE",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12310",
+   "stacja": "Słubice",
+   "lat": 52.348611,
+   "lon": 14.619722,
+   "meteo_kod_stacji": "352140310",
+   "meteo_nazwa_stacji": "SŁUBICE",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12469",
+   "stacja": "Sulejów",
+   "lat": 51.353333,
+   "lon": 19.866389,
+   "meteo_kod_stacji": "351190469",
+   "meteo_nazwa_stacji": "SULEJÓW",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12195",
+   "stacja": "Suwałki",
+   "lat": 54.130833,
+   "lon": 22.948889,
+   "meteo_kod_stacji": "354220195",
+   "meteo_nazwa_stacji": "SUWAŁKI",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12205",
+   "stacja": "Szczecin",
+   "lat": 53.395278,
+   "lon": 14.622778,
+   "meteo_kod_stacji": "353140205",
+   "meteo_nazwa_stacji": "SZCZECIN",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12215",
+   "stacja": "Szczecinek",
+   "lat": 53.717778,
+   "lon": 16.746667,
+   "meteo_kod_stacji": "353160215",
+   "meteo_nazwa_stacji": "SZCZECINEK",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12510",
+   "stacja": "Śnieżka",
+   "lat": 50.736389,
+   "lon": 15.739722,
+   "meteo_kod_stacji": "350150510",
+   "meteo_nazwa_stacji": "ŚNIEŻKA",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12200",
+   "stacja": "Świnoujście",
+   "lat": 53.923333,
+   "lon": 14.242222,
+   "meteo_kod_stacji": "353140200",
+   "meteo_nazwa_stacji": "ŚWINOUJŚCIE",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12399",
+   "stacja": "Terespol",
+   "lat": 52.078611,
+   "lon": 23.621944,
+   "meteo_kod_stacji": "352230399",
+   "meteo_nazwa_stacji": "TERESPOL",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12250",
+   "stacja": "Toruń",
+   "lat": 53.041944,
+   "lon": 18.595556,
+   "meteo_kod_stacji": "353180250",
+   "meteo_nazwa_stacji": "TORUŃ",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12115",
+   "stacja": "Ustka",
+   "lat": 54.588333,
+   "lon": 16.854167,
+   "meteo_kod_stacji": "354160115",
+   "meteo_nazwa_stacji": "USTKA",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12455",
+   "stacja": "Wieluń",
+   "lat": 51.210278,
+   "lon": 18.556667,
+   "meteo_kod_stacji": "351180455",
+   "meteo_nazwa_stacji": "WIELUŃ",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12497",
+   "stacja": "Włodawa",
+   "lat": 51.553333,
+   "lon": 23.529444,
+   "meteo_kod_stacji": "351230497",
+   "meteo_nazwa_stacji": "WŁODAWA",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12424",
+   "stacja": "Wrocław",
+   "lat": 51.113611,
+   "lon": 16.881667,
+   "meteo_kod_stacji": "351160425",
+   "meteo_nazwa_stacji": "WROCŁAW",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12625",
+   "stacja": "Zakopane",
+   "lat": 49.293889,
+   "lon": 19.960278,
+   "meteo_kod_stacji": "349190625",
+   "meteo_nazwa_stacji": "ZAKOPANE",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12595",
+   "stacja": "Zamość",
+   "lat": 50.698333,
+   "lon": 23.205556,
+   "meteo_kod_stacji": "350230595",
+   "meteo_nazwa_stacji": "ZAMOŚĆ",
+   "method": "name_exact"
+  },
+  {
+   "id_stacji": "12400",
+   "stacja": "Zielona Góra",
+   "lat": 51.93,
+   "lon": 15.524722,
+   "meteo_kod_stacji": "351150400",
+   "meteo_nazwa_stacji": "ZIELONA GÓRA",
+   "method": "name_exact"
+  }
+ ],
+ "unmatched": [
+  {
+   "id_stacji": "12155",
+   "stacja": "Gdańsk",
+   "candidates": 3
+  },
+  {
+   "id_stacji": "12560",
+   "stacja": "Katowice",
+   "candidates": 2
+  },
+  {
+   "id_stacji": "12566",
+   "stacja": "Kraków",
+   "candidates": 4
+  },
+  {
+   "id_stacji": "12001",
+   "stacja": "Platforma",
+   "candidates": 0
+  },
+  {
+   "id_stacji": "12575",
+   "stacja": "Tarnów",
+   "candidates": 0
+  },
+  {
+   "id_stacji": "12375",
+   "stacja": "Warszawa",
+   "candidates": 3
+  }
+ ]
+}

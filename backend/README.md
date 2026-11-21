@@ -1,0 +1,192 @@
+# Vedra — backend
+
+Vedra to prototyp przygotowany na HackNation 2026 dla zadania KOWR „Zatrzymaj wodę, chroń plony”.
+Pomaga ocenić sytuację wodną działki, zrozumieć możliwe przyczyny niedoboru i wybrać działania
+retencyjne lub agrotechniczne. Raport obejmuje pochodzenie danych, ograniczenia i opcjonalną
+ocenę zasadności nawadniania.
+
+## 1. Funkcje
+
+1. Wyszukanie działki po pełnym identyfikatorze ULDK, nazwie obrębu i numerze lub współrzędnych.
+2. Wybór uprawy i daty analizy z ostatnich dziesięciu lat. Obliczenia historyczne kończą się na wybranej dacie.
+3. Ocena klimatycznego bilansu wodnego (KBW), sygnałów uzupełniających i historycznej podatności.
+4. Wskazanie możliwych przyczyn oraz zaleceń opartych na dostępnych danych. Kolejność działań to
+   retencja krajobrazowa, retencja glebowa, agrotechnika i opcjonalne nawadnianie.
+5. Zapis raportu pod trwałym identyfikatorem oraz pobranie JSON lub PDF do wydruku.
+
+Cel wydajności to 30 s dla pojedynczej analizy z pustą pamięcią podręczną. Wyniki pomiarów i ich
+zakres opisuje [lista kontrolna części B](docs/PART_B_ANALYTICS_PRODUCT.md#cp4--validation-and-robustness--0700).
+
+## 2. Architektura
+
+```text
+HTTP (FastAPI) → zadanie analizy → potok obliczeń → raport JSON → SQLite
+                                       ↓                               ↓
+                GeoProvider (działka i dane przestrzenne)    WeasyPrint → PDF
+                Open-Meteo (pogoda, pobierana równolegle)
+```
+
+Część A dostarcza fakty i dane przestrzenne przez `GeoProvider`. Część B pobiera pogodę,
+oblicza wskaźniki, ocenia ich zgodność i uzasadnia zalecenia. Umowa między częściami opisuje typy,
+sposób zgłaszania braków i maksymalny czas pobierania.
+[Kontrakty](docs/CONTRACTS.md), [podział odpowiedzialności](docs/TEAM_SPLIT.md).
+
+## 3. Stan integracji
+
+Gałąź `backend` zawiera obie części. Tryb `real` pobiera dane przestrzenne przez dostawcę części A,
+`fixtures` korzysta z jej zapisanych przypadków, a `fake` służy do demonstracji. Dostępność danych
+zależy od źródła i daty analizy. Raport pokazuje dostępne wyniki oraz powody braków.
+[Źródła danych przestrzennych](docs/DATA_SOURCES.md).
+
+Frontend jest rozwijany na osobnej gałęzi. Jego klient demonstracyjny korzysta z własnych danych
+i wywołania `POST /api/analyze`. Połączenie z backendem wymaga obsługi `POST /api/analyses`,
+odpytywania statusu oraz odczytu modelu raportu opisanego poniżej.
+
+## 4. API
+
+| Metoda i ścieżka | Działanie |
+| --- | --- |
+| `GET /api/health` | Sprawdzenie usługi i wybranego trybu. |
+| `GET /api/crops` | Lista upraw z rozporządzenia, pola `code` i `name_pl`. |
+| `GET /api/parcels/search?q=` | Wyszukanie działek po identyfikatorze lub obrębie i numerze. |
+| `GET /api/parcels/by-point?lat=&lon=` | Działka pod wskazanym punktem. |
+| `POST /api/analyses` | Uruchomienie zadania i zwrot `analysis_id` z kodem 202. |
+| `GET /api/analyses/{id}` | Stan, postęp i raport po zakończeniu. |
+| `GET /api/analyses/{id}/report.pdf` | Pobranie raportu w formacie PDF. |
+| `GET /api/reports/{id}` | Odczyt zapisanego raportu po `report_id`. |
+
+Docelowa forma odpowiedzi to [model raportu](app/contracts/report.py).
+[Przykład JSON](tests/fixtures/sample_report.json).
+
+## 5. Uruchomienie lokalne
+
+**Docker** z katalogu głównego repozytorium.
+
+```sh
+docker build -t vedra-backend backend
+docker run --rm -e GEO_PROVIDER=fake -p 127.0.0.1:8000:8000 vedra-backend
+```
+
+**Python 3.11, PowerShell** z katalogu głównego repozytorium.
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements/base.txt -r requirements/a-geo.txt -r requirements/b-app.txt
+$env:GEO_PROVIDER = 'fake'
+.\.venv\Scripts\python.exe -m uvicorn app.main:app
+```
+
+**Python 3.11, Linux lub WSL** z katalogu głównego repozytorium.
+
+```sh
+cd backend
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements/base.txt -r requirements/a-geo.txt -r requirements/b-app.txt
+GEO_PROVIDER=fake python -m uvicorn app.main:app
+```
+
+Do natywnego renderowania PDF potrzebne są biblioteki Pango i czcionki z polskimi znakami.
+Obraz Dockera zawiera te zależności.
+[Instalacja WeasyPrint](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html).
+
+### Próba w przeglądarce
+
+Otwórz [dokumentację lokalnego API](http://localhost:8000/docs). Sprawdź `/api/health`, a następnie
+użyj `POST /api/analyses` z poniższą demonstracyjną działką i jedną z dat kontrolnych zespołu.
+
+```json
+{
+  "parcel_id": "141201_1.0001.6509",
+  "crop_code": "winter_cereals",
+  "analysis_date": "2023-05-31",
+  "include_irrigation": false
+}
+```
+
+Skopiuj zwrócony `analysis_id`, sprawdź `GET /api/analyses/{id}` do stanu `done`, a potem
+otwórz `/api/analyses/{id}/report.pdf`. Tryb `fake` dostarcza syntetyczne dane przestrzenne,
+a backend nadal próbuje pobrać pogodę. Przy limicie usługi raport wyjaśnia brak wyniku pogodowego.
+
+| Zmienna | Wartość domyślna | Znaczenie |
+| --- | --- | --- |
+| `GEO_PROVIDER` | `real` | `real` pobiera dane części A, `fixtures` czyta zapisy części A, `fake` zwraca dane demonstracyjne. |
+| `CACHE_DIR` | `.cache` | Pamięć podręczna źródeł. |
+| `DB_PATH` | `data/vedra.sqlite` | Baza raportów. |
+| `CORS_ORIGINS` | `http://localhost:5173` | Dozwolone adresy frontendu, rozdzielone przecinkami. |
+| `LOG_LEVEL` | `INFO` | Poziom logowania. |
+
+Jeden proces API obsługuje kolejkę i odpytywanie w toku zadania. Zapisane raporty przeżywają restart.
+W Dockerze można oddzielić dane raportów od dołączonych danych źródłowych przez
+`-e DB_PATH=/app/state/vedra.sqlite -v vedra-state:/app/state`.
+
+## 6. Dane, zakresy i pochodzenie
+
+| Źródło | Zakres i sposób pozyskania | Warunki |
+| --- | --- | --- |
+| Open-Meteo, ERA5 / ERA5-Land | Pobieranie na żądanie od 1 stycznia 1991 r. do daty analizy. Dzienne opady, ET0, temperatura, usłonecznienie i długość dnia, a także dobowe średnie wilgotności gleby z obserwacji godzinowych modelu. Prognoza uzupełnia końcową lukę archiwum i może posłużyć jako dane do planowania nawadniania dla bieżącej daty. | Dane CC BY 4.0 z przypisaniem autorstwa. Bezpłatna usługa ma limity i warunki użycia niekomercyjnego. [Warunki Open-Meteo](https://open-meteo.com/en/terms). |
+| ULDK i mapa glebowo-rolnicza | Geometria i dane opisowe działki oraz kategoria gleby. Część A odpytuje usługi na żądanie i odczytuje zapisane odpowiedzi z pamięci podręcznej. | [ULDK GUGiK](https://uldk.gugik.gov.pl/), [informacja o usłudze WMS](https://www.geoportal.gov.pl/aktualnosci/usluga-wms-prezentujaca-mape-glebowo-rolnicza-dostepna-w-serwisie-www-geoportal-gov-pl/). |
+| SoilGrids 2.0 | Profil glebowy o rozdzielczości 250 m. Dla działek kontrolnych część A korzysta także z odpowiedzi pobranych 21.11.2026. | CC BY 4.0, ISRIC. [Warunki SoilGrids](https://isric.org/explore/soilgrids/). |
+| Sentinel-2, NMT, hydrografia, pokrycie terenu, EDO i IMGW | Docelowe źródła części A to Sentinel-2 przez Earth Search, GUGiK lub Copernicus DEM, MPHP lub OSM, ESA WorldCover, Copernicus EDO oraz bieżące dane IMGW. Potok B przyjmuje zakresy i metadane zwracane przez część A. W sprawdzonej integracji te źródła były niedostępne. | Źródła i status sprawdzenia warunków opisuje konfiguracja części A `config/geo_sources.yaml` na gałęzi `part_A`. |
+| MRiRW, obwieszczenia KBW | Załączniki dla okresów kończących się 10.07.2018 i 31.05.2023 pobrano 21.11.2026. Parquet i sumy kontrolne dokumentują walidację. Progi z Dz.U. 2019 poz. 739 i współczynniki literaturowe są w wersjonowanej konfiguracji. | Dokumenty urzędowe. [Manifest](data/b/manifest.json), [porównanie z obwieszczeniami](docs/VALIDATION.md), [progi](https://eli.gov.pl/eli/DU/2019/739/ogl). |
+
+Zapisane odpowiedzi geo z 21.11.2026 służą lokalnym testom oraz demonstracji powtarzalnych przypadków.
+Potok za każdym uruchomieniem oblicza wynik i zalecenia na podstawie wejściowych danych.
+Raport wskazuje źródło, datę pobrania, warunki i przypisanie autorstwa w zakresie dostępnych metadanych.
+[Metodyka](docs/METHODOLOGY.md).
+
+## 7. Komponenty i licencje
+
+Wykaz bezpośrednich zależności obejmuje również narzędzia testowe.
+[Zależności wspólne](requirements/base.txt), [geoprzestrzenne](requirements/a-geo.txt),
+[analityczne](requirements/b-app.txt).
+
+| Zastosowanie | Komponenty i licencje |
+| --- | --- |
+| API, zapisy, konfiguracja | Python (PSF), FastAPI i Pydantic (MIT), Uvicorn i HTTPX (BSD-3-Clause), SQLite (domena publiczna), DiskCache (Apache-2.0), Structlog (MIT lub Apache-2.0), PyYAML (MIT), tzdata (Apache-2.0 z danymi IANA). |
+| Obliczenia i GIS | NumPy i SciPy (licencje BSD wraz z warunkami dołączonych składników), pandas, Shapely i Rasterio (BSD-3-Clause), pyproj (MIT), pystac-client (Apache-2.0). |
+| PDF i wykresy | Jinja2 i WeasyPrint (BSD), Matplotlib (licencja Matplotlib oparta na PSF), Pango (LGPL), HarfBuzz (MIT) i DejaVu (warunki Bitstream Vera i dodatków DejaVu). [Licencja Pango](https://github.com/GNOME/pango/blob/main/COPYING), [licencja DejaVu](https://github.com/dejavu-fonts/dejavu-fonts/blob/master/LICENSE). |
+| Testy i porównanie urzędowe | pytest (MIT), pytest-asyncio (Apache-2.0), RESPX (BSD-3-Clause), pypdf (BSD-3-Clause) i PyArrow (Apache-2.0). |
+
+Modele obliczeniowe obejmują Doroszewskiego–Górskiego, FAO-56, SPI i Saxtona–Rawlsa.
+Zasady korzystania z narzędzia wspierającego rozwój opisuje [wykaz użycia AI](docs/AI_USAGE.md).
+
+## 8. Ograniczenia
+
+- Werdykt działki jest oszacowaniem z siatki meteorologicznej. Urzędowe obwieszczenia podają wynik dla gminy.
+- Geometria i kategoria gleby mogą pochodzić ze źródeł o różnej rozdzielczości. Zalecenia przestrzenne
+  zależą od pokrycia danymi i od szczegółowości modelu terenu.
+- Brak pełnych danych pogodowych może uniemożliwić obliczenie KBW, historii lub dawki. Ograniczenia
+  i tryb poza sezonem są widoczne w raporcie.
+- Dawka i termin nawadniania są orientacyjne. W obliczeniach nie ma rzeczywistych terminów zabiegów,
+  wcześniejszego nawadniania ani pomiarów wilgotności wykonanych na działce.
+- Tryb uruchomienia oraz dostępność poszczególnych źródeł opisuje [stan integracji](#3-stan-integracji).
+  Limity i utrzymanie opisują [skalowalność](docs/SCALABILITY.md) i [bezpieczeństwo](docs/SECURITY.md).
+
+## 9. Weryfikacja
+
+W katalogu `backend` uruchom `python -m pytest tests/b`. W zintegrowanym drzewie uruchom dodatkowo
+`python -m pytest tests/b tests/contract` z zapisami geo części A. W Dockerze można użyć
+`docker build --target test backend` z katalogu głównego repozytorium.
+
+- W raporcie porównaj datę i kategorię gleby, okres KBW, wartość i próg. Sprawdź wskazaną przesłankę,
+  źródło i odsyłacz przy każdym zaleceniu.
+- Dla dat historycznych przejrzyj urzędowe wartości odpowiednich gmin. Tabela podaje przypadki
+  ocenione, rozbieżności metod oraz brakujące porównania. W CP4 dzienny limit Open-Meteo uniemożliwił
+  obliczenie błędów liczbowych. [Walidacja KBW](docs/VALIDATION.md).
+- Testy sprawdzają między innymi progi, brak danych, zapis raportu, odczyt po restarcie i PDF.
+  Scenariusze porównawcze oraz kolejne kroki dokumentuje [lista kontrolna części B](docs/PART_B_ANALYTICS_PRODUCT.md).
+
+### Przykładowe raporty PDF
+
+Przykłady wykorzystują zapisane dane geo części A. Archiwum pogodowe było niedostępne
+podczas przygotowania przykładów. Raporty wskazują ten brak obok dostępnych danych.
+
+- [Września, 10.07.2018](data/b/samples/reports/wrzesnia-2018-07-10.pdf)
+- [Inowrocław, 31.05.2023](data/b/samples/reports/inowroclaw-2023-05-31.pdf)
+- [Kętrzyn, 21.11.2026](data/b/samples/reports/ketrzyn-2026-11-21.pdf)
+
+W zintegrowanym drzewie i w katalogu `backend` odtwórz przykłady poleceniem
+`python -m scripts.b.generate_sample_reports --offline`. Pominięcie `--offline` pozwala
+wykorzystać pogodę, gdy archiwum odpowiada.

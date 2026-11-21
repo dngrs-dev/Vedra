@@ -1,0 +1,521 @@
+# Part A source configuration (owner: A).
+#
+# Every entry records WHERE its URL / layer / attribute names come from (`source:`).
+# "spike 2026-11-21" means: observed in a live response by scripts/a/spike_sources.py (or the manual
+# probes that preceded it) on 2026-11-21. Re-run the spike to re-verify.
+#
+# Licence fields:
+#   licence_declared: text the service itself declares (capabilities Fees/AccessConstraints) - verified.
+#   licence / attribution_pl with `licence_verified: false`: taken from the provider's licence page named in
+#   `licence_source`, NOT yet re-read during this hackathon -> must be checked before docs/DATA_SOURCES.md (CP5).
+
+spike:
+  # Test points used by the spike (lon, lat, WGS84). Chosen only to exercise the services; any point in
+  # Poland works. Not used by the provider.
+  points:
+    kujawy_inowroclaw: [18.30, 52.80]
+    wielkopolska_wrzesnia: [17.62, 52.30]
+    lubelskie_hrubieszow: [23.80, 50.82]
+  timeout_s: 240
+
+uldk:
+  name: ULDK GUGiK
+  url: https://uldk.gugik.gov.pl/
+  source: https://uldk.gugik.gov.pl/ ; spike 2026-11-21
+  requests: [GetParcelById, GetParcelByIdOrNr, GetParcelByXY]
+  result_fields: id,geom_wkt,teryt,voivodeship,county,commune,region,parcel
+  srid_param: srid              # srid=4326 or srid=2180 -> geometry returned as "SRID=<n>;POLYGON((...))"
+  xy_format: "{lon},{lat},4326" # spike: xy=18.30,52.80,4326 returned parcel 040704_2.0012.63/1 at 52.80N 18.30E
+  response_format: >-
+    Plain text. Line 1 = status: "0" ok; "-1 brak wyników" when nothing found; for GetParcelByIdOrNr a
+    number (count of records). Following lines = one record each, fields separated by "|" in the order
+    of `result`. Invalid input can return an SQL error text after "-1" -> treat as no result.
+  observed_latency_s: 0.3
+  licence_declared: null
+  licence: Dane PZGiK udostępniane bez opłat
+  licence_verified: false
+  licence_source: https://www.geoportal.gov.pl/ (warunki korzystania z usług GUGiK)
+  attribution_pl: null          # exact required text to be taken from licence_source (CP5)
+
+egib_parquet:
+  name: EGiB - działki ewidencyjne (eksport GeoParquet, GUGiK)
+  url: https://opendata.geoportal.gov.pl/InneDane/latest_exports/eziudp_wfs/PARQUET/0_dzialki.parquet
+  source: KOWR task 5.2 (dane przestrzenne) ; probe 2026-11-21
+  role: >-
+    Fallback of ULDK for parcel lookups by id and by point. Seen 2026-11-21 ~19:00: every ULDK API request from the
+    dev link was answered with HTTP 302 to https://integracja01.gugik.gov.pl/resp/uldk.php, which returns "0" and a
+    hex string instead of records (the documentation page still loaded), i.e. the client was blocked.
+  probe: >-
+    4 591 485 104 bytes, Last-Modified 2026-11-21 03:03 GMT (rebuilt daily), HTTP Range supported. GeoParquet 1.1,
+    38 909 091 rows in 594 row groups (~65 500 rows, 5-9 MB of WKB per group), columns id_dzialki, numer_dzialki,
+    nazwa_obrebu, numer_obrebu, numer_jednostki, nazwa_gminy, data, pole_ewidencyjne, klasouzytki_egib,
+    grupa_rejestrowa, pozostale_atrybuty, czas_pozyskania, geometry (WKB), geometry_bbox {xmin,ymin,xmax,ymax}.
+    Row groups are spatially clustered: their geometry_bbox statistics select ~10 groups per point.
+    Point 452850,548450 -> 040704_2.0012.63/1 (same parcel as ULDK).
+  crs: >-
+    "ETRF2000-PL / CS92" (EPSG:9702 base): the PUWG 1992 projection on the ETRF2000 frame. x = easting, y = northing
+    in the data (the parcel above contains the same EPSG:2180 point as in ULDK); used as EPSG:2180 - the frames
+    differ by centimetres.
+  parallel_requests: 16          # measured 2026-11-21: 1 stream 0.53 MB/s, 8: 4.5, 16: 7.4, 32: 1.0 MB/s (throttled)
+  chunk_bytes: 524288            # OUR CHOICE: range request size (16 x 0.5 MB in flight)
+  footer_cache_s: 21600          # OUR CHOICE: 6 h; the cache key also holds Last-Modified and size
+  licence: Dane PZGiK udostępniane bez opłat
+  licence_verified: false
+  licence_source: https://www.geoportal.gov.pl/pl/dane/ewidencja-gruntow-i-budynkow-egib/
+  attribution_pl: "Dane EGiB: Główny Urząd Geodezji i Kartografii (geoportal.gov.pl)"   # OUR wording, no official text found
+
+prg_wfs:
+  name: PRG - państwowy rejestr granic (WFS, GUGiK)
+  url: https://mapy.geoportal.gov.pl/wss/service/PZGIK/PRG/WFS/AdministrativeBoundaries
+  source: GetCapabilities ; probe 2026-11-21
+  layers:
+    voivodeships: ms:A01_Granice_wojewodztw
+    counties: ms:A02_Granice_powiatow
+    obreby: ms:A06_Granice_obrebow_ewidencyjnych   # JPT_KOD_JE = "040704_2.0012" (parcel id prefix); 0.34 s by filter
+  envelope_axis_order: northing easting            # gml:Envelope srsName urn:ogc:def:crs:EPSG::2180 (probe: Jacewo)
+  names_file: data/a/teryt_names.json              # scripts/a/build_teryt_names.py
+  licence: Dane PZGiK udostępniane bez opłat
+  licence_verified: false
+  licence_source: https://www.geoportal.gov.pl/pl/dane/panstwowy-rejestr-granic-prg/
+
+soil_map:
+  name: Mapa glebowo-rolnicza (GUGiK, WMS)
+  url: https://mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer
+  source: https://www.geoportal.gov.pl/aktualnosci/usluga-wms-prezentujaca-mape-glebowo-rolnicza-dostepna-w-serwisie-www-geoportal-gov-pl/ ; GetCapabilities spike 2026-11-21
+  wms_version: "1.3.0"
+  crs: EPSG:2180                # WMS 1.3.0 + EPSG:2180 -> BBOX axis order is (northing, easting)
+  layers:
+    "0": KONTURY_GLEBOWE         # soil contours: the layer that answers GetFeatureInfo with attributes
+    "1": ZASIEG_KONTUROW_GLEBOWYCH  # extent of mapped contours (no useful attributes at a point)
+    "2": ODKRYWKI_GLEBOWE        # soil pits (points; usually no hit at a parcel)
+  query_layer: "0"
+  info_format: text/xml          # spike: application/json -> ServiceException InvalidFormat
+  response_encoding: UTF-8          # spike: PODLOZE1 bytes C5 82 = "ł" in UTF-8 ("płi") (garbled text seen earlier was the Windows console)
+  attributes:                    # names exactly as returned in <FIELDS ...> (spike 2026-11-21)
+    complex: KOMPLEKS            # agricultural soil complex code, e.g. "1", "4", "5", "1z", "Ls", "W", "Tnk"
+    type_subtype: TYPPODTYP      # soil type/subtype code, e.g. "D", "C", "Bw", "Dz", "F"
+    texture_layers: [PODLOZE1, PODLOZE2, PODLOZE3, PODLOZE4, PODLOZE5]   # gatunek per layer, top first, e.g. "pgl", "glp", "gl", "li"
+    thickness_markers: [MIAZSZOSC1, MIAZSZOSC2, MIAZSZOSC3, MIAZSZOSC4, MIAZSZOSC5]
+    alluvial_texture: [GATUNEKMADY1, GATUNEKMADY2, GATUNEKMADY3, GATUNEKMADY4, GATUNEKMADY5]   # mady, e.g. "c", "bc"
+    rendzina_texture: [GATUNEKREDZINY1, GATUNEKREDZINY2, GATUNEKREDZINY3, GATUNEKREDZINY4, GATUNEKREDZINY5]
+    organic_kind: [RODZAJGLEBYORGANICZNEJ1, RODZAJGLEBYORGANICZNEJ2, RODZAJGLEBYORGANICZNEJ3, RODZAJGLEBYORGANICZNEJ4, RODZAJGLEBYORGANICZNEJ5]
+    source_map: ZRODLO           # e.g. "Mgr5000", "EGiB"
+    currency_date: AKTUALNOSC_NR # ISO date of the source map, or "missing"
+    remarks: UWAGI
+  null_values: ["Null", "missing"]
+  observed_latency_s: 0.1-3.2
+  licence_declared: "Fees: no conditions apply; AccessConstraints: otherRestrictions (WMS GetCapabilities)"
+  resolution: "1:5000"
+  attribution_pl: null          # exact required text to be taken from licence_source (CP5)
+  licence_verified: false
+  licence_source: https://www.geoportal.gov.pl/
+
+iung_drought_susceptibility_wms:
+  name: IUNG «Podatność gleb na susze» (WMS)
+  url: null                      # NOT FOUND during the spike: announced in the geoportal «Rolnictwo» module, but its URL is
+                                 # not printed on the announcement page nor listed on the geoportal WMS/WMTS services page.
+  source: https://www.geoportal.gov.pl/aktualnosci/nowa-usluga-wms-podatnosc-gleb-na-susze-dostepna-w-serwisie-www-geoportal-gov-pl-w-module-rolnictwo/
+  status: not_found
+
+soilgrids_rest:
+  name: SoilGrids 2.0 (ISRIC) REST API
+  url: https://rest.isric.org/soilgrids/v2.0/properties/query
+  source: https://rest.isric.org/soilgrids/v2.0/docs ; spike 2026-11-21
+  properties: [sand, silt, clay, soc, bdod]   # wv0033/wv1500 not used: see soilgrids_files.water_retention
+  depths: [0-5cm, 5-15cm, 15-30cm, 30-60cm, 60-100cm, 100-200cm]
+  values: ["Q0.05", "Q0.5", "Q0.95", mean]
+  # Integer values must be divided by d_factor (returned per property in `unit_measure`; spike 2026-11-21):
+  d_factor:
+    bdod: 100     # cg/cm3 -> kg/dm3
+    clay: 10      # g/kg -> %
+    sand: 10      # g/kg -> %
+    silt: 10      # g/kg -> %
+    soc: 10       # dg/kg -> g/kg
+    wv0033: 10    # (10^-2 cm3/cm3)*10 -> 10^-2 cm3/cm3 (i.e. vol. %) ; divide by 100 more for m3/m3
+    wv1500: 10    # same as wv0033
+  observed_latency_s: 163        # one point, all properties: 163 s once; other attempts: timeout at 60 s, HTTP 504 after 180 s
+  rate_limit_note: "beta service, fair use (PART_A_DATA_GEO.md says 5 calls/min) -> one call per point, cache forever"
+  licence: CC BY 4.0
+  licence_verified: true
+  licence_source: https://isric.org/explore/soilgrids/
+  attribution_pl: "SoilGrids 2.0, ISRIC – World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
+
+soilgrids_files:
+  name: SoilGrids 2.0 (ISRIC) VRT/COG files
+  url: https://files.isric.org/soilgrids/latest/data/
+  source: directory listing https://files.isric.org/soilgrids/latest/data/ ; spike 2026-11-21
+  path_template: "{prop}/{prop}_{depth}_{value}.vrt"   # spike: sand/sand_0-5cm_Q0.5.vrt -> value 710 (same as REST)
+  available_properties: [bdod, cec, cfvo, clay, landmask, nitrogen, ocd, ocs, phh2o, sand, silt, soc, wrb]
+  missing_properties: [wv0033, wv1500]   # not in the listing (404); also not served by maps.isric.org WCS (msLoadMap error, 2026-11-21)
+  crs: Interrupted Goode Homolosine (from the file)
+  resolution: "250 m"
+  nodata: -32768
+  observed_latency_s: 77-291     # first open of one VRT; at 52.80N 18.30E sand_0-5cm_Q0.5 returned nodata (-32768)
+  tiles_index_file: data/a/soilgrids_tiles.json   # scripts/a/build_soilgrids_tiles.py (per property; tiling differs)
+  tile_read_note: >-
+    Pixels are read from the 450 x 450 px tiles named in the VRTs, not through the VRT (6 MB XML per layer).
+    Check 2026-11-21 at the 8 points of data/a/soilgrids_points.json: sand, silt, clay, soc, bdod for 6 depths x
+    Q0.05/Q0.5/Q0.95 identical to the REST answers at all 8 points. Full profile (90 reads): 5-16 s with 16 workers,
+    1.8 s with 32 workers and the gdal_extra options below (3 points, dev link).
+  read_workers: 32               # measured above; OUR CHOICE among the tested values (16, 32)
+  gdal_extra:                    # fewer requests per tile open (GDAL config options, https://gdal.org/user/configoptions.html)
+    CPL_VSIL_CURL_USE_HEAD: "NO"
+    GDAL_INGESTED_BYTES_AT_OPEN: "32768"
+  water_retention: >-
+    Field capacity (33 kPa) and wilting point (1500 kPa) are estimated with the Saxton & Rawls (2006) pedotransfer
+    functions from SoilGrids sand, clay and organic matter (app/geo/soilgrids.py saxton_rawls), not taken from
+    SoilGrids wv0033/wv1500. Reason (check 2026-11-21, 0-100 cm WOD at the test parcels vs the 1:5000 soil map
+    category, Dz.U. 2019 poz. 739): SoilGrids wv gives 204-240 mm (category IV) at the ps/pgl/pgm sandy parcels
+    (map categories I/II; e.g. 71-78 % sand with field capacity 0.38-0.43 m3/m3), Saxton & Rawls 75-97 mm.
+    Exact category match with the map: wv 1 of 5, Saxton & Rawls 2 of 5; within one category: wv 1 of 5, S&R 4 of 5.
+  licence: CC BY 4.0             # same dataset as soilgrids_rest
+  licence_verified: true
+  licence_source: https://isric.org/explore/soilgrids/
+  attribution_pl: "SoilGrids 2.0, ISRIC – World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
+
+earth_search:
+  name: Earth Search STAC (Element 84)
+  url: https://earth-search.aws.element84.com/v1
+  source: https://earth-search.aws.element84.com/v1 ; spike 2026-11-21
+  collections:
+    # CP2 probe 2026-11-21 (items per year at 52.80N 18.30E):
+    #   sentinel-2-l2a    2016:22 2017:77 2018:308 2019:528 2020:589 2021:623 2022:292 2023:290 2024:292 2025:401
+    #   sentinel-2-c1-l2a 2016:0  2017:4  2018:82  2019:226 2020:294 2021:292 2022:24  2023:286 2024:292 2025:402
+    # -> c1 has large gaps (2017, 2018, 2022); the older collection is complete and is used as primary.
+    primary: sentinel-2-l2a      # assets on sentinel-cogs.s3.us-west-2.amazonaws.com
+    fallback: sentinel-2-c1-l2a  # assets on e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com
+    dem: cop-dem-glo-30          # asset `data` href is s3://copernicus-dem-30m/... ; https equivalent below
+  search:                        # GET /search supports these (CP2 probe 2026-11-21)
+    query_param: query           # JSON, e.g. {"eo:cloud_cover":{"lt":60}}
+    sortby_param: sortby         # e.g. "+properties.eo:cloud_cover"
+    pagination: links rel=next   # GET href with token
+    max_cloud_cover_pct: 60      # PART_A_DATA_GEO.md (sentinel2.search_scenes default max_cloud=60)
+  duplicates_note: >-
+    sentinel-2-l2a lists some acquisitions twice (reprocessed "_1_" next to "_0_" ids, and the same
+    acquisition on two overlapping MGRS tiles, e.g. 33UYU and 34UCD). Scenes are de-duplicated by
+    s2:datatake_id without its "_Nxx.xx" baseline suffix (same for both tiles and both collections, checked
+    2026-11-21; tile datetimes of one datatake differ by up to ~1 s); the higher processing baseline is kept.
+  offset_note: >-
+    raster:bands declares the PB 04.00 BOA offset per item (probe 2026-11-21: S2A_34UCD_20180715_0_L2A PB 02.08 ->
+    offset 0; S2A_33UYU_20220714_0_L2A PB 04.00 and S2B_33UYU_20210714_1_L2A PB 05.00 -> offset -0.1), but the
+    pixel values of sentinel-2-l2a do NOT carry the +1000 DN offset. Same acquisition, same parcel interior,
+    B04 median DN (CP2 check 2026-11-21):
+      2023-05-10 33UXU: sentinel-2-l2a 284, sentinel-2-c1-l2a 1284 (PB 05.09 in both)
+      2023-05-10 33UXT: sentinel-2-l2a 282, sentinel-2-c1-l2a 1282
+      2021-07-14 33UYU: sentinel-2-l2a 447 (_1_, PB 05.00) / 440 (_0_, PB 03.01), sentinel-2-c1-l2a 1447
+      2022-07-14 33UXU sentinel-2-l2a (PB 04.00): B04 964, B08 1742 -> with offset -0.1 red reflectance < 0
+    -> sentinel-2-l2a is harmonized to the pre-04.00 scale whatever its metadata says: offset 0 is used.
+       sentinel-2-c1-l2a keeps the offset: the item's raster:bands offset (-0.1) is used.
+  harmonized_collections: [sentinel-2-l2a]   # offset forced to 0 (evidence above)
+  asset_hosts:                   # hosts of the asset hrefs in STAC items (spike 2026-11-21), read via /vsicurl/
+    - https://e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com/
+    - https://sentinel-cogs.s3.us-west-2.amazonaws.com/
+  assets:                        # asset keys (both collections), spike 2026-11-21
+    B04: red
+    B08: nir
+    B8A: nir08
+    B11: swir16
+    SCL: scl
+  scale_offset_from: "raster:bands (scale, nodata always; offset only outside harmonized_collections)"
+  observed_latency_s: 0.4
+  licence: Copernicus Sentinel data – free, full and open access
+  licence_verified: true
+  licence_source: https://ewds.climate.copernicus.eu/licences/ec-sentinel
+  attribution_pl: "Contains modified Copernicus Sentinel data [year]"   # official English wording; no official Polish text known
+
+planetary_computer:
+  name: Microsoft Planetary Computer STAC (Sentinel-2 L2A)
+  url: https://planetarycomputer.microsoft.com/api/stac/v1
+  source: https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a ; probe 2026-11-21
+  collection: sentinel-2-l2a
+  token_url: https://planetarycomputer.microsoft.com/api/sas/v1/token/sentinel-2-l2a   # anonymous SAS token
+  token_note: >-
+    Asset hrefs need "?<token>" appended. GET token_url -> {"token", "msft:expiry"}; probe 2026-11-21: valid ~45 min
+    (expiry 18:21:16Z requested at 17:36:17Z). Refreshed token_refresh_margin_s before expiry.
+  token_refresh_margin_s: 300   # OUR CHOICE
+  why_primary: >-
+    Same scene window (5 bands, Inowroclaw parcel, 2022-07-31) read 2026-11-21 from the dev link: Earth Search /
+    sentinel-cogs (us-west-2) 22.6 s per scene, Planetary Computer (West Europe) 1.3-1.9 s per scene. A cold analysis
+    can only cover the 10-year history with the faster store; Earth Search stays as fallback.
+  coverage_note: >-
+    Items per year at 52.80N 18.30E (probe 2026-11-21): 2016:125 2017:203 2018:286 2019:294 2020:292 2021:296
+    2022:432 2023:470 2024:281 2025:403 2026:352 - complete from 2016.
+  search:                        # GET /search supports these (probe 2026-11-21)
+    query_param: query
+    sortby_param: sortby
+    pagination: links rel=next (GET)
+    max_cloud_cover_pct: 60      # same as earth_search
+  duplicates_note: >-
+    Reprocessed products are listed next to the originals (e.g. S2A_MSIL2A_20220731T095041_R079_T34UCD_20240717T075305
+    PB 05.10 and ..._20220801T095553 PB 04.00) and overlapping MGRS tiles repeat a datatake. Same de-duplication as
+    earth_search: s2:datatake_id without "_Nxx.xx", higher processing baseline kept.
+  offset_rule: >-
+    No raster:bands in the items; scale, offset and nodata come from the product metadata (MTD_MSIL2A.xml, asset
+    product-metadata), checked 2026-11-21 for one product per baseline at 52.80N 18.30E:
+      PB 02.12 (S2A_MSIL2A_20170730T100031_R122_T34UCD_20210210T164236) and PB 03.00 (S2B_..._20210731T095029_...):
+        BOA_ADD_OFFSET absent, BOA_QUANTIFICATION_VALUE 10000
+      PB 04.00, 05.09, 05.10, 05.11: BOA_ADD_OFFSET -1000 for every band, BOA_QUANTIFICATION_VALUE 10000
+    -> reflectance = (DN + offset_dn) / 10000 with offset_dn = -1000 from PB 04.00 on, else 0 (ESA introduced the
+       offset with PB 04.00, 25 Jan 2022).
+  scale: 0.0001                  # 1 / BOA_QUANTIFICATION_VALUE (MTD_MSIL2A.xml)
+  offset_from_baseline: "04.00"
+  offset_reflectance: -0.1       # BOA_ADD_OFFSET -1000 / 10000
+  nodata: 0                      # L2A SPECIAL_VALUES NODATA index 0 (MTD_MSIL2A.xml)
+  asset_hosts:                   # every B04/SCL href in 1600 items (4 places x 4 years) on one storage account
+    - https://sentinel2l2a01.blob.core.windows.net/
+  assets: {B04: B04, B08: B08, B8A: B8A, B11: B11, SCL: SCL}
+  observed_latency_s: 0.5
+  licence: Copernicus Sentinel data – free, full and open access
+  licence_verified: true
+  licence_source: https://ewds.climate.copernicus.eu/licences/ec-sentinel
+  terms_of_use: https://planetarycomputer.microsoft.com/terms   # service terms (hosting of the open dataset)
+  attribution_pl: "Contains modified Copernicus Sentinel data [year]"   # official English wording; no official Polish text known
+
+sentinel2_processing:
+  name: Sentinel-2 parcel statistics (Vedra processing parameters)
+  source: docs/PART_A_DATA_GEO.md (sentinel2.py / vegetation.py specs); values marked "our choice" are ours
+  interior_buffer_m: -10         # PART_A_DATA_GEO.md / contracts geo.py: "parcel buffered -10 m"
+  grid_m: 10                     # Sentinel-2 B04/B08 native resolution; B8A/B11/SCL (20 m) resampled nearest
+  scl_keep_classes: [4, 5]       # PART_A_DATA_GEO.md: "keep SCL 4/5 only" (vegetation, not-vegetated)
+  valid_fraction_min: 0.3        # PART_A_DATA_GEO.md: scene "None if valid fraction < 0.3" - OUR ASSUMPTION
+  min_interior_pixels: 20        # PART_A_DATA_GEO.md: "Interior < 20 pixels -> partial + note" - OUR ASSUMPTION
+  current_window_max_days: 60    # PART_A_DATA_GEO.md / GeoRequest: "extended by A up to 60 if no clear scene"
+  season_months: [4, 8]          # PART_A_DATA_GEO.md: season peaks "Apr-Aug"
+  season_max_scenes: 6           # PART_A_DATA_GEO.md: "sample <= 6 least-cloudy scenes per season"
+  search_budget_share: 0.5      # OUR CHOICE (CP4): reserve half the vegetation budget for reading returned scenes.
+  snapshot_cache_s: 600         # OUR CHOICE (CP4): reuse a dated vegetation assessment for ten minutes, then retry gaps.
+  providers:                     # tried in this order (see planetary_computer.why_primary)
+    - {source: planetary_computer, collection: sentinel-2-l2a}
+    - {source: earth_search, collection: sentinel-2-l2a}
+    - {source: earth_search, collection: sentinel-2-c1-l2a}
+  workers: 16                    # PART_A_DATA_GEO.md: "ThreadPool 16-32"; lower bound because reads are bandwidth-bound
+                                 # (24 parallel streams truncated tile reads on the dev link, 2026-11-21)
+  background_workers: 4          # OUR CHOICE: separate pool for scenes left over after a deadline (warm-up only)
+  same_window_max_scenes: 3      # OUR CHOICE (CP2): least-cloudy scenes per previous-year window. Reason: every clear
+                                 # scene costs ~4 MB of COG tiles (10 m bands: 1024x1024 deflate tiles ~1.4 MB,
+                                 # blocks checked 2026-11-21 in both collections); all ~10 scenes x 10 years cannot be
+                                 # read within the 22 s budget.
+  preprocessed_stats_file: data/a/s2_scene_stats.json   # scripts/a/prefetch_s2.py (test parcels x fixture dates)
+
+copernicus_dem:
+  name: Copernicus DEM GLO-30
+  url_template: "https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N{lat:02d}_00_E{lon:03d}_00_DEM/Copernicus_DSM_COG_10_N{lat:02d}_00_E{lon:03d}_00_DEM.tif"
+  source: STAC item cop-dem-glo-30 (asset href s3://copernicus-dem-30m/...) ; https read spike 2026-11-21
+  tile_naming_note: lat/lon = floor of the point's latitude/longitude (1 degree tiles, from the STAC item id)
+  model_type: DSM   # Copernicus DEM is a Digital Surface Model incl. buildings, infrastructure and vegetation
+                    # (Copernicus DEM product handbook, https://spacedata.copernicus.eu/collections/copernicus-digital-elevation-model)
+  crs: EPSG:4326
+  resolution: "1 arc-second (~30 m)"
+  observed_latency_s: 0.5-31
+  licence: Copernicus DEM licence (GLO-30 free of charge, worldwide)
+  licence_verified: true
+  licence_source: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf
+  # Notice for modified data (we reproject and analyse it), as quoted on the Copernicus DEM dataset page
+  # https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
+  attribution_pl: "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+
+gugik_nmt_wcs:
+  name: NMT GRID1 GUGiK (WCS)
+  url: https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WCS/DigitalTerrainModelFormatTIFF
+  source: GetCapabilities + DescribeCoverage spike 2026-11-21
+  wcs_version: "2.0.1"
+  coverage_id: DTM_PL-KRON86-NH_TIFF
+  formats: [image/tiff, image/png, image/jpeg]
+  crs: EPSG:2180
+  axis_labels: [y, x]           # y = northing, x = easting (DescribeCoverage lowerCorner/upperCorner ranges)
+  subset_example: "SUBSET=x(<easting_min>,<easting_max>)&SUBSET=y(<northing_min>,<northing_max>)"
+  returned_crs_note: GeoTIFF comes with LOCAL_CS "ETRS89 / Poland CS92" -> assign EPSG:2180 explicitly when reading
+  vertical_datum: PL-KRON86-NH (from coverage id)
+  resolution: "1 m"
+  dtype: float32
+  observed_latency_s: 52-56       # ~fixed: 100x100 m box 55.7 s, 50x50 m box 52.5 s -> far over the 22 s budget
+  licence_declared: "Fees: none; AccessConstraints: none (WCS GetCapabilities)"
+  attribution_pl: null          # exact required text to be taken from GUGiK terms (CP5)
+  licence_verified: false
+
+mphp:
+  name: MPHP10k – Mapa Podziału Hydrograficznego Polski (Wody Polskie, ISOK)
+  wms_url: https://wody.isok.gov.pl/gpservices/KZGW/ISOK_MPHP/MapServer/WMSServer
+  source: >-
+    URL from the QGIS plugin «Wody Polskie» (https://github.com/LScislowski/Wody_Polskie_Baza_WMS);
+    WMS GetCapabilities spike 2026-11-21
+  wms_version: "1.3.0"
+  layers:                       # spike 2026-11-21 (all queryable)
+    "16": "Cieki (skala od 1.5m)"
+    "17": "Cieki (skala 350k - 1.5m)"
+    "18": "Cieki (skala do 350k)"
+    "19": "Odcinki Cieków (skala od 75k)"
+    "20": "Cieki Szerokie (skala od 75k)"
+    "21": "Jeziora (skala 350k - 2.5m)"
+    "22": "Jeziora (skala do 350k)"
+  used: false                   # CP3: replaced by bdot10k_water (same watercourses + ditches)
+  vector_access: none           # spike: .../MapServer?f=json and .../MapServer/WFSServer -> HTTP 401;
+                                # https://wody.isok.gov.pl/wss/INSPIRE/ -> 401. Only WMS (PNG) + GetFeatureInfo.
+  capabilities_note: answered after one failed connection (curl 000) -> needs retries
+  licence_declared: "Fees / AccessConstraints empty in GetCapabilities"
+  licence_verified: false
+
+terrain_processing:
+  name: Terrain analysis (Vedra processing parameters)
+  source: docs/PART_A_DATA_GEO.md (dem.py / terrain.py specs); values marked OUR CHOICE are ours
+  dem_buffer_m: 200              # PART_A_DATA_GEO.md: fetch_dem(parcel, buffer_m=200)
+  nmt_resolutions_m: [2, 5, 10]  # PART_A_DATA_GEO.md: "resample to 2-5 m by area"; 10 m only for very large parcels
+  max_cells: 250000              # OUR CHOICE (compute budget): priority-flood + epsilon fill + D8 took ~6 s for
+                                 # 490k cells on the dev machine (2026-11-21), so grids are capped at ~250k cells
+  nmt_timeout_s: 120             # OUR CHOICE: background NMT request limit (observed 52-56 s per request)
+  copernicus_res_m: 30           # Copernicus GLO-30 native ~30 m (1 arc-second); reprojected to EPSG:2180 at 30 m
+  dem_choice: first DEM to arrive (NMT 52-164 s never fits the budget; it replaces Copernicus at the next analysis)
+  analysis_s_per_cell: 1.2e-5    # measured: ~6 s for 490k cells (see max_cells) -> time kept for the analysis
+  analysis_reserve_min_s: 1.0    # OUR CHOICE: fixed part of that reserve (hydro geometry, contract assembly)
+  depression_min_area_m2: 100    # OUR CHOICE: smaller pits are below a practical retention measure
+  depression_min_depth_m: 0.1    # OUR CHOICE: ignore fill depths at the level of DEM rounding/noise
+  flow_min_upstream_ha: 1.0      # OUR CHOICE: flow lines drawn where >= 1 ha drains through a cell
+  max_retention_spots: 15        # OUR CHOICE: report size
+  max_flow_lines: 20             # OUR CHOICE: report size
+  volume_uncertainty: none       # PART_A_DATA_GEO.md: volume ranges only if DEM vertical accuracy is documented;
+                                 # not yet sourced -> volume_m3 low/high = None
+
+bdot10k_water:
+  name: BDOT10k (GUGiK) – sieć wodna, usługa WMS
+  url: https://mapy.geoportal.gov.pl/wss/service/pub/guest/kompozycja_BDOT10k_WMS/MapServer/WMSServer
+  source: >-
+    URL from the geoportal WMS/WMTS list (https://www.geoportal.gov.pl/pl/usluga/uslugi-przegladania-wms-i-wmts/);
+    layers and attributes from GetCapabilities / GetFeatureInfo, CP3 probe 2026-11-21 (near 52.80N 18.30E:
+    "row" 1297 drawn px at 2 m, "WPow" 187 px; others 0). Vector access (ArcGIS REST ?f=json, /query) -> HTTP 401,
+    so features are derived from rendered layers (see method).
+  wms_version: "1.3.0"
+  crs: EPSG:2180                  # WMS 1.3.0 BBOX axis order (northing, easting)
+  layers:                         # WMS layer -> contract WaterFeature.kind (mapping: OUR CHOICE, titles from GetCapabilities)
+    row: ditch                    # "Rów melioracyjny" (GFI x_kod SWRM..)
+    kan: canal                    # "Kanał"
+    kanOkr: canal                 # "Kanał okresowy"
+    rz: stream                    # "Rzeka lub strumień" - BDOT10k does not split river/stream in this layer
+    rzOk: stream                  # "Rzeka lub strumień okresowy"
+    WPow: by_rodzaj               # "Woda powierzchniowa" (polygons, x_kod PTWP..), kind from attribute `rodzaj`
+  wpow_rodzaj_kind:               # GFI attribute `rodzaj` -> kind (OUR CHOICE)
+    wody stojące: pond
+    wody płynące: river
+  ditch_layers: [row]             # for HydroData.ditches_crossing_boundary
+  method: >-
+    GetMap PNG (TRANSPARENT=TRUE) per layer over the parcel bbox + buffer; drawn (alpha > 0) pixels, 8-connected,
+    form one feature each (a connected ditch network counts as one); outlines via rasterio.features.shapes;
+    distances in EPSG:2180. Distances are to the drawn symbol, so they can be short by up to the symbol half-width.
+  pixel_m: 2                      # OUR CHOICE: distance resolution 2 m; increased when the image would exceed max_px
+  max_px: 4000                    # OUR CHOICE: request size cap (typical ArcGIS WMS limit 4096 px)
+  max_feature_info: 20            # OUR CHOICE: GetFeatureInfo calls per parcel (names / rodzaj / x_kod)
+  name_attribute: nazwa
+  observed_latency_s: 0.4-2.3
+  licence_declared: "Fees: Brak opłat (WMS GetCapabilities)"
+  resolution: "1:10 000"
+  licence_verified: false
+  licence_source: https://www.geoportal.gov.pl/
+
+overpass:
+  name: OpenStreetMap via Overpass API
+  url: https://overpass-api.de/api/interpreter
+  mirrors:
+    - https://overpass.kumi.systems/api/interpreter
+  source: https://wiki.openstreetmap.org/wiki/Overpass_API ; spike 2026-11-21
+  tags:                         # PART_A_DATA_GEO.md (hydro.py spec)
+    waterway: [ditch, drain, stream, river, canal]
+    natural: [water, wetland]
+  spike_result: >-
+    2026-11-21 ~15:30: overpass-api.de connect timeout (42 s), overpass.kumi.systems and
+    overpass.private.coffee timed out at 60 s, maps.mail.ru answered 504. Re-test before CP3.
+    CP3 re-test 2026-11-21 ~17:45: overpass-api.de no TCP connect (IPv4 and IPv6) from the dev network;
+    overpass.kumi.systems connects but gives no response within 120 s. Used only as fallback after BDOT10k.
+  licence: ODbL 1.0
+  licence_verified: true
+  licence_source: https://www.openstreetmap.org/copyright
+  attribution_pl: "© Autorzy OpenStreetMap (ODbL 1.0), https://www.openstreetmap.org/copyright"
+
+worldcover:
+  name: ESA WorldCover 2021 v200
+  url_template: "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_{tile}_Map.tif"
+  tile_example: N51E018         # 3x3 degree tiles named by the SW corner
+  source: https://esa-worldcover.org/en/data-access ; COG read spike 2026-11-21 (value 40 at 52.80N 18.30E)
+  crs: EPSG:4326
+  resolution: "10 m"
+  map_year: 2021                # dataset name and the /v200/2021/ path above
+  observed_through: "2021-12-31"  # https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/docs/WorldCover_PUM_V2.0.pdf §3.4.3
+  observed_latency_s: 0.7
+  licence: CC BY 4.0
+  licence_verified: true
+  licence_source: https://esa-worldcover.org/en/data-access
+  attribution_pl: "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium"
+
+edo:
+  name: European Drought Observatory (Copernicus EMS)
+  wms_url: https://drought.emergency.copernicus.eu/api/wms
+  wcs_url: https://drought.emergency.copernicus.eu/api/wcs
+  source: https://drought.emergency.copernicus.eu/data/wms-service and /data/wcs-service ; spike 2026-11-21
+  wms_version: "1.1.1"
+  get_feature_info: unsupported # spike: every layer queryable="0"; GetFeatureInfo -> "Invalid request type"
+  wcs:
+    version: "2.0.0"
+    map_param: DO_WCS
+    format: GEOTIFF
+    axis_labels: [lat, long]
+    subset_note: >-
+      SUBSET on `long` is applied, SUBSET on `lat` is ignored (all three spellings tried) -> request a
+      0.2 deg longitude strip (~10 kB) and sample the latitude locally.
+    value_note: >-
+      Returned rasters are uint8 CLASS CODES (e.g. cdiad 0..6, spaST 0..4), not physical values.
+      Code -> label mapping must come from GetLegendGraphic / EDO factsheets (to do in CP2).
+    time_note: 'WCS page: "If TIME is not set, the last available date is considered". TIME step P10D (days 01, 11, 21).'
+  layers:                       # name: title (WMS GetCapabilities spike 2026-11-21)
+    cdiad: "Combined Drought Indicator (CDI) v4.1"   # time 2012-01-01/…/P10D ; legend: Watch / Warning / Alert
+    cdirc: "No Drought and Recovery CDI v.4"
+    smian: "SMI Anomaly"                              # time 1995-01-01/…/P10D (served by WCS though not listed on the WCS page)
+    fpanv: "fAPAR Anomaly (VIIRS)"                    # time 2012-01-21/…/P10D (served by WCS though not listed)
+    spaST: "SPI ERA5 Short Term"                      # time 1991-01-01/…/P10D ; SELECTED_TIMESCALE=01|03|...
+  cdi_coverage: cdiad             # WCS strip 2026-11-01 contained codes 0..6 (all CDI levels, not only 1..3)
+  resolution: "0,04°"            # WCS GeoTIFF grid inspected in the 2026-11-21 spike.
+  cdi_levels:                     # LEVEL -> label, CDI factsheet v4.1.1 Table 1:
+    0: No drought                 # https://drought.emergency.copernicus.eu/data/factsheets/factsheet_combinedDroughtIndicator_v4.pdf
+    1: Watch
+    2: Warning
+    3: Alert
+    4: Recovery
+    5: Temporary Soil Moisture recovery
+    6: Temporary vegetation recovery
+  cdi_levels_verification: >-
+    Assumption: WCS pixel value = Table 1 LEVEL (7 codes 0..6 seen, 7 levels in Table 1). Partial check 2026-11-21:
+    WCS strip vs WMS GetMap colours on the same grid (TIME 2026-11-01, 18.5-18.7E): code 2 -> Warning orange
+    (230,159,0) in 390 of 612 px; code 3 -> Alert red (220,5,12) as the most common colour (153 px), orange next
+    (115 px); code 1 only 4 px (transparent). Differences come from the two products being resampled from the
+    native grid differently.
+  dekad_rule: >-
+    TIME values are dekads (P10D: days 1, 11, 21). OUR CHOICE: use the latest dekad that has ENDED on or before
+    the analysis date (next dekad start - 1 day <= analysis date), so no observation after the analysis date can
+    be included whichever day of the dekad the date label refers to.
+  observed_latency_s: 1-5
+  licence_declared: "Fees: no fees; AccessConstraints: no constraints (WMS GetCapabilities)"
+  licence: Warunki Copernicus Emergency Management Service EDO/GDO
+  licence_verified: true
+  licence_source: https://drought.emergency.copernicus.eu/terms&conditions/
+  attribution_pl: "Contains modified Copernicus Emergency Management Service information [year]"
+
+imgw:
+  name: IMGW-PIB dane publiczne
+  synop_url: https://danepubliczne.imgw.pl/api/data/synop
+  warnings_hydro_url: https://danepubliczne.imgw.pl/api/data/warningshydro
+  meteo_url: https://danepubliczne.imgw.pl/api/data/meteo   # 788 stations with lon/lat (CP2 probe 2026-11-21)
+  stations_file: data/a/imgw_synop_stations.json             # scripts/a/build_imgw_stations.py
+  synop_time_zone: UTC   # data_pomiaru + godzina_pomiaru: WMO SYNOP observation times are UTC (WMO-No. 306,
+                         # FM 12); consistent with 2026-11-21 16:02 UTC -> newest observation hour "15"
+  drought_phenomena: ["Susza hydrologiczna"]   # warningshydro `zdarzenie` value for drought (CP2 probe 2026-11-21)
+  warning_area_match: voivodeship   # obszary[].wojewodztwo == parcel voivodeship; catchment polygons for
+                                    # kod_zlewni are not available, so matching is by voivodeship (coarse)
+  source: https://danepubliczne.imgw.pl/ ; spike 2026-11-21
+  synop_fields: [id_stacji, stacja, data_pomiaru, godzina_pomiaru, temperatura, predkosc_wiatru, kierunek_wiatru, wilgotnosc_wzgledna, suma_opadu, cisnienie]
+  synop_has_coordinates: false  # station coordinates need a separate table in data/a/ (CP2)
+  warnings_fields_seen: [opublikowano, "stopień", data_od, data_do, prawdopodobienstwo, numer, biuro, zdarzenie]
+  observed_latency_s: 0.3
+  attribution_pl: >-
+    Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy.
+    Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone.
+  attribution_source: https://danepubliczne.imgw.pl/regulations
+  licence: Regulamin udostępniania danych IMGW-PIB
+  licence_source: https://danepubliczne.imgw.pl/regulations
+  licence_verified: true

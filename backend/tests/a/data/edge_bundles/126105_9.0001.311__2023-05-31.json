@@ -1,0 +1,891 @@
+{
+ "parcel": {
+  "parcel_id": "126105_9.0001.311",
+  "teryt": "126105_9",
+  "voivodeship": "małopolskie",
+  "county": "powiat Kraków",
+  "commune": "Kraków (miasto)",
+  "region": "S-1",
+  "parcel_number": "311",
+  "area_ha": 0.3823,
+  "geometry_wgs84": {
+   "type": "Polygon",
+   "coordinates": [
+    [
+     [
+      19.93679133457759,
+      50.06135306896585
+     ],
+     [
+      19.93684791206983,
+      50.061333626478174
+     ],
+     [
+      19.936843694414915,
+      50.061328552704445
+     ],
+     [
+      19.936905950379394,
+      50.06129864235391
+     ],
+     [
+      19.93690281409909,
+      50.061295196925066
+     ],
+     [
+      19.93715363445233,
+      50.06119535255807
+     ],
+     [
+      19.937148586868524,
+      50.06118991154269
+     ],
+     [
+      19.937195604792144,
+      50.06117325857028
+     ],
+     [
+      19.937221058465855,
+      50.06120334283382
+     ],
+     [
+      19.937218521068758,
+      50.06120439855879
+     ],
+     [
+      19.93722314774867,
+      50.06120992563034
+     ],
+     [
+      19.937535623492355,
+      50.06158152054676
+     ],
+     [
+      19.937543497138847,
+      50.06157916496333
+     ],
+     [
+      19.937557640802495,
+      50.061596467855765
+     ],
+     [
+      19.937586889780725,
+      50.0616318017434
+     ],
+     [
+      19.93760103347525,
+      50.06164910463061
+     ],
+     [
+      19.93759272500445,
+      50.061652175543635
+     ],
+     [
+      19.93789552529485,
+      50.06202574888915
+     ],
+     [
+      19.937897700060297,
+      50.062028466186206
+     ],
+     [
+      19.937901079325147,
+      50.06202723832368
+     ],
+     [
+      19.93792610502672,
+      50.0620577680757
+     ],
+     [
+      19.937878527902402,
+      50.06207441622611
+     ],
+     [
+      19.937873617805216,
+      50.062069066414836
+     ],
+     [
+      19.93776371537548,
+      50.062106093949794
+     ],
+     [
+      19.937650679035226,
+      50.06214588000659
+     ],
+     [
+      19.93754575980281,
+      50.06218493103637
+     ],
+     [
+      19.937509718721817,
+      50.06219781836447
+     ],
+     [
+      19.937501406178402,
+      50.06220106906008
+     ],
+     [
+      19.937494229307873,
+      50.06220981485736
+     ],
+     [
+      19.937482305203787,
+      50.06220583943366
+     ],
+     [
+      19.937487617042574,
+      50.06219932439466
+     ],
+     [
+      19.937467880828464,
+      50.06217594611429
+     ],
+     [
+      19.937411325555093,
+      50.06210583554339
+     ],
+     [
+      19.937400577594445,
+      50.06209287955683
+     ],
+     [
+      19.937199942567847,
+      50.06184926593115
+     ],
+     [
+      19.93719740910863,
+      50.06185014186525
+     ],
+     [
+      19.93718625424749,
+      50.061836642652764
+     ],
+     [
+      19.93708799773898,
+      50.06171957501007
+     ],
+     [
+      19.93707742137899,
+      50.06170518195213
+     ],
+     [
+      19.937080232133738,
+      50.06170439847328
+     ],
+     [
+      19.93679133457759,
+      50.06135306896585
+     ]
+    ]
+   ]
+  },
+  "geometry_2180_wkt": "POLYGON ((567030.97238269 244208.124474604, 567035.0477488 244206.014201979, 567034.753034944 244205.446469326, 567039.24930377 244202.177793443, 567039.029696084 244201.792020937, 567057.115773651 244190.919402573, 567056.762189341 244190.31010508, 567060.149675163 244188.501326577, 567061.929018471 244191.868030026, 567061.745988516 244191.98309635, 567062.069335283 244192.601581547, 567083.909642821 244234.184767563, 567084.476305804 244233.930013842, 567085.464186381 244235.865924896, 567087.507738141 244239.819539459, 567088.495618689 244241.755450555, 567087.896845993 244242.089322179, 567109.04168467 244283.883832491, 567109.193501674 244284.187812727, 567109.437006804 244284.054371084, 567111.185041948 244287.470223541, 567107.757594741 244289.2779314, 567107.413733158 244288.678891154, 567099.498384912 244292.695795779, 567091.354965094 244297.01650727, 567083.793374416 244301.262820422, 567081.196610571 244302.66288758, 567080.597302913 244303.016739132, 567080.071590984 244303.982389754, 567079.223948597 244303.529817478, 567079.6131038 244302.810440804, 567078.233551624 244300.194231832, 567074.284705617 244292.350686646, 567073.533738605 244290.900983318, 567059.517616609 244263.643296132, 567059.335121526 244263.738382344, 567058.555789017 244262.227936625, 567051.688531639 244249.127716277, 567050.951833701 244247.51844012, 567051.154041387 244247.433878833, 567030.97238269 244208.124474604))",
+  "centroid_lat": 50.061695,
+  "centroid_lon": 19.937351
+ },
+ "bundle": {
+  "soil": {
+   "status": "missing",
+   "data": null,
+   "provenance": [
+    {
+     "source_id": "soil_map",
+     "name": "Mapa glebowo-rolnicza (GUGiK, WMS)",
+     "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer",
+     "fetched_at": "2026-11-21T19:03:30.580186Z",
+     "live": true,
+     "data_period": null,
+     "resolution": "1:5000",
+     "licence": "Fees: no conditions apply; AccessConstraints: otherRestrictions (WMS GetCapabilities)",
+     "attribution_pl": null
+    }
+   ],
+   "notes_pl": [
+    "Mapa glebowo-rolnicza nie podaje gatunku gleby dla tej działki (kompleks: Tz).",
+    "Model SoilGrids nie zawiera danych dla lokalizacji działki (brak wartości w modelu); brak profilu glebowego (uziarnienie, retencja wody)."
+   ],
+   "error": "soilgrids: all values null at the query point",
+   "elapsed_s": 19.141
+  },
+  "vegetation": {
+   "status": "partial",
+   "data": {
+    "interior_pixels": 14,
+    "current": [],
+    "current_window": [
+     "2023-05-01",
+     "2023-05-31"
+    ],
+    "same_window_by_year": {
+     "2021": []
+    },
+    "season_peaks": {},
+    "scenes_considered": 68,
+    "scenes_processed": 10
+   },
+   "provenance": [
+    {
+     "source_id": "planetary_computer",
+     "name": "Microsoft Planetary Computer STAC (Sentinel-2 L2A)",
+     "url": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a",
+     "fetched_at": "2026-11-21T19:03:32.448387Z",
+     "live": true,
+     "data_period": null,
+     "resolution": "10 m",
+     "licence": "Copernicus Sentinel data – free, full and open access",
+     "attribution_pl": "Contains modified Copernicus Sentinel data [year]"
+    }
+   ],
+   "notes_pl": [
+    "Przeanalizowano 10 z 68 scen Sentinel-2 w dostępnym czasie; pozostałe sceny są przetwarzane w tle i mogą uzupełnić wynik po odświeżeniu danych.",
+    "Mała działka: tylko 14 pikseli Sentinel-2 (10 m) we wnętrzu działki; wskaźniki roślinności są mniej wiarygodne.",
+    "Brak zdjęć Sentinel-2 L2A w archiwum dla lat: 2013, 2014; porównanie wieloletnie obejmuje krótszy okres."
+   ],
+   "error": null,
+   "elapsed_s": 21.016
+  },
+  "terrain": {
+   "status": "partial",
+   "data": {
+    "dem_source": "copernicus_dem_30m",
+    "resolution_m": 30.0,
+    "elevation_min_m": 215.78,
+    "elevation_max_m": 220.44,
+    "slope_mean_pct": 6.86,
+    "slope_p90_pct": 8.71,
+    "twi_p90": 8.12,
+    "lowest_point": {
+     "type": "Point",
+     "coordinates": [
+      19.93698855454761,
+      50.06141333525803
+     ]
+    },
+    "retention_spots": [
+     {
+      "id": "Z1",
+      "kind": "depression",
+      "geometry": {
+       "type": "Polygon",
+       "coordinates": [
+        [
+         [
+          19.9368026026356,
+          50.06262941327638
+         ],
+         [
+          19.936797346682418,
+          50.062359549704944
+         ],
+         [
+          19.935958917730655,
+          50.06236631352314
+         ],
+         [
+          19.93551870833277,
+          50.06129023835992
+         ],
+         [
+          19.936357118635016,
+          50.06128347782636
+         ],
+         [
+          19.93635186543132,
+          50.06101361415768
+         ],
+         [
+          19.93719027071292,
+          50.06100684763358
+         ],
+         [
+          19.937185012886935,
+          50.06073698401619
+         ],
+         [
+          19.937604213057195,
+          50.06073359851577
+         ],
+         [
+          19.937609473234154,
+          50.06100346210097
+         ],
+         [
+          19.938447878037294,
+          50.060996686494676
+         ],
+         [
+          19.938458408034585,
+          50.061536413497166
+         ],
+         [
+          19.939296821922476,
+          50.061529631707124
+         ],
+         [
+          19.93929155218184,
+          50.061259768276855
+         ],
+         [
+          19.94054916536118,
+          50.06124958433567
+         ],
+         [
+          19.940559719028663,
+          50.06178931098956
+         ],
+         [
+          19.940140510013414,
+          50.06179270721492
+         ],
+         [
+          19.940145784616078,
+          50.0620625705546
+         ],
+         [
+          19.939302091743016,
+          50.06179949512438
+         ],
+         [
+          19.93930736164347,
+          50.06206935852862
+         ],
+         [
+          19.938468938351217,
+          50.0620761404476
+         ],
+         [
+          19.93847420362929,
+          50.06234600390328
+         ],
+         [
+          19.938054989512246,
+          50.062349392624355
+         ],
+         [
+          19.93804972658532,
+          50.06207952913645
+         ],
+         [
+          19.937630514739613,
+          50.06208291631156
+         ],
+         [
+          19.937635775315396,
+          50.06235277983166
+         ],
+         [
+          19.9368026026356,
+          50.06262941327638
+         ]
+        ],
+        [
+         [
+          19.93721130281414,
+          50.0620863019729
+         ],
+         [
+          19.937630514739613,
+          50.06208291631156
+         ],
+         [
+          19.9376252542436,
+          50.06181305277843
+         ],
+         [
+          19.937206044669246,
+          50.061816438407604
+         ],
+         [
+          19.93721130281414,
+          50.0620863019729
+         ]
+        ]
+       ]
+      },
+      "inside_parcel": true,
+      "volume_m3": {
+       "low": null,
+       "mid": 141169.3,
+       "high": null
+      },
+      "area_m2": 37800.0,
+      "max_depth_m": 8.07,
+      "upstream_area_ha": 0.45
+     },
+     {
+      "id": "Z2",
+      "kind": "depression",
+      "geometry": {
+       "type": "Polygon",
+       "coordinates": [
+        [
+         [
+          19.939275743439357,
+          50.060450177907924
+         ],
+         [
+          19.939270474018336,
+          50.06018031442558
+         ],
+         [
+          19.93885127886915,
+          50.06018370591625
+         ],
+         [
+          19.938421554441113,
+          50.05964736876055
+         ],
+         [
+          19.939259935415983,
+          50.05964058742181
+         ],
+         [
+          19.939265204677213,
+          50.0599104509302
+         ],
+         [
+          19.93968439739564,
+          50.05990705795813
+         ],
+         [
+          19.93969494085954,
+          50.060446784871345
+         ],
+         [
+          19.939275743439357,
+          50.060450177907924
+         ]
+        ]
+       ]
+      },
+      "inside_parcel": false,
+      "volume_m3": {
+       "low": null,
+       "mid": 5576.7,
+       "high": null
+      },
+      "area_m2": 4500.0,
+      "max_depth_m": 2.7,
+      "upstream_area_ha": 1.17
+     },
+     {
+      "id": "Z3",
+      "kind": "depression",
+      "geometry": {
+       "type": "Polygon",
+       "coordinates": [
+        [
+         [
+          19.939344253184192,
+          50.06395840199363
+         ],
+         [
+          19.9393337123444,
+          50.06341867535445
+         ],
+         [
+          19.940172158829128,
+          50.06341188705778
+         ],
+         [
+          19.9401774339117,
+          50.06368175031935
+         ],
+         [
+          19.939344253184192,
+          50.06395840199363
+         ]
+        ]
+       ]
+      },
+      "inside_parcel": false,
+      "volume_m3": {
+       "low": null,
+       "mid": 2640.4,
+       "high": null
+      },
+      "area_m2": 2700.0,
+      "max_depth_m": 1.62,
+      "upstream_area_ha": 0.72
+     },
+     {
+      "id": "Z4",
+      "kind": "depression",
+      "geometry": {
+       "type": "Polygon",
+       "coordinates": [
+        [
+         [
+          19.93515196894427,
+          50.06399225329089
+         ],
+         [
+          19.935146721998056,
+          50.06372238965599
+         ],
+         [
+          19.935565948429307,
+          50.06371901137075
+         ],
+         [
+          19.935571197726894,
+          50.06398887497354
+         ],
+         [
+          19.93515196894427,
+          50.06399225329089
+         ]
+        ]
+       ]
+      },
+      "inside_parcel": false,
+      "volume_m3": {
+       "low": null,
+       "mid": 861.4,
+       "high": null
+      },
+      "area_m2": 900.0,
+      "max_depth_m": 0.96,
+      "upstream_area_ha": 3.15
+     },
+     {
+      "id": "Z5",
+      "kind": "depression",
+      "geometry": {
+       "type": "Polygon",
+       "coordinates": [
+        [
+         [
+          19.938505796974436,
+          50.06396518436395
+         ],
+         [
+          19.938500531217297,
+          50.06369532098638
+         ],
+         [
+          19.938919757010762,
+          50.06369193059039
+         ],
+         [
+          19.938925025119257,
+          50.06396179393573
+         ],
+         [
+          19.938505796974436,
+          50.06396518436395
+         ]
+        ]
+       ]
+      },
+      "inside_parcel": false,
+      "volume_m3": {
+       "low": null,
+       "mid": 856.5,
+       "high": null
+      },
+      "area_m2": 900.0,
+      "max_depth_m": 0.95,
+      "upstream_area_ha": 0.27
+     },
+     {
+      "id": "Z6",
+      "kind": "depression",
+      "geometry": {
+       "type": "Polygon",
+       "coordinates": [
+        [
+         [
+          19.939705484643177,
+          50.06098651173248
+         ],
+         [
+          19.939700212711386,
+          50.06071664830842
+         ],
+         [
+          19.94011941240256,
+          50.06071325372591
+         ],
+         [
+          19.940124686685305,
+          50.06098311711769
+         ],
+         [
+          19.939705484643177,
+          50.06098651173248
+         ]
+        ]
+       ]
+      },
+      "inside_parcel": false,
+      "volume_m3": {
+       "low": null,
+       "mid": 522.4,
+       "high": null
+      },
+      "area_m2": 900.0,
+      "max_depth_m": 0.58,
+      "upstream_area_ha": 9.63
+     },
+     {
+      "id": "Z7",
+      "kind": "depression",
+      "geometry": {
+       "type": "Polygon",
+       "coordinates": [
+        [
+         [
+          19.93550821140901,
+          50.060750510880986
+         ],
+         [
+          19.935502963066504,
+          50.060480647122006
+         ],
+         [
+          19.935922161204502,
+          50.06047726770846
+         ],
+         [
+          19.935927411897953,
+          50.06074713143532
+         ],
+         [
+          19.93550821140901,
+          50.060750510880986
+         ]
+        ]
+       ]
+      },
+      "inside_parcel": false,
+      "volume_m3": {
+       "low": null,
+       "mid": 225.2,
+       "high": null
+      },
+      "area_m2": 900.0,
+      "max_depth_m": 0.25,
+      "upstream_area_ha": 0.27
+     }
+    ],
+    "flow_lines": []
+   },
+   "provenance": [
+    {
+     "source_id": "copernicus_dem",
+     "name": "Copernicus DEM GLO-30",
+     "url": "https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N50_00_E019_00_DEM/Copernicus_DSM_COG_10_N50_00_E019_00_DEM.tif",
+     "fetched_at": "2026-11-21T19:03:20.698107Z",
+     "live": true,
+     "data_period": null,
+     "resolution": "30 m",
+     "licence": "Copernicus DEM licence (GLO-30 free of charge, worldwide)",
+     "attribution_pl": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    }
+   ],
+   "notes_pl": [
+    "Ukształtowanie terenu oceniono na modelu Copernicus DEM (30 m), bo numeryczny model terenu GUGiK (1 m) nie odpowiedział w wyznaczonym czasie; drobne zagłębienia i bruzdy nie są widoczne. Copernicus DEM jest modelem powierzchni (uwzględnia drzewa i zabudowę), więc część wykrytych zagłębień może wynikać z zadrzewień. Model GUGiK jest pobierany w tle i zostanie użyty przy kolejnej analizie tej działki."
+   ],
+   "error": null,
+   "elapsed_s": 9.266
+  },
+  "hydro": {
+   "status": "ok",
+   "data": {
+    "buffer_m": 500,
+    "features": [
+     {
+      "kind": "pond",
+      "name": null,
+      "geometry": {
+       "type": "Polygon",
+       "coordinates": [
+        [
+         [
+          19.940096605184927,
+          50.065930621333884
+         ],
+         [
+          19.940149339306988,
+          50.065768250691924
+         ],
+         [
+          19.940204886755627,
+          50.06574980704204
+         ],
+         [
+          19.940344634596322,
+          50.06574867499293
+         ],
+         [
+          19.940625537724404,
+          50.06581837388934
+         ],
+         [
+          19.940764581905555,
+          50.06578125958463
+         ],
+         [
+          19.94076387806507,
+          50.06574527783633
+         ],
+         [
+          19.94081942524758,
+          50.06572683389376
+         ],
+         [
+          19.940817665549858,
+          50.06563687952312
+         ],
+         [
+          19.940732761332477,
+          50.065583586488955
+         ],
+         [
+          19.94073205752072,
+          50.065547604739095
+         ],
+         [
+          19.940619907865123,
+          50.06553051988672
+         ],
+         [
+          19.940536763213416,
+          50.06556718108506
+         ],
+         [
+          19.94048227154231,
+          50.065639597520665
+         ],
+         [
+          19.940314926270037,
+          50.06565894703293
+         ],
+         [
+          19.94020418333463,
+          50.06571382528775
+         ],
+         [
+          19.939896386688744,
+          50.065698324321694
+         ],
+         [
+          19.93981429588416,
+          50.06578895764268
+         ],
+         [
+          19.939844354939456,
+          50.06589667661219
+         ],
+         [
+          19.939900957451446,
+          50.065932205741674
+         ],
+         [
+          19.940096605184927,
+          50.065930621333884
+         ]
+        ]
+       ]
+      },
+      "distance_m": 424.2,
+      "touches_parcel": false,
+      "source_id": "bdot10k"
+     }
+    ],
+    "nearest_water_m": 424.2,
+    "ditches_crossing_boundary": 0
+   },
+   "provenance": [
+    {
+     "source_id": "bdot10k_water",
+     "name": "BDOT10k (GUGiK) – sieć wodna, usługa WMS",
+     "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/kompozycja_BDOT10k_WMS/MapServer/WMSServer",
+     "fetched_at": "2026-11-21T19:03:16.671632Z",
+     "live": true,
+     "data_period": null,
+     "resolution": "1:10 000, odczyt co 2 m",
+     "licence": "Fees: Brak opłat (WMS GetCapabilities)",
+     "attribution_pl": null
+    }
+   ],
+   "notes_pl": [
+    "Cieki, rowy i wody powierzchniowe odczytano z warstw BDOT10k (siatka 2 m); odległości mogą być zaniżone o połowę szerokości symbolu na mapie."
+   ],
+   "error": null,
+   "elapsed_s": 5.234
+  },
+  "landcover": {
+   "status": "ok",
+   "data": {
+    "dataset": "ESA WorldCover 2021 v200",
+    "buffer_m": 500,
+    "shares_parcel": {
+     "Built-up": 1.0
+    },
+    "shares_buffer": {
+     "Built-up": 0.7532,
+     "Tree cover": 0.2433,
+     "Grassland": 0.0034,
+     "Bare/sparse vegetation": 0.0001
+    }
+   },
+   "provenance": [
+    {
+     "source_id": "worldcover",
+     "name": "ESA WorldCover 2021 v200",
+     "url": "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_N48E018_Map.tif",
+     "fetched_at": "2026-11-21T19:03:15.927779Z",
+     "live": true,
+     "data_period": "2021",
+     "resolution": "10 m",
+     "licence": "CC BY 4.0",
+     "attribution_pl": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium"
+    }
+   ],
+   "notes_pl": [],
+   "error": null,
+   "elapsed_s": 4.484
+  },
+  "edo": {
+   "status": "ok",
+   "data": {
+    "date_used": "2023-05-21",
+    "cdi_class": "No drought",
+    "cdi_value": null,
+    "sma": null,
+    "fapar_anomaly": null,
+    "spi3": null
+   },
+   "provenance": [
+    {
+     "source_id": "edo",
+     "name": "European Drought Observatory (Copernicus EMS)",
+     "url": "https://drought.emergency.copernicus.eu/api/wcs",
+     "fetched_at": "2026-11-21T19:03:13.056281Z",
+     "live": true,
+     "data_period": "dekada od 2023-05-21",
+     "resolution": "0,04°",
+     "licence": "Fees: no fees; AccessConstraints: no constraints (WMS GetCapabilities)",
+     "attribution_pl": null
+    }
+   ],
+   "notes_pl": [
+    "Europejskie Obserwatorium Suszy (EDO) udostępnia publicznie tylko klasy wskaźnika CDI; wartości liczbowe SMA, fAPAR i SPI nie są pobierane."
+   ],
+   "error": null,
+   "elapsed_s": 1.625
+  },
+  "imgw": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Dane bieżące IMGW niedostępne dla daty historycznej."
+   ],
+   "error": "imgw: historical analysis date",
+   "elapsed_s": 0.0
+  }
+ }
+}

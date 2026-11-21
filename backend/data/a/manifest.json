@@ -1,0 +1,44 @@
+{
+  "soilgrids_points.json": {
+    "url": "https://rest.isric.org/soilgrids/v2.0/properties/query",
+    "downloaded": "2026-11-21",
+    "licence": "CC BY 4.0",
+    "content": "raw SoilGrids 2.0 /properties/query responses for query_point() of each test parcel",
+    "script": "scripts/a/prefetch_soilgrids.py"
+  },
+  "imgw_synop_stations.json": {
+    "url": "https://danepubliczne.imgw.pl/api/data/synop + https://danepubliczne.imgw.pl/api/data/meteo",
+    "downloaded": "2026-11-21",
+    "licence": "IMGW-PIB dane publiczne (attribution required, see config/geo_sources.yaml imgw)",
+    "content": "synop station id/name joined by name to meteo station coordinates",
+    "script": "scripts/a/build_imgw_stations.py"
+  },
+  "s2_scene_stats.json": {
+    "url": "https://planetarycomputer.microsoft.com/api/stac/v1 (collection sentinel-2-l2a); https://earth-search.aws.element84.com/v1 (collection sentinel-2-l2a); https://earth-search.aws.element84.com/v1 (collection sentinel-2-c1-l2a) - providers in this order",
+    "downloaded": "2026-11-21",
+    "licence": "Copernicus Sentinel data – free, full and open access",
+    "content": "per scene x parcel-interior NDVI/NDMI medians computed by app.geo.sentinel2.scene_stats for the test parcels and fixture dates; key = scene_id|sha1(interior geometry)[:16]",
+    "script": "scripts/a/prefetch_s2.py"
+  },
+  "nmt/": {
+    "url": "https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WCS/DigitalTerrainModelFormatTIFF (coverage DTM_PL-KRON86-NH_TIFF)",
+    "downloaded": "2026-11-21",
+    "licence": "Fees: none; AccessConstraints: none (WCS GetCapabilities)",
+    "content": "NMT (EPSG:2180, PL-KRON86-NH) for each test parcel + 200 m, resampled by the WCS (SCALEFACTOR) to the grid chosen by app.geo.dem.grid_for; files: 040704_2.0012.63-1.tif, 060406_2.0136.AR_5.1077-6.tif, 100206_2.0008.273-23.tif, 121405_5.0016.480-3.tif, 142513_2.0039.102.tif, 200605_5.0002.143.tif, 303005_5.0323.25-7.tif",
+    "script": "scripts/a/prefetch_nmt.py"
+  },
+  "soilgrids_tiles.json": {
+    "url": "https://files.isric.org/soilgrids/latest/data/{prop}/{prop}_0-5cm_Q0.5.vrt for sand, silt, clay, soc, bdod (layout checked against {prop}_100-200cm_Q0.95.vrt)",
+    "downloaded": "2026-11-21",
+    "licence": "CC BY 4.0",
+    "content": "per property, the SoilGrids 2.0 tiles (450 x 450 px, 250 m, Homolosine) covering lon/lat (14.0, 48.9, 24.2, 54.95): tile path, projected origin (m) and size (px)",
+    "script": "scripts/a/build_soilgrids_tiles.py"
+  },
+  "teryt_names.json": {
+    "url": "https://mapy.geoportal.gov.pl/wss/service/PZGIK/PRG/WFS/AdministrativeBoundaries (GetFeature ms:A01_Granice_wojewodztw, ms:A02_Granice_powiatow)",
+    "downloaded": "2026-11-21",
+    "licence": "Dane PZGiK udostępniane bez opłat",
+    "content": "16 voivodeship and 380 county names by TERYT code (JPT_KOD_JE -> JPT_NAZWA_)",
+    "script": "scripts/a/build_teryt_names.py"
+  }
+}

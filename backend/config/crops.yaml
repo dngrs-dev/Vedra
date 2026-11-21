@@ -1,0 +1,103 @@
+# The crop names and codes key the KBW annex. Irrigation profiles identify the
+# crop or scenario used when the annex groups several crops under one name.
+source: &kbw https://eli.gov.pl/api/acts/DU/2019/739/text.pdf
+sources:
+  kc_fao56: &kc56 "FAO-56 (1998), table 12 — https://www.fao.org/4/x0490e/x0490e0b.htm"
+  water_fao56: &water56 "FAO-56 (1998), table 22 — https://www.fao.org/4/x0490e/x0490e0e.htm"
+  kc_root_fao56_rev1: &kc_root56_rev1 "FAO-56 Rev.1 (2025), table 6.2 — https://doi.org/10.4060/cd6621en"
+  depletion_fao56_rev1: &p56_rev1 "FAO-56 Rev.1 (2025), table 8.2 — https://doi.org/10.4060/cd6621en"
+  kc_tobacco: &kc33 "FAO-33, tobacco row in the tabulated Kc values — https://posmet.ufv.br/wp-content/uploads/2017/04/MET-477-Doorenbos-e-Kassam-Yield-response.pdf"
+  water_tobacco: &water33 "FAO-33, tobacco, Water Uptake section — https://posmet.ufv.br/wp-content/uploads/2017/04/MET-477-Doorenbos-e-Kassam-Yield-response.pdf"
+
+crops:
+  winter_cereals:
+    name_pl: Zboża ozime
+    source: *kbw
+    irrigation_profile_pl: Pszenica ozima z zimowym przemarzaniem gleby
+    kc: {initial: 0.40, mid: 1.15, end: [0.25, 0.40], source: *kc56}
+    zr_m: {low: 1.50, high: 1.80, source: *water56}
+    p: {value: 0.55, source: *water56}
+  spring_cereals:
+    name_pl: Zboża jare
+    source: *kbw
+    irrigation_profile_pl: Pszenica jara
+    kc: {initial: 0.30, mid: 1.15, end: [0.25, 0.40], source: *kc56}
+    zr_m: {low: 1.00, high: 1.50, source: *water56}
+    p: {value: 0.55, source: *water56}
+  grain_maize:
+    name_pl: Kukurydza na ziarno
+    source: *kbw
+    kc: {initial: 0.30, mid: 1.20, end: [0.35, 0.60], source: *kc56}
+    zr_m: {low: 1.00, high: 1.70, source: *water56}
+    p: {value: 0.55, source: *water56}
+  silage_maize:
+    name_pl: Kukurydza na kiszonkę
+    source: *kbw
+    kc: {initial: 0.30, mid: 1.15, end: 0.95, source: *kc_root56_rev1}
+    zr_m: {low: 0.60, high: 1.50, source: *kc_root56_rev1}
+    p: {value: 0.50, source: *p56_rev1}
+  rapeseed:
+    name_pl: Rzepak i rzepik
+    source: *kbw
+    irrigation_profile_pl: Rzepak
+    kc: {initial: 0.35, mid: [1.00, 1.15], end: 0.35, source: *kc56}
+    zr_m: {low: 1.00, high: 1.50, source: *water56}
+    p: {value: 0.60, source: *water56}
+  potatoes:
+    name_pl: Ziemniaki
+    source: *kbw
+    kc: {initial: 0.50, mid: 1.15, end: 0.75, source: *kc56}
+    zr_m: {low: 0.40, high: 0.60, source: *water56}
+    p: {value: 0.35, source: *water56}
+  sugar_beet:
+    name_pl: Burak cukrowy
+    source: *kbw
+    kc: {initial: 0.35, mid: 1.20, end: 0.70, source: *kc56}
+    zr_m: {low: 0.70, high: 1.20, source: *water56}
+    p: {value: 0.55, source: *water56}
+  hops:
+    name_pl: Chmiel
+    source: *kbw
+    kc: {initial: 0.30, mid: 1.05, end: 0.85, source: *kc56}
+    zr_m: {low: 1.00, high: 1.20, source: *water56}
+    p: {value: 0.50, source: *water56}
+  tobacco:
+    name_pl: Tytoń
+    source: *kbw
+    kc: {initial: [0.30, 0.40], mid: [1.00, 1.20], end: [0.75, 0.85], source: *kc33}
+    zr_m: {low: 0.50, high: 1.00, source: *water33}
+    p: {value: 0.60, source: *water33}
+  field_vegetables:
+    name_pl: Warzywa gruntowe
+    source: *kbw
+    irrigation_profile_pl: Marchew
+    kc: {initial: 0.70, mid: 1.05, end: 0.95, source: *kc56}
+    zr_m: {low: 0.50, high: 1.00, source: *water56}
+    p: {value: 0.35, source: *water56}
+  fruit_bushes:
+    name_pl: Krzewy owocowe
+    source: *kbw
+    irrigation_profile_pl: Krzewy jagodowe
+    kc: {initial: 0.30, mid: 1.05, end: 0.50, source: *kc56}
+    zr_m: {low: 0.60, high: 1.20, source: *water56}
+    p: {value: 0.50, source: *water56}
+  fruit_trees:
+    name_pl: Drzewa owocowe
+    source: *kbw
+    irrigation_profile_pl: Jabłonie, wiśnie i grusze w sadzie bez okrywy roślinnej, z mrozem kończącym wegetację
+    kc: {initial: 0.45, mid: 0.95, end: 0.70, source: *kc56}
+    zr_m: {low: 1.00, high: 2.00, source: *water56}
+    p: {value: 0.50, source: *water56}
+  strawberries:
+    name_pl: Truskawki
+    source: *kbw
+    kc: {initial: 0.40, mid: 0.85, end: 0.75, source: *kc56}
+    zr_m: {low: 0.20, high: 0.30, source: *water56}
+    p: {value: 0.20, source: *water56}
+  legumes:
+    name_pl: Rośliny strączkowe
+    source: *kbw
+    irrigation_profile_pl: Fasola na suche nasiona
+    kc: {initial: 0.40, mid: 1.15, end: 0.35, source: *kc56}
+    zr_m: {low: 0.60, high: 0.90, source: *water56}
+    p: {value: 0.45, source: *water56}
