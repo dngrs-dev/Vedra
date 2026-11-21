@@ -57,8 +57,8 @@ class AnalysisRunner:
             bundle = value
 
         try:
-            async with asyncio.timeout(self.timeout_s):
-                report = await run_analysis(req, geo, job.progress.append, on_geo=remember_geo)
+            async with asyncio.timeout(self.timeout_s) as budget:
+                report = await run_analysis(req, geo, job.progress.append, on_geo=remember_geo, deadline=budget.when())
             await asyncio.to_thread(self.store.save_report, report, job.analysis_id, [*job.progress, text.PROGRESS_DONE], bundle)
             job.report = report
         except InvalidParcelQuery:

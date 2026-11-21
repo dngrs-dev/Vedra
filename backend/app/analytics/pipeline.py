@@ -18,6 +18,9 @@ from app.recommendations import engine
 from app.recommendations import texts_pl as text
 from app.reports import builder
 
+# CONTRACTS.md §1 allocates three seconds to analytics and §3 allows 0.5 s of GeoProvider deadline grace.
+REPORT_RESERVE_S = 3.5
+
 
 async def _irrigation_context(ctx: AnalysisContext) -> AnalysisContext:
     req = ctx.request
@@ -77,7 +80,7 @@ def _signals(
 
 async def run_analysis(
     req: AnalysisRequest, geo: GeoProvider, progress: Callable[[str], None],
-    *, on_geo: Callable[[GeoBundle], None] | None = None,
+    *, on_geo: Callable[[GeoBundle], None] | None = None, deadline: float | None = None,
 ) -> Report:
     crop = crops.load()[req.crop_code]
     progress(text.PROGRESS_PARCEL)
@@ -87,9 +90,13 @@ async def run_analysis(
         raise ParcelNotFound("No parcel matched the requested ID")
 
     progress(text.PROGRESS_DATA)
+    geo_request = GeoRequest(parcel=parcel, analysis_date=req.analysis_date)
+    if deadline is not None:
+        remaining = deadline - asyncio.get_running_loop().time() - REPORT_RESERVE_S
+        geo_request.deadline_s = min(geo_request.deadline_s, max(remaining, 0.0))
     weather, bundle = await asyncio.gather(
         weather_provider.fetch_weather(parcel.centroid_lat, parcel.centroid_lon, req.analysis_date),
-        geo.collect(GeoRequest(parcel=parcel, analysis_date=req.analysis_date)),
+        geo.collect(geo_request),
     )
     if on_geo is not None:
         on_geo(bundle)

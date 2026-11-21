@@ -8,10 +8,12 @@ go odczytać po restarcie. Renderowanie PDF następuje przy pierwszym pobraniu, 
 pobrania korzystają z zapisanego pliku.
 
 Pogoda i źródła geo są pobierane równolegle po ustaleniu działki. Kompletne archiwum pogody
-jest buforowane dla komórki 0,1° oraz końca zakresu. Okres opóźnienia publikacji uzupełnia
-bieżący model pogodowy. Część A używa oddzielnych kluczy pamięci podręcznej i odczytuje
-przygotowane profile SoilGrids, gdy są dostępne. Każde zadanie ma limit 30 s zgodny
-z celem prototypu. Częściowe źródła opisuje się w raporcie.
+jest buforowane dla komórki 0,1°. Okres opóźnienia publikacji uzupełnia bieżący model
+pogodowy. Lokalne archiwum IMGW-PIB może dostarczyć dane potrzebne do KBW przy niedostępności
+modelu. Część A używa oddzielnych kluczy pamięci podręcznej i odczytuje przygotowane profile
+SoilGrids, gdy są dostępne. Każde zadanie ma limit 30 s zgodny z celem prototypu. Po
+wyszukaniu działki aplikacja dopasowuje czas zbierania danych geo do pozostałego budżetu
+zadania i rezerwuje czas na obliczenia. Częściowe źródła opisuje się w raporcie.
 [Metodyka](METHODOLOGY.md), [kontrakty](CONTRACTS.md).
 
 W pomiarze lokalnym zadania korzystały z rzeczywistego źródła działek i gleb oraz ścieżki

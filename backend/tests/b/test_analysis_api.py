@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
-from app.analytics import imgw_weather, open_meteo, periods
+from app.analytics import imgw_weather, open_meteo, periods, pipeline
 from app.analytics.models import WeatherData, WeatherDay
 from app.api import routes_analyses
 from app.api.deps import get_geo_provider
@@ -216,6 +216,32 @@ def test_job_timeout_returns_polish_error_without_saving_a_report(monkeypatch):
     assert job["report"] is None
     assert absent_pdf.status_code == HTTPStatus.NOT_FOUND
     assert absent_pdf.json()["detail"] == text.REPORT_NOT_FOUND
+
+
+def test_remaining_job_budget_caps_geo_collection(monkeypatch):
+    deadlines = []
+
+    class TrackingGeoProvider(FakeGeoProvider):
+        async def collect(self, req):
+            deadlines.append(req.deadline_s)
+            return await super().collect(req)
+
+    monkeypatch.setattr(routes_analyses, "analysis_today", lambda: TODAY)
+    monkeypatch.setitem(app.dependency_overrides, get_geo_provider, TrackingGeoProvider)
+    monkeypatch.setattr(pipeline.weather_provider, "fetch_weather", AsyncMock(
+        return_value=SourceResult[WeatherData](status=SourceStatus.MISSING)
+    ))
+
+    with TestClient(app) as client:
+        limited_budget_s = 10
+        app.state.analysis_runner.timeout_s = limited_budget_s
+        started = client.post("/api/analyses", json=_request())
+        assert started.status_code == HTTPStatus.ACCEPTED
+        job = _poll(client, started.json()["analysis_id"])
+
+    assert job["status"] == "done"
+    (geo_deadline,) = deadlines
+    assert 0 < geo_deadline < limited_budget_s - pipeline.REPORT_RESERVE_S
 
 
 def test_all_assessment_sources_missing_still_yields_saved_report(monkeypatch):
