@@ -130,7 +130,7 @@ W Dockerze można oddzielić dane raportów od dołączonych danych źródłowyc
 | IMGW-PIB, dobowe SYNOP | Dołączona baza SQLite obejmuje opad, temperaturę i usłonecznienie z 63 stacji. Zakres dostępnych plików to 1991-01-01 – 2026-10-31. Dane pobrano 21.11.2026. Daty pobrań i sumy kontrolne plików są w tabeli `input`. | Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone. [Regulamin](https://danepubliczne.imgw.pl/pl/regulations). |
 | EGiB, PRG i mapa glebowo-rolnicza | Tryb `real` pobiera granice działki po identyfikatorze lub punkcie z krajowego EGiB WFS. Nazwy województw i powiatów pochodzą z dołączonego zestawienia PRG. Przy braku wyniku backend próbuje ULDK i krajowego eksportu GeoParquet. Kategoria gleby pochodzi z odrębnych źródeł glebowych. | [EGiB WFS](https://mapy.geoportal.gov.pl/wss/service/PZGIK/EGIB/WFS/UslugaZbiorcza), [PRG](https://www.geoportal.gov.pl/pl/dane/panstwowy-rejestr-granic-prg/), [ULDK GUGiK](https://uldk.gugik.gov.pl/), [informacja o usłudze WMS](https://www.geoportal.gov.pl/aktualnosci/usluga-wms-prezentujaca-mape-glebowo-rolnicza-dostepna-w-serwisie-www-geoportal-gov-pl/). |
 | SoilGrids 2.0 | Profil glebowy o rozdzielczości 250 m. Dla działek kontrolnych część A korzysta także z odpowiedzi pobranych 21.11.2026. | CC BY 4.0, ISRIC. [Warunki SoilGrids](https://isric.org/explore/soilgrids/). |
-| Sentinel-2, NMT, hydrografia, pokrycie terenu, EDO i IMGW | Docelowe źródła części A to Sentinel-2 przez Earth Search, GUGiK lub Copernicus DEM, MPHP lub OSM, ESA WorldCover, Copernicus EDO oraz bieżące dane IMGW. Potok B przyjmuje zakresy i metadane zwracane przez część A. W sprawdzonej integracji te źródła były niedostępne. | Źródła i status sprawdzenia warunków opisuje konfiguracja części A `config/geo_sources.yaml` na gałęzi `part_A`. |
+| Sentinel-2, NMT, hydrografia, pokrycie terenu, EDO i IMGW | Część A pobiera obserwacje Sentinel-2 przez Planetary Computer lub Earth Search, model terenu GUGiK lub Copernicus DEM, dane hydrograficzne BDOT10k lub OSM, ESA WorldCover, Copernicus EDO oraz bieżące dane IMGW. Raport wskazuje, które źródła zwróciły dane dla danej działki i daty. | [Źródła przestrzenne, zakresy i warunki](docs/DATA_SOURCES.md), [konfiguracja źródeł](config/geo_sources.yaml). |
 | MRiRW, obwieszczenia KBW | Załączniki dla okresów kończących się 10.07.2018 i 31.05.2023 pobrano 21.11.2026. Parquet i sumy kontrolne dokumentują walidację. Progi z Dz.U. 2019 poz. 739 i współczynniki literaturowe są w wersjonowanej konfiguracji. | Dokumenty urzędowe. [Manifest](data/b/manifest.json), [porównanie z obwieszczeniami](docs/VALIDATION.md), [progi](https://eli.gov.pl/eli/DU/2019/739/ogl). |
 
 Zapisane odpowiedzi geo z 21.11.2026 służą lokalnym testom oraz demonstracji powtarzalnych przypadków.
@@ -193,8 +193,9 @@ W katalogu `backend` uruchom `python -m pytest tests/b`. W zintegrowanym drzewie
 
 ### Przykładowe raporty PDF
 
-Przykłady wykorzystują zapisane dane geo części A. Archiwum pogodowe było niedostępne
-podczas przygotowania przykładów. Raporty wskazują ten brak obok dostępnych danych.
+Przykłady wykorzystują zapisane dane przestrzenne części A i dołączone pomiary IMGW-PIB.
+Raporty z Wrześni i Inowrocławia pokazują KBW dla wskazanych dat. Raport z Kętrzyna
+pokazuje przypadek poza sezonem oceny oraz ostatni dostępny okres historyczny.
 
 - [Września, 10.07.2018](data/b/samples/reports/wrzesnia-2018-07-10.pdf)
 - [Inowrocław, 31.05.2023](data/b/samples/reports/inowroclaw-2023-05-31.pdf)
