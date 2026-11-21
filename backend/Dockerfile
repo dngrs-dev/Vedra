@@ -5,6 +5,7 @@ WORKDIR /app
 COPY requirements/ ./requirements/
 RUN pip install --no-cache-dir -r requirements/base.txt -r requirements/a-geo.txt -r requirements/b-app.txt
 COPY app/ ./app/
+COPY config/ ./config/
 
 FROM base AS test
 COPY tests/b/ ./tests/b/

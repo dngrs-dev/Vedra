@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 from fastapi import status
 from fastapi.testclient import TestClient
 
+from app.analytics.crops import load
 from app.api import routes_meta
 from app.config import settings
 from app.core import http
@@ -26,15 +27,12 @@ def test_health_and_http_lifespan(monkeypatch):
     close.assert_awaited_once()
 
 
-def test_crops_exposes_only_catalog_fields(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr(routes_meta, "CONFIG_DIR", tmp_path)
-    # The test fixture uses the plain Polish name for a wheat crop, with a sentinel private field.
-    (tmp_path / "crops.yaml").write_text(
-        'crops:\n  wheat:\n    name_pl: "Pszenica"\n    source: "test fixture"\n', encoding="utf-8"
-    )
-
+def test_crops_exposes_only_catalog_fields():
     with TestClient(app) as client:
-        assert client.get("/api/crops").json() == [{"code": "wheat", "name_pl": "Pszenica"}]
+        response = client.get("/api/crops")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == [{"code": code, "name_pl": crop.name_pl} for code, crop in load().items()]
 
 
 def test_crops_reports_missing_catalog(tmp_path: Path, monkeypatch):
