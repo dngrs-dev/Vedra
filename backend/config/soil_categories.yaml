@@ -1,0 +1,69 @@
+# KBW soil categories I-IV (owner: A).
+#
+# source: Rozporządzenie Ministra Rolnictwa i Rozwoju Wsi z dnia 11 kwietnia 2019 r. w sprawie wartości
+#   klimatycznego bilansu wodnego dla poszczególnych gatunków roślin uprawnych i gleb (Dz.U. 2019 poz. 739),
+#   załącznik, «Wyjaśnienia dotyczące kategorii gleb».
+#   Official text: https://api.sejm.gov.pl/eli/acts/DU/2019/739/text.html (read 2026-11-21).
+#   Category names, WOD ranges and soil-type codes below are copied from that text.
+source: "Dz.U. 2019 poz. 739, załącznik – Wyjaśnienia dotyczące kategorii gleb"
+source_url: https://api.sejm.gov.pl/eli/acts/DU/2019/739/text.html
+read_on: 2026-11-21
+
+# Regulation: "WOD ... obliczana jako różnica wilgotności objętościowej dla polowej pojemności wodnej i punktu
+# trwałego więdnięcia w strefie korzeniowej"; "Kategorie gleb ustala się w oparciu o ważoną wartość WOD w strefie
+# korzeniowej, z uwzględnieniem zróżnicowania gatunków gleb na podstawie cyfrowych map glebowo-rolniczych."
+categories:
+  I:
+    label_pl: Bardzo podatna na suszę
+    wod_text: "WOD < 127,5 mm"
+    soil_types:
+      pl: piasek luźny
+      plp: piasek luźny pylasty
+      ps: piasek słabo gliniasty
+      psp: piasek słabo gliniasty pylasty
+  II:
+    label_pl: Podatna na suszę
+    wod_text: "WOD 127,5 - 169,9 mm"
+    soil_types:
+      pgl: piasek gliniasty lekki
+      pglp: piasek gliniasty lekki pylasty
+      pgm: piasek gliniasty mocny
+      pgmp: piasek gliniasty mocny pylasty
+  III:
+    label_pl: Średnio podatna na suszę
+    wod_text: "WOD 170 - 202,5 mm"
+    soil_types:
+      gl: glina lekka
+      glp: glina lekka pylasta
+      płg: pył gliniasty
+      płz: pył zwykły
+      płp: pył piaszczysty
+  IV:
+    label_pl: Mało podatna na suszę
+    wod_text: "WOD > 202,5 mm"
+    soil_types:
+      gs: glina średnia
+      gsp: glina średnia pylasta
+      gc: glina ciężka
+      gcp: glina ciężka pylasta
+      płi: pył ilasty
+      i: ił
+      ip: ił pylasty
+
+# WOD -> category. Bounds are the regulation's; the regulation's ranges leave rounding gaps
+# (169.9 < x < 170, and exactly 202.5 is listed under III). OUR CHOICE to close them:
+# a value belongs to the first category whose upper bound it does not exceed (< for I and II, <= for III).
+wod_thresholds_mm:
+  I_below: 127.5     # WOD < 127,5 -> I
+  II_below: 170.0    # 127,5 <= WOD < 170 -> II   (regulation: 127,5 - 169,9)
+  III_up_to: 202.5   # 170 <= WOD <= 202,5 -> III (regulation: 170 - 202,5)
+                     # WOD > 202,5 -> IV
+
+# OUR CHOICES (labelled as such in docs/DATA_SOURCES.md):
+# - Soil-map code used for the category: the first texture code of the contour (attribute PODLOZE1, else
+#   GATUNEKMADY1 / GATUNEKREDZINY1), majority over sample points in the parcel. The regulation weights WOD over
+#   the root zone; the WMS does not give layer depths, so the per-layer weighting is not reproduced.
+# - Codes NOT listed in the regulation (seen in the spike: "li", "l", alluvial "c", "bc") get no category from
+#   the map; the category then comes from SoilGrids WOD (category_source = soilgrids_wod).
+# - SoilGrids WOD is summed over 0-100 cm (SoilInfo.wod_depth_cm default), not over a crop-specific root zone.
+soil_map_sample_points: 9    # PART_A_DATA_GEO.md: "5-9 sample points inside the parcel"

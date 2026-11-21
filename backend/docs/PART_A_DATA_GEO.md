@@ -144,7 +144,7 @@ Cache: `geo.uldk`, no expiry.
 
 ### CP1 — parcel + soil (→ 19:00)
 - [x] `uldk.py` + tests (all three query types, ambiguous «obręb nr», invalid input, not found).
-- [ ] `soil_map.py`, `soilgrids.py`, `soil.py`, `config/soil_categories.yaml` + tests.
+- [x] `soil_map.py`, `soilgrids.py`, `soil.py`, `config/soil_categories.yaml` + tests.
 - [ ] `provider.find_parcels`, `parcel_at_point`; `collect` returning real `soil` and `MISSING` placeholders for the rest.
 - [ ] `scripts/a/run_geo.py`, `scripts/a/record_geo_fixtures.py`; record fixtures for 3 parcels × 3 dates (today, 2018-07-10, 2023-05-31); push.
 
