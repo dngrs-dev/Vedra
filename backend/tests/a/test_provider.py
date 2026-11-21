@@ -42,6 +42,13 @@ def _offline_sources(monkeypatch):
 
     monkeypatch.setattr(edo, "edo_signal", edo_stub)
     monkeypatch.setattr(imgw, "imgw_context", imgw_stub)
+    from app.geo import hydro, landcover
+
+    async def two_arg_stub(p, buffer_m):
+        return SourceResult(status=SourceStatus.MISSING, notes_pl=["stub"])
+
+    monkeypatch.setattr(hydro, "water_features", two_arg_stub)
+    monkeypatch.setattr(landcover, "landcover", two_arg_stub)
 
 
 @pytest.mark.asyncio

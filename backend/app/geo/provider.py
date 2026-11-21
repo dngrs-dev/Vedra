@@ -10,7 +10,7 @@ from app.contracts.common import SourceResult, SourceStatus
 from app.contracts.errors import InvalidParcelQuery, ParcelNotFound
 from app.contracts.geo import GeoBundle, GeoRequest
 from app.contracts.parcel import Parcel
-from app.geo import edo, imgw, soil, uldk, vegetation
+from app.geo import edo, hydro, imgw, landcover, soil, uldk, vegetation
 
 log = logging.getLogger(__name__)
 
@@ -19,10 +19,7 @@ log = logging.getLogger(__name__)
 _INNER_MARGIN_S = 1.0
 
 _NOT_YET_PL = {
-    "vegetation": "Analiza zdjęć satelitarnych Sentinel-2 nie jest jeszcze dostępna w tej wersji prototypu.",
     "terrain": "Analiza ukształtowania terenu (NMT) nie jest jeszcze dostępna w tej wersji prototypu.",
-    "hydro": "Dane o ciekach i rowach w otoczeniu działki nie są jeszcze dostępne w tej wersji prototypu.",
-    "landcover": "Dane o pokryciu terenu (ESA WorldCover) nie są jeszcze dostępne w tej wersji prototypu.",
 }
 _FAILED_PL = "Źródło danych nie odpowiedziało poprawnie; wynik analizy nie uwzględnia tych danych."
 _TIMEOUT_PL = "Źródło danych nie odpowiedziało w wyznaczonym czasie; wynik analizy nie uwzględnia tych danych."
@@ -78,8 +75,8 @@ class RealGeoProvider:
             "soil": lambda budget: soil.soil_info(parcel, budget),
             "vegetation": lambda budget: vegetation.vegetation_data(parcel, req, budget),
             "terrain": _not_yet("terrain"),
-            "hydro": _not_yet("hydro"),
-            "landcover": _not_yet("landcover"),
+            "hydro": lambda budget: hydro.water_features(parcel, req.hydro_buffer_m),
+            "landcover": lambda budget: landcover.landcover(parcel, req.hydro_buffer_m),
             "edo": lambda budget: edo.edo_signal(parcel.centroid_lat, parcel.centroid_lon, req.analysis_date),
             "imgw": lambda budget: imgw.imgw_context(parcel, req.analysis_date),
         }
