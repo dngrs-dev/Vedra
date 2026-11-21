@@ -20,8 +20,12 @@ DATA = Path(__file__).parent / "data"
 def _isolated_io(monkeypatch):
     """No cache hits between tests, fresh httpx client per test (event loops differ)."""
     from app.core import cache, http
+    from app.geo import sentinel2, vegetation
 
     monkeypatch.setattr(cache, "get", lambda key: None)
     monkeypatch.setattr(cache, "set", lambda key, value, expire_s=None: None)
     monkeypatch.setattr(http, "_client", None)
+    monkeypatch.setattr(sentinel2, "_preprocessed", lambda: {})
+    vegetation.shutdown_background()          # fresh scene-read pool per test
     yield
+    vegetation.shutdown_background()

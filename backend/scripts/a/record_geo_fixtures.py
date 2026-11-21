@@ -26,6 +26,7 @@ from app.contracts.geo import GeoRequest  # noqa: E402
 from app.core import http  # noqa: E402
 from app.geo import uldk  # noqa: E402
 from app.geo.provider import RealGeoProvider  # noqa: E402
+from app.geo.vegetation import shutdown_background  # noqa: E402
 from app.geo.sources import BACKEND  # noqa: E402
 
 OUT_DIR = BACKEND / "tests" / "fixtures" / "geo"
@@ -52,6 +53,7 @@ async def main(n_parcels: int | None, dates: list[date], deadline: float) -> int
             status = " ".join(f"{k}={v.status.value}" for k, v in bundle)
             print(f"  {path.name}: {status}")
     await http.close()
+    shutdown_background()
     return 0
 
 

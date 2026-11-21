@@ -19,6 +19,7 @@ for _var in ("PROJ_LIB", "GDAL_DATA"):  # see scripts/a/spike_sources.py
 from app.contracts.geo import GeoRequest  # noqa: E402
 from app.core import http  # noqa: E402
 from app.geo.provider import RealGeoProvider  # noqa: E402
+from app.geo.vegetation import shutdown_background  # noqa: E402
 
 
 async def main(query: str, day: date, deadline: float, as_json: bool) -> int:
@@ -31,6 +32,7 @@ async def main(query: str, day: date, deadline: float, as_json: bool) -> int:
     bundle = await geo.collect(GeoRequest(parcel=parcel, analysis_date=day, deadline_s=deadline))
     t_collect = time.monotonic() - t
     await http.close()
+    shutdown_background()
     if as_json:
         print(json.dumps({"parcel": parcel.model_dump(mode="json"), "bundle": bundle.model_dump(mode="json")},
                          ensure_ascii=False, indent=2))
@@ -55,4 +57,8 @@ if __name__ == "__main__":
     ap.add_argument("--deadline", type=float, default=22.0)
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
-    sys.exit(asyncio.run(main(a.query, a.date, a.deadline, a.json)))
+    code = asyncio.run(main(a.query, a.date, a.deadline, a.json))
+    sys.stdout.flush()
+    # Scene reads still running after the deadline would keep the interpreter alive up to the GDAL timeout;
+    # this is a developer CLI, so exit without waiting for them.
+    os._exit(code)

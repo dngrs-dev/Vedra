@@ -31,7 +31,7 @@ def test_urls_are_https(name: str) -> None:
         assert urlparse(url).scheme == "https", f"{name}: {url}"
 
 
-@pytest.mark.parametrize("name", sorted(n for n, e in SOURCES.items() if e.get("status") != "not_found"))
+@pytest.mark.parametrize("name", sorted(n for n, e in SOURCES.items() if e.get("status") != "not_found" and _urls(e)))
 def test_licence_status_is_explicit(name: str) -> None:
     entry = SOURCES[name]
     # Either the service-declared licence was recorded, or the entry says the licence is still unverified.

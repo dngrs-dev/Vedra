@@ -119,9 +119,34 @@ earth_search:
   url: https://earth-search.aws.element84.com/v1
   source: https://earth-search.aws.element84.com/v1 ; spike 2026-11-21
   collections:
-    primary: sentinel-2-c1-l2a   # assets on e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com
-    fallback: sentinel-2-l2a     # assets on sentinel-cogs.s3.us-west-2.amazonaws.com
+    # CP2 probe 2026-11-21 (items per year at 52.80N 18.30E):
+    #   sentinel-2-l2a    2016:22 2017:77 2018:308 2019:528 2020:589 2021:623 2022:292 2023:290 2024:292 2025:401
+    #   sentinel-2-c1-l2a 2016:0  2017:4  2018:82  2019:226 2020:294 2021:292 2022:24  2023:286 2024:292 2025:402
+    # -> c1 has large gaps (2017, 2018, 2022); the older collection is complete and is used as primary.
+    primary: sentinel-2-l2a      # assets on sentinel-cogs.s3.us-west-2.amazonaws.com
+    fallback: sentinel-2-c1-l2a  # assets on e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com
     dem: cop-dem-glo-30          # asset `data` href is s3://copernicus-dem-30m/... ; https equivalent below
+  search:                        # GET /search supports these (CP2 probe 2026-11-21)
+    query_param: query           # JSON, e.g. {"eo:cloud_cover":{"lt":60}}
+    sortby_param: sortby         # e.g. "+properties.eo:cloud_cover"
+    pagination: links rel=next   # GET href with token
+    max_cloud_cover_pct: 60      # PART_A_DATA_GEO.md (sentinel2.search_scenes default max_cloud=60)
+  duplicates_note: >-
+    sentinel-2-l2a lists some acquisitions twice (reprocessed "_1_" next to "_0_" ids, and the same
+    acquisition on two overlapping MGRS tiles, e.g. 33UYU and 34UCD). Scenes are de-duplicated by
+    platform + sensing time; the item with the higher processing baseline is kept.
+  offset_note: >-
+    raster:bands declares the PB 04.00 BOA offset per item (probe 2026-11-21: S2A_34UCD_20180715_0_L2A PB 02.08 ->
+    offset 0; S2A_33UYU_20220714_0_L2A PB 04.00 and S2B_33UYU_20210714_1_L2A PB 05.00 -> offset -0.1), but the
+    pixel values of sentinel-2-l2a do NOT carry the +1000 DN offset. Same acquisition, same parcel interior,
+    B04 median DN (CP2 check 2026-11-21):
+      2023-05-10 33UXU: sentinel-2-l2a 284, sentinel-2-c1-l2a 1284 (PB 05.09 in both)
+      2023-05-10 33UXT: sentinel-2-l2a 282, sentinel-2-c1-l2a 1282
+      2021-07-14 33UYU: sentinel-2-l2a 447 (_1_, PB 05.00) / 440 (_0_, PB 03.01), sentinel-2-c1-l2a 1447
+      2022-07-14 33UXU sentinel-2-l2a (PB 04.00): B04 964, B08 1742 -> with offset -0.1 red reflectance < 0
+    -> sentinel-2-l2a is harmonized to the pre-04.00 scale whatever its metadata says: offset 0 is used.
+       sentinel-2-c1-l2a keeps the offset: the item's raster:bands offset (-0.1) is used.
+  harmonized_collections: [sentinel-2-l2a]   # offset forced to 0 (evidence above)
   asset_hosts:                   # hosts of the asset hrefs in STAC items (spike 2026-11-21), read via /vsicurl/
     - https://e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com/
     - https://sentinel-cogs.s3.us-west-2.amazonaws.com/
@@ -131,13 +156,31 @@ earth_search:
     B8A: nir08
     B11: swir16
     SCL: scl
-  scale_offset_from: "raster:bands"   # spike: S2A_T33UYU_20230530 (baseline 05.09): scale 0.0001, offset -0.1, nodata 0
-  scl_keep_classes: [4, 5]       # PART_A_DATA_GEO.md (sentinel2.py spec); class meaning per Sentinel-2 L2A SCL definition
+  scale_offset_from: "raster:bands (scale, nodata always; offset only outside harmonized_collections)"
   observed_latency_s: 0.4
   licence: Copernicus Sentinel data – free, full and open access
   licence_verified: false
   licence_source: https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice
   attribution_pl: "Contains modified Copernicus Sentinel data [year]"   # official English wording; no official Polish text known
+
+sentinel2_processing:
+  name: Sentinel-2 parcel statistics (Vedra processing parameters)
+  source: docs/PART_A_DATA_GEO.md (sentinel2.py / vegetation.py specs); values marked "our choice" are ours
+  interior_buffer_m: -10         # PART_A_DATA_GEO.md / contracts geo.py: "parcel buffered -10 m"
+  grid_m: 10                     # Sentinel-2 B04/B08 native resolution; B8A/B11/SCL (20 m) resampled nearest
+  scl_keep_classes: [4, 5]       # PART_A_DATA_GEO.md: "keep SCL 4/5 only" (vegetation, not-vegetated)
+  valid_fraction_min: 0.3        # PART_A_DATA_GEO.md: scene "None if valid fraction < 0.3" - OUR ASSUMPTION
+  min_interior_pixels: 20        # PART_A_DATA_GEO.md: "Interior < 20 pixels -> partial + note" - OUR ASSUMPTION
+  current_window_max_days: 60    # PART_A_DATA_GEO.md / GeoRequest: "extended by A up to 60 if no clear scene"
+  season_months: [4, 8]          # PART_A_DATA_GEO.md: season peaks "Apr-Aug"
+  season_max_scenes: 6           # PART_A_DATA_GEO.md: "sample <= 6 least-cloudy scenes per season"
+  workers: 16                    # PART_A_DATA_GEO.md: "ThreadPool 16-32"; lower bound because reads are bandwidth-bound
+                                 # (24 parallel streams truncated tile reads on the dev link, 2026-11-21)
+  same_window_max_scenes: 3      # OUR CHOICE (CP2): least-cloudy scenes per previous-year window. Reason: every clear
+                                 # scene costs ~4 MB of COG tiles (10 m bands: 1024x1024 deflate tiles ~1.4 MB,
+                                 # blocks checked 2026-11-21 in both collections); all ~10 scenes x 10 years cannot be
+                                 # read within the 22 s budget.
+  preprocessed_stats_file: data/a/s2_scene_stats.json   # scripts/a/prefetch_s2.py (test parcels x fixture dates)
 
 copernicus_dem:
   name: Copernicus DEM GLO-30
@@ -245,6 +288,25 @@ edo:
     smian: "SMI Anomaly"                              # time 1995-01-01/…/P10D (served by WCS though not listed on the WCS page)
     fpanv: "fAPAR Anomaly (VIIRS)"                    # time 2012-01-21/…/P10D (served by WCS though not listed)
     spaST: "SPI ERA5 Short Term"                      # time 1991-01-01/…/P10D ; SELECTED_TIMESCALE=01|03|...
+  cdi_coverage: cdiad             # WCS strip 2026-11-01 contained codes 0..6 (all CDI levels, not only 1..3)
+  cdi_levels:                     # LEVEL -> label, CDI factsheet v4.1.1 Table 1:
+    0: No drought                 # https://drought.emergency.copernicus.eu/data/factsheets/factsheet_combinedDroughtIndicator_v4.pdf
+    1: Watch
+    2: Warning
+    3: Alert
+    4: Recovery
+    5: Temporary Soil Moisture recovery
+    6: Temporary vegetation recovery
+  cdi_levels_verification: >-
+    Assumption: WCS pixel value = Table 1 LEVEL (7 codes 0..6 seen, 7 levels in Table 1). Partial check 2026-11-21:
+    WCS strip vs WMS GetMap colours on the same grid (TIME 2026-11-01, 18.5-18.7E): code 2 -> Warning orange
+    (230,159,0) in 390 of 612 px; code 3 -> Alert red (220,5,12) as the most common colour (153 px), orange next
+    (115 px); code 1 only 4 px (transparent). Differences come from the two products being resampled from the
+    native grid differently.
+  dekad_rule: >-
+    TIME values are dekads (P10D: days 1, 11, 21). OUR CHOICE: use the latest dekad that has ENDED on or before
+    the analysis date (next dekad start - 1 day <= analysis date), so no observation after the analysis date can
+    be included whichever day of the dekad the date label refers to.
   observed_latency_s: 1-5
   licence_declared: "Fees: no fees; AccessConstraints: no constraints (WMS GetCapabilities)"
   licence_verified: false
@@ -254,6 +316,13 @@ imgw:
   name: IMGW-PIB dane publiczne
   synop_url: https://danepubliczne.imgw.pl/api/data/synop
   warnings_hydro_url: https://danepubliczne.imgw.pl/api/data/warningshydro
+  meteo_url: https://danepubliczne.imgw.pl/api/data/meteo   # 788 stations with lon/lat (CP2 probe 2026-11-21)
+  stations_file: data/a/imgw_synop_stations.json             # scripts/a/build_imgw_stations.py
+  synop_time_zone: UTC   # data_pomiaru + godzina_pomiaru: WMO SYNOP observation times are UTC (WMO-No. 306,
+                         # FM 12); consistent with 2026-11-21 16:02 UTC -> newest observation hour "15"
+  drought_phenomena: ["Susza hydrologiczna"]   # warningshydro `zdarzenie` value for drought (CP2 probe 2026-11-21)
+  warning_area_match: voivodeship   # obszary[].wojewodztwo == parcel voivodeship; catchment polygons for
+                                    # kod_zlewni are not available, so matching is by voivodeship (coarse)
   source: https://danepubliczne.imgw.pl/ ; spike 2026-11-21
   synop_fields: [id_stacji, stacja, data_pomiaru, godzina_pomiaru, temperatura, predkosc_wiatru, kierunek_wiatru, wilgotnosc_wzgledna, suma_opadu, cisnienie]
   synop_has_coordinates: false  # station coordinates need a separate table in data/a/ (CP2)
