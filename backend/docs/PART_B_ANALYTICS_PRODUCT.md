@@ -153,7 +153,7 @@ def get_geo_provider() -> GeoProvider:
 ### CP0 — skeleton (→ 15:30)
 - [x] `main.py`, `config.py`, `api/deps.py`, `routes_meta.py`, `Dockerfile`, `requirements/b-app.txt`, CI (pytest).
 - [x] `fakes/fake_geo.py` (all statuses), `fakes/fixture_geo.py`.
-- [ ] `contracts/report.py` + `tests/fixtures/sample_report.json` → hand to the frontend.
+- [x] `contracts/report.py` + `tests/fixtures/sample_report.json` → hand to the frontend.
 - [ ] `config/kbw_thresholds.csv` from Dz.U. 2019 poz. 739 + test: 14 crops × 4 categories × 14 periods present; `config/crops.yaml`.
 - [ ] Fill `app/analytics/hosts.py`.
 

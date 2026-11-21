@@ -1,0 +1,142 @@
+{
+  "report_id": "sample-off-season",
+  "parcel": {
+    "parcel_id": "141201_1.0001.6509",
+    "teryt": "141201_1",
+    "voivodeship": "Dane testowe",
+    "county": "Dane testowe",
+    "commune": "Dane testowe",
+    "region": "Dane testowe",
+    "parcel_number": "6509",
+    "area_ha": 1.0,
+    "geometry_wgs84": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            19.000728537689767,
+            51.99955031484414
+          ],
+          [
+            19.000728552289747,
+            52.00044968061554
+          ],
+          [
+            18.999271447710257,
+            52.00044968061554
+          ],
+          [
+            18.999271462310237,
+            51.99955031484414
+          ],
+          [
+            19.000728537689767,
+            51.99955031484414
+          ]
+        ]
+      ]
+    },
+    "geometry_2180_wkt": "POLYGON ((500050 459259.2094016103, 500050 459359.2094016103, 499950 459359.2094016103, 499950 459259.2094016103, 500050 459259.2094016103))",
+    "centroid_lat": 52.0,
+    "centroid_lon": 19.0
+  },
+  "crop_code": "winter_cereals",
+  "crop_name_pl": "Zboża ozime",
+  "analysis_date": "2026-11-21",
+  "summary": "Ocena suszy rolniczej jest niedostępna poza okresem monitoringu.",
+  "assessment": {
+    "kbw": {
+      "verdict": "off_season",
+      "explanation_pl": "Wybrana data przypada poza okresem monitoringu suszy rolniczej.",
+      "period": null,
+      "soil_category": "I",
+      "kbw_mm": null,
+      "kbw_et0_mm": null,
+      "threshold_mm": null,
+      "distance_to_threshold_mm": null,
+      "near_threshold": null
+    },
+    "confidence": null,
+    "signals": [
+      {
+        "code": "spi",
+        "status": "missing",
+        "summary_pl": "Brak danych o opadach.",
+        "metrics": []
+      },
+      {
+        "code": "soil_moisture",
+        "status": "missing",
+        "summary_pl": "Brak danych o wilgotności gleby.",
+        "metrics": []
+      },
+      {
+        "code": "vegetation",
+        "status": "missing",
+        "summary_pl": "Brak obserwacji satelitarnych uprawy.",
+        "metrics": []
+      }
+    ],
+    "vulnerability": null
+  },
+  "causes": [],
+  "recommendations": [],
+  "map_layers": [
+    {
+      "id": "parcel",
+      "name_pl": "Działka demonstracyjna",
+      "geojson": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              19.000728537689767,
+              51.99955031484414
+            ],
+            [
+              19.000728552289747,
+              52.00044968061554
+            ],
+            [
+              18.999271447710257,
+              52.00044968061554
+            ],
+            [
+              18.999271462310237,
+              51.99955031484414
+            ],
+            [
+              19.000728537689767,
+              51.99955031484414
+            ]
+          ]
+        ]
+      }
+    }
+  ],
+  "irrigation": null,
+  "limitations_pl": [
+    "Przykład demonstracyjny oparty na danych syntetycznych.",
+    "Ocena i zalecenia wymagają danych pomiarowych dla działki."
+  ],
+  "data_sources": [
+    {
+      "source_id": "fake_geo",
+      "name": "Dane testowe",
+      "url": "https://github.com/dngrs-dev/Vedra/blob/backend/backend/app/fakes/fake_geo.py",
+      "fetched_at": "2026-11-21T14:34:33.241829Z",
+      "live": false,
+      "data_period": null,
+      "resolution": null,
+      "licence": "Nie dotyczy (dane testowe)",
+      "attribution_pl": "Przykład demonstracyjny oparty na danych syntetycznych."
+    }
+  ],
+  "references": [
+    {
+      "id": "kbw_regulation",
+      "title_pl": "Rozporządzenie określające wartości KBW (Dz.U. 2019 poz. 739)",
+      "url": "https://eli.gov.pl/eli/DU/2019/739/ogl"
+    }
+  ]
+}

@@ -8,6 +8,7 @@ COPY app/ ./app/
 
 FROM base AS test
 COPY tests/b/ ./tests/b/
+COPY tests/fixtures/sample_report.json ./tests/fixtures/sample_report.json
 RUN python -m pytest tests/b
 
 FROM base AS runtime
