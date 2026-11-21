@@ -1,6 +1,5 @@
 import { useRef, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
-import { HeroArt } from '@/components/landing/HeroArt';
 import {
   ArrowRightIcon, CalendarIcon, DropIcon, FileIcon, KowrLogo, PinIcon, ShieldIcon, SproutIcon
 } from '@/components/ui/Icons';
@@ -25,7 +24,7 @@ const BENEFITS = [
 
 const SOURCES = ['Sentinel-2', 'IMGW-PIB', 'Open-Meteo', 'IUNG-PIB', 'GUGiK / Geoportal', 'Wody Polskie'];
 
-/** Главная «/» — короткий лендинг: hero, 3 шага, польза, источники, CTA → /map. */
+/** Главная «/» — короткий лендинг: hero на фото поля, 3 шага, польза, источники, CTA → /map. */
 export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
   useReveal(rootRef);
@@ -48,9 +47,9 @@ export function LandingPage() {
         <Link to="/map" className="btn-primary">Zobacz mapę</Link>
       </header>
 
+      {/* Фото поля — фон hero (public/images/hero-field.jpg) */}
       <section className="l-hero">
         <div className="l-hero__text">
-          <span className="l-pill anim-in" style={delay(0)}>Zadanie KOWR · HackNation 2026</span>
           <h2 className="l-hero__title anim-in" style={delay(1)}>Zatrzymaj wodę,<br />chroń swoje plony</h2>
           <p className="l-hero__lead anim-in" style={delay(2)}>
             Wskaż działkę, a my zamienimy dane satelitarne i pogodowe w jasne decyzje:
@@ -66,7 +65,6 @@ export function LandingPage() {
             <li><b>PDF</b><span>raport do wydruku</span></li>
           </ul>
         </div>
-        <div className="l-hero__art anim-art"><HeroArt /></div>
       </section>
 
       <section className="l-section" id="how">
