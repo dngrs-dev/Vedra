@@ -54,7 +54,7 @@ export function KowrLogo() {
       <svg viewBox="0 0 64 28" width="64" height="28" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
         <path d="M2 14c12-12 36-12 60-2M2 19c12-10 34-10 56-2M2 24c10-8 30-8 48-2" />
       </svg>
-      <span>KOWR</span>
+      <span>Vedra</span>
     </div>
   );
 }

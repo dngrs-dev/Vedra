@@ -340,3 +340,17 @@ button { font: inherit; cursor: pointer; }
   .help-btn { width: 36px; padding: 0; justify-content: center; }
   .help-btn span { display: none; }
 }
+
+
+.topbar { position: relative; }
+.topbar__center {
+  position: absolute;
+  left: 86%;
+  transform: translateX(-50%);
+  flex: none;
+  padding: 0;
+}
+@media (max-width: 900px) {
+  /* на узких экранах — отдельной строкой под логотипом, как было */
+  .topbar__center { position: static; transform: none; flex-basis: 100%; }
+}
