@@ -123,6 +123,27 @@ def test_missing_weather_still_yields_a_report(monkeypatch):
     assert report.causes == []
 
 
+def test_november_analysis_keeps_background_signals_without_a_current_drought_verdict(monkeypatch):
+    monkeypatch.setattr(routes_analyses, "analysis_today", lambda: TODAY)
+    monkeypatch.setattr(settings, "geo_provider", "fake")
+    fetch = AsyncMock(return_value=SourceResult[WeatherData](status=SourceStatus.MISSING))
+    monkeypatch.setattr(open_meteo, "fetch_weather", fetch)
+
+    with TestClient(app) as client:
+        started = client.post("/api/analyses", json={**_request(), "analysis_date": TODAY.isoformat()})
+        assert started.status_code == HTTPStatus.ACCEPTED
+        job = _poll(client, started.json()["analysis_id"])
+
+    assert job["status"] == "done"
+    report = Report.model_validate(job["report"])
+    assert report.assessment.kbw.verdict == "off_season"
+    assert report.assessment.confidence is None
+    assert len(report.assessment.signals) >= 3  # Minimum report coverage in Part B §5.
+    assert report.causes == []
+    assert report.irrigation.why_pl == text.IRRIGATION_OFF_SEASON
+    assert text.OFF_SEASON_SIGNALS in report.limitations_pl
+
+
 def test_reports_polish_errors_for_invalid_requests_and_missing_resources(monkeypatch):
     monkeypatch.setattr(routes_analyses, "analysis_today", lambda: TODAY)
     monkeypatch.setattr(settings, "geo_provider", "fake")

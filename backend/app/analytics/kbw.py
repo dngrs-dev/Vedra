@@ -5,7 +5,7 @@ from collections import Counter
 from dataclasses import replace
 from datetime import date, timedelta
 
-from app.analytics import crops, periods
+from app.analytics import crops, periods, season
 from app.analytics.evapotranspiration import etp_period
 from app.analytics.models import KbwHistory, KbwResult, Period, WeatherData
 from app.config import years_before
@@ -71,8 +71,7 @@ def _period_balance(
 def assess(
     weather: WeatherData | None, soil_category: KbwSoilCategory | None, crop: str, analysis_date: date
 ) -> KbwResult:
-    first, *_, last = periods.for_year(analysis_date.year)
-    if not first.start <= analysis_date <= last.end:
+    if season.mode(analysis_date) == "off_season":
         return KbwResult("off_season", text.KBW_OFF_SEASON, soil_category=soil_category)
     period = periods.latest_completed(analysis_date)
     if period is None:

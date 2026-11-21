@@ -8,7 +8,7 @@ from typing import get_args
 
 from scipy.stats import percentileofscore
 
-from app.analytics import crops, periods, thresholds
+from app.analytics import crops, periods, season, thresholds
 from app.contracts.common import SourceStatus
 from app.contracts.geo import KbwSoilCategory, VegetationData
 from app.contracts.report import Metric, Signal
@@ -16,9 +16,9 @@ from app.recommendations import texts_pl as text
 
 
 def _sensitive(crop: str, day: date, category: KbwSoilCategory | None) -> bool:
-    schedule = periods.for_year(day.year)
-    if day < schedule[0].start:
+    if season.mode(day) == "off_season":
         return False
+    schedule = periods.for_year(day.year)
     period = next((item for item in schedule if item.end >= day), None)
     if period is None:
         return False

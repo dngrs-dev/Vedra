@@ -3,7 +3,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from app.analytics import edo_signal, soil_moisture, spi, vegetation_signal
+from app.analytics import edo_signal, season, soil_moisture, spi, vegetation_signal
 from app.analytics.models import WeatherData, WeatherDay
 from app.contracts.common import SourceResult, SourceStatus
 from app.contracts.geo import EdoData, SceneStat, VegetationData
@@ -74,3 +74,11 @@ def test_edo_reads_the_official_legend_and_rejects_future_data():
     signal = edo_signal.interpret(result, ANALYSIS_DATE)
     assert signal.summary_pl == text.CDI_SUMMARY.format(label=text.CDI_WARNING)
     assert edo_signal.interpret(result, date(2023, 5, 30)).status == SourceStatus.MISSING
+
+
+def test_season_includes_both_published_boundary_dates():
+    # Boundary dates from the annex to Dz.U. 2019 poz. 739.
+    assert season.mode(date(2023, 3, 20)) == "off_season"
+    assert season.mode(date(2023, 3, 21)) == "in_season"
+    assert season.mode(date(2023, 9, 30)) == "in_season"
+    assert season.mode(date(2023, 10, 1)) == "off_season"

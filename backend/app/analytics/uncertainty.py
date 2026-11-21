@@ -58,6 +58,8 @@ def assess(ctx: AnalysisContext) -> tuple[Confidence | None, list[str]]:
 
     verdict = ctx.assessment.verdict
     confidence = None
+    if verdict == "off_season":
+        limitations.append(text.OFF_SEASON_SIGNALS)
     if verdict in {"drought", "no_drought"}:
         expected = verdict == "drought"
         votes = _votes(ctx.signals)

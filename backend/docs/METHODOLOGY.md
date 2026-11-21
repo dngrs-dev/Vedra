@@ -66,3 +66,11 @@ contributors. The ranking places the strongest quantified weather departures fir
 soil, runoff, surroundings and crop demand. Historical NDVI comparisons use completed April–August
 seasons, with sample counts for both sets of years.
 [Copernicus EDO CDI](https://drought.emergency.copernicus.eu/data/factsheets/factsheet_combinedDroughtIndicator_v4.pdf).
+
+## Dates outside the monitoring season
+
+For dates outside 21 March through 30 September, the current KBW returns an off-season result.
+Weather, soil moisture and EDO remain available as descriptive context, and recent satellite
+observations are interpreted with crop dates in mind. History includes the completed windows
+available before the analysis. The report omits current deficit causes and gives an off-season
+explanation when irrigation is requested. [Statutory annex](https://eli.gov.pl/api/acts/DU/2019/739/text.pdf).

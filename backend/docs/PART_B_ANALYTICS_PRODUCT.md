@@ -164,7 +164,7 @@ def get_geo_provider() -> GeoProvider:
 
 ### CP2 — full assessment (→ 23:00)
 - [x] `spi.py`, `soil_moisture.py`, `vegetation_signal.py`, `vulnerability.py`, `causes.py`, `uncertainty.py`.
-- [ ] `season.py` + off-season behaviour of every stage (jury may enter today's date — November).
+- [x] `season.py` + off-season behaviour of every stage (jury may enter today's date — November).
 
 ### CP3 — recommendations and report (→ 03:00)
 - [ ] `recommendations/engine.py` + rules (landscape uses A's `retention_spots`, ditches; soil; agrotech; off-season); `texts_pl.py`.

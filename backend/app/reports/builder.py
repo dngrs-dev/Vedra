@@ -26,7 +26,11 @@ def _sources(ctx: AnalysisContext) -> list[Provenance]:
 
 def build(ctx: AnalysisContext) -> Report:
     confidence, limitations = uncertainty.assess(ctx)
-    irrigation = IrrigationAdvice(justified=None, why_pl=text.IRRIGATION_UNAVAILABLE) if ctx.request.include_irrigation else None
+    off_season = ctx.assessment.verdict == "off_season"
+    irrigation = None
+    if ctx.request.include_irrigation:
+        explanation = text.IRRIGATION_OFF_SEASON if off_season else text.IRRIGATION_UNAVAILABLE
+        irrigation = IrrigationAdvice(justified=None, why_pl=explanation)
     return Report(
         report_id=str(uuid4()),
         parcel=ctx.parcel,
