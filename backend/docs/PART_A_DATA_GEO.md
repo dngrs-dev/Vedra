@@ -138,7 +138,7 @@ Cache: `geo.uldk`, no expiry.
 - [x] One of you commits the T0 files from `CONTRACTS.md` §5; both pull.
 
 ### CP0 — spikes (→ 15:30)
-- [ ] `scripts/a/spike_sources.py`: one call to ULDK, soil map WMS (GetCapabilities + GetFeatureInfo), SoilGrids REST, Earth Search STAC, one COG window read, NMT WCS GetCapabilities + small GetCoverage, MPHP WFS GetCapabilities, Overpass, WorldCover, EDO GetCapabilities, IMGW synop + warningshydro. Write exact URLs, layer names, attribute names into `config/geo_sources.yaml`.
+- [x] `scripts/a/spike_sources.py`: one call to ULDK, soil map WMS (GetCapabilities + GetFeatureInfo), SoilGrids REST, Earth Search STAC, one COG window read, NMT WCS GetCapabilities + small GetCoverage, MPHP WFS GetCapabilities, Overpass, WorldCover, EDO GetCapabilities, IMGW synop + warningshydro. Write exact URLs, layer names, attribute names into `config/geo_sources.yaml`.
 - [ ] `scripts/a/pick_test_parcels.py` → `tests/fixtures/parcels.json`: 6–8 real agricultural parcels via `GetParcelByXY` (different voivodeships; light and heavy soils; flat and sloped; < 1 ha and > 20 ha; at least one id with `AR_`). Push immediately — B and the frontend use it.
 - [ ] Fill `app/geo/hosts.py`.
 
