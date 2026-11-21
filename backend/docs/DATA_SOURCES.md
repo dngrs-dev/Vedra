@@ -6,9 +6,9 @@ which licence, and what each source cannot tell. The machine-readable twin of th
 recorded there with its `source:`. Prepared files are listed in [`data/a/manifest.json`](../data/a/manifest.json).
 All observations quoted here were made on **2026-11-21** from the development machine (Poland).
 
-Every value the analysis uses carries a `Provenance` record in the API response (source, exact URL, fetch time,
-live or preprocessed, resolution, licence, attribution), and every gap is reported as `partial` / `missing` with a
-Polish note: nothing is filled in silently.
+Every populated `SourceResult` carries one or more `Provenance` records with the source, URL, fetch time,
+live or cached status, resolution, licence and attribution where available. Data gaps have Polish
+explanations. Cadastral boundaries and names come from ULDK or its EGiB fallback.
 
 ## 1. Summary
 
@@ -49,7 +49,8 @@ Weather history (precipitation, evapotranspiration) is Part B's (Open-Meteo); se
   parallel HTTP range requests. One stream gives about 0.5 MB/s, 16 streams about 7 MB/s.
   - By point: row groups are chosen by their bounding-box statistics.
   - By id: the obręb envelope from PRG selects the row groups.
-- **Speed:** a lookup takes 4–7 s. Results are cached for 30 days.
+- **Speed:** the CP4 probe measured 4–7 s. A live fallback is bounded to 8 s, and successful responses
+  are cached for 30 days. The primary ULDK HTTP attempt uses a 3 s timeout.
 - **Names:** voivodeship and county names come from `data/a/teryt_names.json`, built from PRG (prepared
   2026-11-21). Commune and obręb names come from the export; some are upper case, as stored in EGiB.
 - **Check:** the same parcels as ULDK, with the same areas (Września 9.08 ha, Kętrzyn 150.23 ha, Hrubieszów 1.02 ha).
@@ -66,7 +67,8 @@ Weather history (precipitation, evapotranspiration) is Part B's (Open-Meteo); se
   - When the map has no code, or the code is not in that table, the category comes from WOD (§2.4) and the
     report says so.
 - **Live**, cached for 30 days. Currency date of the map contour reported («stan na rok …»).
-- **Licence:** declared in GetCapabilities: «Fees: no conditions apply».
+- **Licence:** GetCapabilities declares «Fees: no conditions apply» and «AccessConstraints: otherRestrictions».
+  The service declaration is recorded for attribution and does not specify a redistribution licence.
 - **Limits:** forests and built-up land have no texture code (e.g. complex «Ls»).
 - **Not used:** the IUNG «Podatność gleb na suszę» WMS is announced on geoportal, but its endpoint was not found
   during the spike.
@@ -94,6 +96,7 @@ Weather history (precipitation, evapotranspiration) is Part B's (Open-Meteo); se
   | Saxton & Rawls on SoilGrids texture | 2 | 4 |
 - **Prepared:** REST answers for the 8 test parcels (`data/a/soilgrids_points.json`, 2026-11-21).
 - **Licence:** CC BY 4.0. Cite Poggio et al. (2021), SOIL 7, 217–240.
+  [ISRIC terms](https://isric.org/explore/soilgrids/), [SoilGrids paper](https://doi.org/10.5194/soil-7-217-2021).
 - **Limits:** 250 m model cells. At one test point (Inowrocław) the model has no values; this is reported.
 
 ### 2.5 Sentinel-2 L2A: vegetation (NDVI, NDMI)
@@ -125,7 +128,9 @@ Weather history (precipitation, evapotranspiration) is Part B's (Open-Meteo); se
 - **Live**, with per-scene results cached permanently. Scenes left unread at the deadline continue in the
   background. Prepared: per-scene results for the test parcels and fixture dates (`data/a/s2_scene_stats.json`).
 - **Licence:** Copernicus Sentinel data, free, full and open. Attribution: «Contains modified Copernicus Sentinel
-  data [year]». Planetary Computer terms of use: https://planetarycomputer.microsoft.com/terms.
+  data [year]». Reports fill in the observation years for each source used.
+  [Copernicus Sentinel legal notice](https://ewds.climate.copernicus.eu/licences/ec-sentinel),
+  [Planetary Computer terms](https://planetarycomputer.microsoft.com/terms).
 - **Limits:**
   - Parcels narrower than about 20 m have no interior after the −10 m buffer: vegetation is `missing`.
   - Fewer than 20 interior pixels: `partial` with a note.
@@ -144,6 +149,8 @@ Weather history (precipitation, evapotranspiration) is Part B's (Open-Meteo); se
     `partial`.
   - Attribution: «produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH
     2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved».
+  - Organisations administering or operating the Copernicus programme incur no liability for use of the model.
+    [WorldDEM-30 licence, Article 6](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf).
 - **Analysis** (own numpy code, cited methods):
   - Depression filling: priority-flood (Barnes et al. 2014).
   - Flow directions: D8 (O'Callaghan & Mark 1984).
@@ -156,13 +163,15 @@ Weather history (precipitation, evapotranspiration) is Part B's (Open-Meteo); se
 ### 2.7 Hydrology: BDOT10k water network
 - **URL:** `https://mapy.geoportal.gov.pl/wss/service/pub/guest/kompozycja_BDOT10k_WMS/MapServer/WMSServer`.
   - Layers: `row` (ditches), `kan`/`kanOkr` (canals), `rz`/`rzOk` (streams), `WPow` (standing / flowing water).
-- **Method:** each layer is drawn at 2 m over the parcel + 500 m. Connected drawn pixels become features, with
+- **Method:** each layer is drawn at 2 m over the parcel + 500 m, with a coarser grid for large areas.
+  Connected drawn pixels become features, with
   distance to the parcel and ditch crossings. Names and kinds come from `GetFeatureInfo` for the 20 nearest.
 - **Live**, cached for 30 days. Licence declared: «Fees: Brak opłat».
 - **Why not the planned sources:** the planned MPHP (Wody Polskie) has no vector access (WMS only, without
   GetFeatureInfo), and BDOT10k's vector services refused access.
-- **Fallback:** OpenStreetMap via Overpass (ODbL 1.0, «© Autorzy OpenStreetMap»). It was unreachable from the
-  development network all day, so it is tested with recorded payloads only.
+- **Fallback:** OpenStreetMap via Overpass, with the ODbL 1.0 attribution and licence link in reports.
+  The development network could not reach the fallback during the original spike. Its processing was tested with payload fixtures.
+  [OpenStreetMap copyright and licence](https://www.openstreetmap.org/copyright).
 - **Limits:**
   - Distances can be short by half the symbol width.
   - A connected ditch network counts as one feature.
@@ -174,15 +183,18 @@ Weather history (precipitation, evapotranspiration) is Part B's (Open-Meteo); se
 - **Use:** shares of each class in the parcel and in the 500 m ring around it.
 - **Licence:** CC BY 4.0. Attribution: «© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data
   (2021) processed by ESA WorldCover consortium».
-- **Limits:** a single map of 2021. For analysis dates before 2021 the report notes that land cover may have
-  differed.
+- **Limits:** the map uses observations through 31 December 2021. Earlier analysis dates receive a missing-data
+  note, and later dates use 2021 as a dated reference.
+  [ESA WorldCover product manual, §3.4.3](https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/docs/WorldCover_PUM_V2.0.pdf).
 
 ### 2.9 European Drought Observatory (Copernicus EMS)
 - **URL:** WCS `https://drought.emergency.copernicus.eu/api/wcs`, layer `cdiad` (Combined Drought Indicator v4.1).
 - **Use:** the CDI class at the parcel for the latest dekad that **ended** on or before the analysis date. Labels
   come from the CDI factsheet v4.1.1, Table 1: No drought, Watch, Warning, Alert, Recovery, Temporary soil-moisture
   recovery, Temporary vegetation recovery.
-- **Licence declared:** «Fees: no fees; AccessConstraints: no constraints».
+- **Terms:** public data under the CEMS EDO/GDO conditions. The derived-product attribution is
+  «Contains modified Copernicus Emergency Management Service information [year]».
+  [EDO/GDO terms](https://drought.emergency.copernicus.eu/terms%26conditions/).
 - **Limits:**
   - The public services give classes, not indicator values, so `cdi_value`, `sma`, `fapar_anomaly` and `spi3` stay
     empty and the report says so.
@@ -197,6 +209,7 @@ Weather history (precipitation, evapotranspiration) is Part B's (Open-Meteo); se
 - **Attribution (IMGW-PIB terms):** «Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej –
   Państwowy Instytut Badawczy. Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego
   zostały przetworzone.»
+  [Regulamin IMGW-PIB](https://danepubliczne.imgw.pl/regulations).
 - **Limits:**
   - Current data only.
   - Warnings are matched by voivodeship: a warning may concern another catchment in that voivodeship (noted).
@@ -212,9 +225,10 @@ Weather history (precipitation, evapotranspiration) is Part B's (Open-Meteo); se
 | `s2_scene_stats.json` | per-scene NDVI/NDMI for the test parcels × fixture dates | Planetary Computer / Earth Search | 2026-11-21 | `scripts/a/prefetch_s2.py` |
 | `nmt/*.tif` | NMT for 7 test parcels + 200 m | GUGiK WCS | 2026-11-21 | `scripts/a/prefetch_nmt.py` |
 
-The prepared files only save time. They are computed with the same code as the live path, and any parcel in
-Poland is analysed from live data. Results and recommendations are always computed by the application at request
-time.
+The prepared files save time. Sentinel-2 scene stats apply to the exact recorded parcel interior.
+When its boundary changes, the collector uses the current geometry to read the raster. Reports and
+recommendations are computed at request time. The fixture recorder can reuse previously verified
+parcel boundaries while it refreshes measurements from the same providers.
 
 ## 4. Our parameters and assumptions
 
@@ -226,6 +240,8 @@ Every threshold is listed in `config/geo_sources.yaml`, marked either with its s
 | Valid fraction for a clear scene | ≥ 30 % | our choice |
 | Small-parcel warning | < 20 interior pixels | our choice |
 | Same-window scenes per year | 3 least cloudy | our choice (time budget) |
+| Sentinel-2 catalog search | Half of its source budget | our choice (reserve time to read available scenes) |
+| Dated vegetation assessment cache | 10 minutes | our choice (allow refresh of incomplete data) |
 | Season | April–August, ≤ 6 scenes | spec |
 | Cloud filter in search | < 60 % scene cover | spec |
 | DEM buffer / max grid | 200 m / 250 000 cells | spec / compute budget |
@@ -238,9 +254,9 @@ Every threshold is listed in `config/geo_sources.yaml`, marked either with its s
 
 ## 5. Speed, caching and failures
 
-- **Time budget:** `collect()` has 22 s. Every source runs in parallel with its own share. A source that is late
-  returns `partial` / `missing` with a Polish note, and the work continues in the background to fill the cache for
-  the next analysis of the same parcel.
+- **Time budget:** `collect()` has 22 s. Independent sources run in parallel and return `partial` or
+  `missing` when the deadline prevents a full result. DEM and scene reads can continue in the
+  background. The vegetation search keeps results from catalog windows that finished before its deadline.
 - **Caching:** everything static is cached on disk (parcels, soil, DEM, terrain analysis, water network, land cover,
   per-scene Sentinel-2 results, EDO dekads), so a repeated analysis needs a few seconds.
 - **No silent failures:** each upstream failure is recorded in `error` and explained in `notes_pl`. A bundle is
@@ -256,3 +272,25 @@ Every threshold is listed in `config/geo_sources.yaml`, marked either with its s
   | BDOT10k | OpenStreetMap |
 - **Event loop:** GDAL work never runs on the event loop. A blocked loop once broke the deadline (142 s), and a
   regression test now guards this.
+
+### Live performance check
+
+The CP4 profile covered two parcels and the three checklist dates, with a fresh disk cache on the first pass.
+The second pass repeated the same requests. The figures are seconds at the 95th percentile, rounded to
+two places. A zero in the table is a rounded reading. Cold vegetation could return partial coverage.
+
+| Stage | Cold p95 | Warm p95 |
+| --- | ---: | ---: |
+| Complete geo bundle | 21.05 | 0.06 |
+| Soil | 2.09 | 0.03 |
+| Sentinel-2 | 21.02 | 0.00 |
+| Terrain | 4.09 | 0.03 |
+| Hydrology | 3.23 | 0.03 |
+| Land cover | 3.81 | 0.00 |
+| EDO | 2.76 | 0.02 |
+| IMGW | 1.96 | 0.01 |
+
+Reproduce the profile from `backend` with `python -m scripts.a.profile_collect --parcels 2`.
+The live edge run also covered a forest parcel, a lake above 7,000 ha, two built-up parcels and a
+2016 analysis date. The lake lacked terrain and hydrology within the deadline. Other available
+sources still returned valid data. [Recorded edge cases](../tests/a/data/edge_parcels.json).

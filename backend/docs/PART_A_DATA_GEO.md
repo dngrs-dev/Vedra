@@ -168,12 +168,17 @@ Cache: `geo.uldk`, no expiry.
   Before changes the cold/warm p95 was 21.77/21.04 s. With bounded Sentinel-2 searches and dated
   vegetation snapshots it was 21.05/0.06 s. Cold vegetation remained partial when reads exceeded the budget.
   Measured using `python -m scripts.a.profile_collect --parcels 2`.
-- [ ] Edge cases: multipolygon, parcel < 0.2 ha, forest/water/built-up parcel, date in 2016 (fewer S2 years), zero clear scenes, every source down (mock) → still a valid bundle.
-- [ ] `tests/contract/test_geo_provider_contract.py` green on 2 parcels.
+- [x] Edge cases: multipolygon, parcel < 0.2 ha, forest/water/built-up parcel, date in 2016 (fewer S2 years), zero clear scenes, every source down (mock) → still a valid bundle.
+  The live edge snapshots cover a forest parcel, Lake Śniardwy, two built-up parcels and the 2016 date.
+- [x] `tests/contract/test_geo_provider_contract.py` green on 2 parcels.
+  Live lookup and collection passed on both parcels for the historical and current dates.
 
 ### CP5 — docs (→ 10:00)
-- [ ] `docs/DATA_SOURCES.md`: per source — what, URL, scope, live vs preprocessed + download date, resolution, licence, exact attribution text, known limits.
-- [ ] Final fixtures for all parcels; push.
+- [x] `docs/DATA_SOURCES.md`: per source — what, URL, scope, live vs preprocessed + download date, resolution, licence, exact attribution text, known limits.
+- [x] Final fixtures for all parcels; push.
+  Recorded eight parcels for all three release dates using previously verified boundaries and the live geo collector.
+  The 24 snapshots validate against the contract. Current IMGW timed out during recording, and the 2018 cases
+  report WorldCover as unavailable for that historical date.
 
 ---
 

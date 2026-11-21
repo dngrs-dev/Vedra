@@ -99,6 +99,7 @@ def test_fixtures_cover_both_contract_parcels():
 @pytest.mark.parametrize("day", [date(2023, 5, 31), today_pl()], ids=["2023-05-31", "today"])
 async def test_real_provider_meets_the_contract(parcel_id, day):
     from app.core import http
+    from app.geo import vegetation
     from app.geo.provider import RealGeoProvider
 
     geo = RealGeoProvider()
@@ -110,4 +111,5 @@ async def test_real_provider_meets_the_contract(parcel_id, day):
         assert time.monotonic() - t <= DEADLINE_S + DEADLINE_SLACK_S
         check_bundle(parcels[0], bundle, day)
     finally:
+        vegetation.shutdown_background()
         await http.close()

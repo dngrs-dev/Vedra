@@ -1,0 +1,38 @@
+[
+  {
+    "kind": "forest",
+    "place": "Puszcza Kampinoska",
+    "lat": 52.33,
+    "lon": 20.55,
+    "parcel_id": "141403_2.0005.164",
+    "area_ha": 3.095,
+    "source": "ULDK GetParcelByXY"
+  },
+  {
+    "kind": "water",
+    "place": "Jezioro Śniardwy (bardzo duża działka)",
+    "lat": 53.75,
+    "lon": 21.73,
+    "parcel_id": "281603_5.0040.423/5",
+    "area_ha": 7039.8336,
+    "source": "ULDK GetParcelByXY"
+  },
+  {
+    "kind": "built_up",
+    "place": "Warszawa, Plac Defilad",
+    "lat": 52.2318,
+    "lon": 21.006,
+    "parcel_id": "146510_8.0309.24/35",
+    "area_ha": 8.1112,
+    "source": "ULDK GetParcelByXY"
+  },
+  {
+    "kind": "built_up",
+    "place": "Kraków, Rynek Główny",
+    "lat": 50.0617,
+    "lon": 19.9373,
+    "parcel_id": "126105_9.0001.311",
+    "area_ha": 0.3823,
+    "source": "ULDK GetParcelByXY"
+  }
+]

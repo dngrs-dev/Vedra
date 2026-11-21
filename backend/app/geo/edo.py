@@ -122,7 +122,9 @@ async def edo_signal(lat: float, lon: float, analysis_date: date) -> SourceResul
         notes.insert(0, "Europejskie Obserwatorium Suszy (EDO) nie podaje klasy CDI dla lokalizacji działki "
                         f"(dekada od {t.isoformat()}).")
     data = EdoData(date_used=t, cdi_class=label)
-    prov = [provenance("edo", cfg["wcs_url"], fetched_at=fetched_at, live=live,
-                       data_period=f"dekada od {t.isoformat()}")]
+    entry = provenance("edo", cfg["wcs_url"], fetched_at=fetched_at, live=live,
+                       data_period=f"dekada od {t.isoformat()}")
+    if entry.attribution_pl:
+        entry.attribution_pl = entry.attribution_pl.replace("[year]", str(t.year))
     return SourceResult[EdoData](status=SourceStatus.OK if label else SourceStatus.PARTIAL, data=data,
-                                 provenance=prov, notes_pl=notes, elapsed_s=round(time.monotonic() - t0, 3))
+                                 provenance=[entry], notes_pl=notes, elapsed_s=round(time.monotonic() - t0, 3))

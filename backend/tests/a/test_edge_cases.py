@@ -18,7 +18,7 @@ from app.contracts.common import SourceStatus
 from app.contracts.errors import UpstreamUnavailable
 from app.contracts.geo import GeoBundle, GeoRequest, SceneStat, WaterFeature
 from app.geo import dem as dem_mod
-from app.geo import geometry, hydro, static_map, terrain, uldk, vegetation
+from app.geo import geometry, hydro, imgw, static_map, terrain, uldk, vegetation
 from app.geo.provider import RealGeoProvider
 
 from tests.a.test_vegetation import install, ref
@@ -167,7 +167,7 @@ async def test_every_source_down_still_gives_a_valid_bundle(monkeypatch):
     monkeypatch.setattr(soilgrids, "_preprocessed", lambda lat, lon: None)
     monkeypatch.setattr(dem_mod, "preprocessed_path", lambda parcel: Path("/nonexistent/none.tif"))
     p = uldk.to_parcel(MULTI)
-    today = datetime.now(timezone.utc).date()                     # today: the IMGW path is exercised too
+    today = imgw.today_warsaw()                                   # exercise the current IMGW path
     t = time.monotonic()
     bundle = await RealGeoProvider().collect(GeoRequest(parcel=p, analysis_date=today, deadline_s=6))
     assert time.monotonic() - t <= 6 + 0.5
@@ -181,6 +181,20 @@ async def test_every_source_down_still_gives_a_valid_bundle(monkeypatch):
 
 # ------------------------------------------------------------------------------------------------ live-recorded
 EDGE_BUNDLES = sorted((DATA / "edge_bundles").glob("*.json"))
+
+
+def test_recorded_edge_parcels_cover_forest_water_and_built_up_land():
+    cases = json.loads((DATA / "edge_parcels.json").read_text(encoding="utf-8"))
+    # Dominant class names are from the ESA WorldCover 2021 v200 product legend.
+    classes = {"forest": "Tree cover", "water": "Permanent water bodies", "built_up": "Built-up"}
+    assert {case["kind"] for case in cases} == set(classes)
+    for case in cases:
+        prefix = case["parcel_id"].replace("/", "-")
+        path, = (p for p in EDGE_BUNDLES if p.stem.startswith(f"{prefix}__"))
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        bundle = GeoBundle.model_validate(raw["bundle"])
+        shares = bundle.landcover.data.shares_parcel
+        assert max(shares, key=shares.get) == classes[case["kind"]]
 
 
 @pytest.mark.parametrize("path", EDGE_BUNDLES, ids=[p.stem for p in EDGE_BUNDLES])

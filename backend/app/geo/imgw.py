@@ -108,7 +108,7 @@ async def _get_json(url: str, day: date) -> tuple[list[dict], datetime, bool]:
     hit = cache.get(key)
     if hit is not None:
         return hit["data"], datetime.fromisoformat(hit["fetched_at"]), False
-    data = (await http.get(url, timeout=10.0)).json()
+    data = (await http.get(url, timeout=10.0, retries=0)).json()
     if not isinstance(data, list) or any(not isinstance(record, dict) for record in data):
         raise ValueError("IMGW returned an unexpected JSON payload")
     fetched_at = datetime.now(timezone.utc)

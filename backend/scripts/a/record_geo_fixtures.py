@@ -24,6 +24,7 @@ for _var in ("PROJ_LIB", "GDAL_DATA"):  # see scripts/a/spike_sources.py
     os.environ.pop(_var, None)
 
 from app.contracts.geo import GeoRequest  # noqa: E402
+from app.contracts.parcel import Parcel  # noqa: E402
 from app.core import http  # noqa: E402
 from app.geo import uldk  # noqa: E402
 from app.geo.provider import RealGeoProvider  # noqa: E402
@@ -37,14 +38,29 @@ def fixture_path(parcel_id: str, day: date, output_dir: Path = OUT_DIR) -> Path:
     return output_dir / f"{parcel_id.replace('/', '-')}__{day.isoformat()}.json"
 
 
-async def main(n_parcels: int | None, dates: list[date], deadline: float, output_dir: Path = OUT_DIR) -> int:
+def recorded_parcel(parcel_id: str, directory: Path) -> Parcel:
+    prefix = parcel_id.replace("/", "-")
+    paths = sorted(directory.glob(f"{prefix}__*.json"), reverse=True)
+    if not paths:
+        raise ValueError(f"Brak zapisanej geometrii działki {parcel_id}.")
+    parcel = Parcel.model_validate(json.loads(paths[0].read_text(encoding="utf-8"))["parcel"])
+    if parcel.parcel_id != parcel_id:
+        raise ValueError(f"Identyfikator działki w zapisie nie odpowiada {parcel_id}.")
+    return parcel
+
+
+async def main(
+    n_parcels: int | None, dates: list[date], deadline: float, output_dir: Path = OUT_DIR,
+    parcel_snapshots: Path | None = None,
+) -> int:
     parcels = json.loads((BACKEND / "tests" / "fixtures" / "parcels.json").read_text(encoding="utf-8"))
     if n_parcels is not None:
         parcels = parcels[:n_parcels]
     output_dir.mkdir(parents=True, exist_ok=True)
     geo = RealGeoProvider()
     for p in parcels:
-        parcel = await uldk.get_by_id(p["parcel_id"])
+        parcel_id = p["parcel_id"]
+        parcel = recorded_parcel(parcel_id, parcel_snapshots) if parcel_snapshots else await uldk.get_by_id(parcel_id)
         for day in dates:
             bundle = await geo.collect(GeoRequest(parcel=parcel, analysis_date=day, deadline_s=deadline))
             path = fixture_path(parcel.parcel_id, day, output_dir)
@@ -67,5 +83,6 @@ if __name__ == "__main__":
                     default=[today, date(2018, 7, 10), date(2023, 5, 31)])
     ap.add_argument("--deadline", type=float, default=22.0)
     ap.add_argument("--output-dir", type=Path, default=OUT_DIR, help="Katalog zapisu zestawów danych geo.")
+    ap.add_argument("--parcel-snapshots", type=Path, help="Katalog potwierdzonych geometrii działek z poprzednich zapisów.")
     a = ap.parse_args()
-    sys.exit(asyncio.run(main(None if a.all else a.parcels, a.dates, a.deadline, a.output_dir)))
+    sys.exit(asyncio.run(main(None if a.all else a.parcels, a.dates, a.deadline, a.output_dir, a.parcel_snapshots)))

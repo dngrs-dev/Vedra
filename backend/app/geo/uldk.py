@@ -11,6 +11,7 @@ too when the obręb name occurs at most egib_parquet.MAX_OBREBY times (names res
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from dataclasses import dataclass
@@ -24,6 +25,8 @@ from app.geo.sources import source
 
 log = logging.getLogger(__name__)
 EGIB_CACHE_S = 30 * 24 * 3600   # OUR CHOICE: parcels change rarely; the export is rebuilt daily
+ULDK_TIMEOUT_S = 3.0           # CONTRACTS.md §1: target for a normal parcel lookup.
+EGIB_TIMEOUT_S = 8.0           # OUR CHOICE: allow the 4–7 s fallback measured in the CP4 EGiB probe.
 
 # Full parcel id WWPPGG_R.OOOO.[AR_NR.]NR_DZ - regex from docs/PART_A_DATA_GEO.md (uldk.parse_query)
 PARCEL_ID_RE = re.compile(r"^\d{6}_\d\.\d{4}\.(?:AR_\d+\.)?[0-9A-Za-z/]+$")
@@ -70,11 +73,11 @@ async def _request(request: str, **params: str) -> list[list[str]]:
     if text is not None:
         return _parse(text, cfg)
     try:
-        text = (await http.get(cfg["url"], params=query, timeout=10.0)).text
+        text = (await http.get(cfg["url"], params=query, timeout=ULDK_TIMEOUT_S, retries=0)).text
         records = _parse(text, cfg)
     except _BadAnswer:
         # A malformed answer was seen once under load (2026-11-21 profiling, not reproducible); ask once more.
-        text = (await http.get(cfg["url"], params=query, timeout=10.0)).text
+        text = (await http.get(cfg["url"], params=query, timeout=ULDK_TIMEOUT_S, retries=0)).text
         records = _parse(text, cfg)
     cache.set(key, text)  # parcels change rarely; no expiry (PART_A_DATA_GEO.md: geo.uldk, no expiry)
     return records
@@ -137,7 +140,8 @@ async def _egib(kind: str, key_parts: dict, lookup) -> list[str] | None:
     hit = cache.get(key)
     if hit is not None:
         return hit or None
-    rec = await lookup()
+    async with asyncio.timeout(EGIB_TIMEOUT_S):
+        rec = await lookup()
     cache.set(key, rec or [], expire_s=EGIB_CACHE_S)
     return rec
 
