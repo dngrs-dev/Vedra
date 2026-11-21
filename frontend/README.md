@@ -1,4 +1,4 @@
-# KOWR HackNation 2026 — Cyfrowy Asystent Gospodarowania Wodą (frontend)
+# Vendra (frontend)
 
 Aplikacja webowa dla rolników: wskaż działkę (ID lub klik na mapie), wybierz uprawę i datę → ocena wilgotności i ryzyka suszy (10 lat), rekomendacje retencyjne / agrotechniczne / nawodnieniowe, raport PDF.
 
