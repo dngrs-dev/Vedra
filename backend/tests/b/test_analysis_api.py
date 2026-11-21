@@ -103,7 +103,7 @@ def test_can_analyze_the_parcel_returned_by_map_click(monkeypatch):
     assert [action.category for action in report.recommendations] == ["soil_retention", "soil_retention", "agrotechnics", "agrotechnics"]
     source_ids = {reference.id for reference in report.references}
     assert all(action.evidence and set(action.reference_ids) <= source_ids for action in report.recommendations)
-    assert report.irrigation.why_pl == text.IRRIGATION_UNAVAILABLE
+    assert report.irrigation.why_pl == text.IRRIGATION_MISSING_BALANCE
     assert {source.source_id for source in report.data_sources} == {"open_meteo_archive", "fake_geo"}
     fetch.assert_awaited_once_with(lat, lon, ANALYSIS_DATE)
 

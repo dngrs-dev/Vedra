@@ -22,3 +22,6 @@ fao_water_balance:
 saxton_rawls:
   title_pl: Saxton i Rawls – szacowanie właściwości wodnych gleby
   url: https://doi.org/10.2136/sssaj2005.0117
+som_scenario:
+  title_pl: Minasny i McBratney – materia organiczna a dostępność wody w glebie
+  url: https://doi.org/10.1111/ejss.12475

@@ -168,7 +168,7 @@ def get_geo_provider() -> GeoProvider:
 
 ### CP3 — recommendations and report (→ 03:00)
 - [x] `recommendations/engine.py` + rules (landscape uses A's `retention_spots`, ditches; soil; agrotech; off-season); `texts_pl.py`.
-- [ ] `soil_water.py`, `water_balance.py`, `irrigation.py`.
+- [x] `soil_water.py`, `water_balance.py`, `irrigation.py`.
 - [ ] `reports/charts.py`, `pdf.py`, templates; `storage/db.py`; `routes_reports.py`; PDF endpoint.
 
 ### CP4 — validation and robustness (→ 07:00)

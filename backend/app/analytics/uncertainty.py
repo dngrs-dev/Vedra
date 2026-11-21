@@ -41,6 +41,8 @@ def assess(ctx: AnalysisContext) -> tuple[Confidence | None, list[str]]:
     sources = ((text.SOURCE_WEATHER, ctx.weather), *(
         (label, getattr(ctx.geo, field)) for field, label in text.GEO_SOURCE_LABELS.items()
     ))
+    if ctx.forecast is not None:
+        sources = (*sources, (text.SOURCE_IRRIGATION_FORECAST, ctx.forecast))
     for label, source in sources:
         limitations.extend(source.notes_pl)
         if source.status is SourceStatus.MISSING:
@@ -60,6 +62,8 @@ def assess(ctx: AnalysisContext) -> tuple[Confidence | None, list[str]]:
     confidence = None
     if verdict == "off_season":
         limitations.append(text.OFF_SEASON_SIGNALS)
+    if ctx.irrigation_metrics:
+        limitations.append(text.IRRIGATION_BALANCE_LIMITATION)
     if verdict in {"drought", "no_drought"}:
         expected = verdict == "drought"
         votes = _votes(ctx.signals)

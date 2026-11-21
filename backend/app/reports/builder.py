@@ -6,9 +6,9 @@ from uuid import uuid4
 
 from app.analytics import uncertainty
 from app.analytics.models import AnalysisContext
-from app.contracts.common import Provenance
+from app.contracts.common import Provenance, SourceStatus
 from app.contracts.geo import GeoBundle
-from app.contracts.report import Assessment, IrrigationAdvice, KbwAssessment, MapLayer, Reference, Report
+from app.contracts.report import Assessment, IrrigationAdvice, KbwAssessment, MapLayer, Reference, Report, Signal
 from app.recommendations import references
 from app.recommendations import texts_pl as text
 
@@ -18,6 +18,8 @@ IUNG_KBW_URL = "https://iung.pl/images/wyd/Susza%20rolnicza%20w%20Polsce.pdf"
 
 def _sources(ctx: AnalysisContext) -> list[Provenance]:
     sources = [ctx.weather, *(getattr(ctx.geo, field) for field in GeoBundle.model_fields)]
+    if ctx.forecast is not None:
+        sources.append(ctx.forecast)
     records: dict[str, Provenance] = {}
     for source in sources:
         for item in source.provenance:
@@ -32,6 +34,10 @@ def build(ctx: AnalysisContext) -> Report:
     if irrigation is None and ctx.request.include_irrigation:
         explanation = text.IRRIGATION_OFF_SEASON if off_season else text.IRRIGATION_UNAVAILABLE
         irrigation = IrrigationAdvice(justified=None, why_pl=explanation)
+    signals = list(ctx.signals)
+    if ctx.irrigation_metrics:
+        signals.append(Signal(code="irrigation_balance", status=SourceStatus.PARTIAL,
+                              summary_pl=text.IRRIGATION_BALANCE_SUMMARY, metrics=ctx.irrigation_metrics))
     ids = dict.fromkeys(reference for recommendation in ctx.recommendations for reference in recommendation.reference_ids)
     recommendations_refs = [references.load()[reference_id] for reference_id in ids]
     return Report(
@@ -44,7 +50,7 @@ def build(ctx: AnalysisContext) -> Report:
         assessment=Assessment(
             kbw=KbwAssessment.model_validate(asdict(ctx.assessment)),
             confidence=confidence,
-            signals=ctx.signals,
+            signals=signals,
             vulnerability=ctx.vulnerability,
         ),
         causes=ctx.causes,

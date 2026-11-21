@@ -90,4 +90,6 @@ class AnalysisContext:
     vulnerability: Vulnerability
     causes: list[Cause] = field(default_factory=list)
     irrigation: IrrigationAdvice | None = None
+    irrigation_metrics: list[Metric] = field(default_factory=list)
+    forecast: SourceResult[Forecast] | None = None
     recommendations: list[Recommendation] = field(default_factory=list)

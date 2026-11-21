@@ -74,3 +74,23 @@ Weather, soil moisture and EDO remain available as descriptive context, and rece
 observations are interpreted with crop dates in mind. History includes the completed windows
 available before the analysis. The report omits current deficit causes and gives an off-season
 explanation when irrigation is requested. [Statutory annex](https://eli.gov.pl/api/acts/DU/2019/739/text.pdf).
+
+## Recommendations and optional irrigation
+
+Recommendations are evaluated in the order landscape retention, soil retention, agrotech and
+irrigation. They require a negative estimated current balance, recorded historical drought, a
+susceptible soil classification, or an optional root-zone estimate for irrigation. Locations and
+volumes come from Part A's measurements. The organic matter calculation compares two Saxton–Rawls
+predictions for the same texture, with the carbon increment used by Minasny and McBratney and the
+conventional carbon-to-organic-matter conversion. It describes sensitivity, with no estimate if
+the root profile or inputs are incomplete. [Saxton and Rawls](https://doi.org/10.2136/sssaj2005.0117),
+[Minasny and McBratney](https://doi.org/10.1111/ejss.12475) and [Pribyl](https://doi.org/10.1016/j.geoderma.2010.02.003).
+
+The daily irrigation balance integrates soil hydraulic properties over the crop rooting depth.
+It initializes from an ERA5-Land soil moisture observation covering that depth and advances with
+daily precipitation and ET0. It uses the crop profile for full development, since actual growth
+stages and prior irrigation are typically unknown. Crop-profile range endpoints give alternate
+net doses. The daily model omits runoff, capillary rise and irrigation history. Forecasts are
+used for a current-date analysis in season when the balance supports a projection. The proposed
+date is when the central estimate reaches RAW, and the net dose refills the estimated depletion.
+[FAO-56, chapter 8](https://www.fao.org/4/x0490e/x0490e0e.htm).

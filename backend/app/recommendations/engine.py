@@ -30,6 +30,11 @@ def run(ctx: AnalysisContext) -> list[Recommendation]:
             results.append(off_season.evaluate(risk))
         results.extend(soil.evaluate(ctx, risk))
         results.extend(agrotech.evaluate(ctx, risk))
-    if not outside and ctx.request.include_irrigation:
-        results.extend(irrigation.evaluate(ctx))
+    results.extend(irrigation_recommendations(ctx))
     return results
+
+
+def irrigation_recommendations(ctx: AnalysisContext) -> list[Recommendation]:
+    if mode(ctx.request.analysis_date) == "off_season" or not ctx.request.include_irrigation:
+        return []
+    return irrigation.evaluate(ctx)
