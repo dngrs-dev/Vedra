@@ -22,9 +22,17 @@ export const pl = {
     zoomOut: 'Oddal',
     backToPoland: '← Cała Polska',
     hintRegion: 'Kliknij województwo, aby je przybliżyć',
-    hintParcel: 'Kliknij działkę lub przytrzymaj Ctrl i przeciągnij, aby zaznaczyć własny obszar',
+    hintParcel: 'Kliknij działkę lub przytrzymaj Ctrl i przeciągnij ramkę',
     hintSelected: 'Zaznaczono. Potwierdź działkę w panelu po prawej',
     regionsFailed: 'granice województw niedostępne'
+  },
+
+  selectMode: {
+    label: 'Tryb zaznaczania ramką (Ctrl + LPM)',
+    simple: 'Zwykły wybór',
+    smart: 'Inteligentny wybór',
+    simpleTip: 'Ramka = dokładnie zaznaczony prostokąt',
+    smartTip: 'Ramka = wszystkie działki, które w większości leżą w środku'
   },
 
   confirm: {
@@ -32,8 +40,10 @@ export const pl = {
     change: 'Zmień działkę',
     selected: 'Wybrana działka',
     custom: 'Własny obszar',
+    group: 'Wybrane działki',
+    showList: 'Pokaż listę działek',
     tip: 'Obliczenia ruszą dopiero po potwierdzeniu. Możesz jeszcze zmienić uprawę i datę.',
-    ctrlTip: 'Własny obszar: przytrzymaj Ctrl (⌘ na Macu) i przeciągnij myszą po mapie.'
+    ctrlTip: 'Przytrzymaj Ctrl (⌘ na Macu) i przeciągnij ramkę. Tryb ramki wybierzesz na górnym pasku: „Zwykły wybór” lub „Inteligentny wybór”.'
   },
 
   form: {

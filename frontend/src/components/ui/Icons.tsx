@@ -77,3 +77,7 @@ export const ArrowRightIcon = ({ size = 18 }: IconProps) => (
 export const CalendarIcon = ({ size = 24 }: IconProps) => (
   <svg {...base(size)}><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M4 10h16M8 3v4M16 3v4" /></svg>
 );
+
+export const HelpIcon = ({ size = 18 }: IconProps) => (
+  <svg {...base(size)}><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7" /><path d="M12 17h.01" /></svg>
+);

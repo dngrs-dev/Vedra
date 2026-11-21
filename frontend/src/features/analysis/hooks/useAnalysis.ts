@@ -23,6 +23,10 @@ export function useAnalysis() {
           areaHa: confirmed.areaHa,
           geometry: confirmed.ring,
           isCustomArea: confirmed.isCustom === true,
+          parcels: confirmed.isCustom
+            ? []
+            : (confirmed.parts ?? [{ id: confirmed.id, ring: confirmed.ring }]).map((p) => ({ id: p.id, geometry: p.ring })),
+          outline: confirmed.outline,
           cropIds,
           date
         },

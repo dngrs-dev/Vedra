@@ -20,7 +20,7 @@ export function ParcelMap() {
   const parcel = useAnalysisStore((s) => s.parcel);
   const region = useAnalysisStore((s) => s.region);
   const setRegion = useAnalysisStore((s) => s.setRegion);
-  const { loading, selectById, selectByLatLng, selectArea } = useParcelSelect();
+  const { loading, found, selectById, selectByLatLng, selectArea } = useParcelSelect();
   const { data: regions, isError: regionsFailed } = useVoivodeships();
 
   const [map, setMap] = useState<LeafletMap | null>(null);
@@ -152,7 +152,12 @@ export function ParcelMap() {
         {regionsFailed && <span className="map-hint__warn"> · {pl.map.regionsFailed}</span>}
       </div>
 
-      {loading && <div className="map-loader"><span className="spinner" /> Pobieram działkę…</div>}
+      {loading && (
+        <div className="map-loader">
+          <span className="spinner" />
+          {found === null ? 'Pobieram działkę…' : `Szukam działek w zaznaczeniu… znaleziono: ${found}`}
+        </div>
+      )}
     </section>
   );
 }

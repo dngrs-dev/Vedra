@@ -65,7 +65,14 @@ export function ReportPage() {
         <h2>{pl.report.parcel}</h2>
         <table>
           <tbody>
-            <tr><td>Identyfikator działki</td><td>{data.parcelId}</td></tr>
+            {parcel.parts ? (
+              <tr>
+                <td>Działki ({parcel.parts.length})</td>
+                <td>{parcel.parts.map((p) => p.id).join(', ')}</td>
+              </tr>
+            ) : (
+              <tr><td>Identyfikator działki</td><td>{data.parcelId}</td></tr>
+            )}
             <tr><td>Powierzchnia</td><td>{data.areaHa} ha</td></tr>
             <tr><td>Lokalizacja</td><td>{data.region}</td></tr>
             <tr><td>Uprawa</td><td>{crops}</td></tr>

@@ -2,9 +2,11 @@ import { useCallback, useRef, useState } from 'react';
 import { pl } from '@/constants/pl';
 import { POLAND_BOUNDS, POLAND_OUTLINE } from '@/constants/poland';
 import { toast } from '@/components/ui/toastStore';
-import { getParcelById, getParcelByLatLng, ParcelNotFoundError } from '@/services/parcelApi';
+import { findParcelsInArea, getParcelById, getParcelByLatLng, ParcelNotFoundError } from '@/services/parcelApi';
 import type { LatLng, Parcel } from '@/types/parcel';
 import { demoSquare, pointInRing, polygonAreaHa, ringCenter } from '@/utils/geo';
+import { dzialki } from '@/utils/format';
+import { unionRings } from '@/utils/union';
 import { isParcelId } from '@/utils/validation';
 import { useAnalysisStore } from '../store';
 
@@ -15,6 +17,8 @@ const MAX_CUSTOM_AREA_HA = 5000;
 export function useParcelSelect() {
   const setParcel = useAnalysisStore((s) => s.setParcel);
   const [loading, setLoading] = useState(false);
+  /** Сколько делянок уже найдено в рамке (null — поиск по рамке не идёт) */
+  const [found, setFound] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const run = useCallback(
@@ -82,9 +86,12 @@ export function useParcelSelect() {
     [run]
   );
 
-  /** Своя область: прямоугольник, выделенный Ctrl + ЛКМ. Бэкенду уходит как isCustomArea + geometry. */
+  /**
+   * Ctrl + ЛКМ рамка → выбираются ВСЕ делянки из ewidencji, которые попали в рамку (групповой выбор).
+   * Одна делянка → обычный выбор. Ни одной (дорога, вода) или ULDK недоступен → рамка = «własny obszar».
+   */
   const selectArea = useCallback(
-    (ring: LatLng[]) => {
+    async (ring: LatLng[]) => {
       const areaHa = +polygonAreaHa(ring).toFixed(2);
       const center = ringCenter(ring);
       const [[s, w], [n, e]] = POLAND_BOUNDS;
@@ -96,18 +103,78 @@ export function useParcelSelect() {
         toast(`Obszar jest zbyt duży (${Math.round(areaHa)} ha). Maksimum: ${MAX_CUSTOM_AREA_HA} ha.`, 'error');
         return;
       }
-      abortRef.current?.abort(); // не даём «опоздавшему» ULDK перезаписать свой выбор
-      setLoading(false);
-      setParcel({
+
+      const customArea: Parcel = {
         id: `OBSZAR_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`,
         ring,
         areaHa,
         center,
         isCustom: true
-      });
+      };
+
+      // «Zwykły wybór» — просто прямоугольник, без поиска делянок
+      if (useAnalysisStore.getState().selectMode === 'simple') {
+        abortRef.current?.abort();
+        setLoading(false);
+        setFound(null);
+        setParcel(customArea);
+        return;
+      }
+
+      abortRef.current?.abort();
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+      setLoading(true);
+      setFound(0);
+      try {
+        const res = await findParcelsInArea(ring, { signal: ctrl.signal, onProgress: setFound });
+        if (ctrl.signal.aborted) return;
+
+        if (res.parcels.length === 1) {
+          setParcel(res.parcels[0]!);
+        } else if (res.parcels.length > 1) {
+          const parts = res.parcels.map((p) => ({ id: p.id, ring: p.ring, areaHa: p.areaHa }));
+          const total = +parts.reduce((sum, p) => sum + p.areaHa, 0).toFixed(2);
+          // объединяем делянки в один общий контур (без внутренних границ)
+          let outline = unionRings(parts.map((p) => p.ring));
+          if (!outline.length) outline = parts.map((p) => [p.ring]); // на всякий случай — показываем как есть
+          setParcel({
+            id: `GRUPA_${parts.length}_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`,
+            ring,
+            areaHa: total,
+            center,
+            parts,
+            outline
+          });
+          toast(
+            outline.length > 1
+              ? `Połączono ${dzialki(parts.length)} (${total} ha) w ${outline.length} części — rozdziela je np. droga lub rów.`
+              : `Połączono ${dzialki(parts.length)} w jeden obszar (${total} ha).`
+          );
+        } else {
+          setParcel(customArea);
+          toast(
+            res.serviceDown
+              ? 'Usługa ULDK niedostępna — zaznaczony prostokąt użyto jako własny obszar.'
+              : 'W zaznaczeniu nie ma działki ewidencyjnej — użyto zaznaczonego obszaru.'
+          );
+        }
+        if (res.skippedEdge > 0 && res.parcels.length > 0 && !res.truncated) {
+          setTimeout(() => toast(`Pominięto ${dzialki(res.skippedEdge)}, które tylko zahaczają o ramkę.`), 2500);
+        }
+        if (res.truncated) toast('Zaznaczenie jest bardzo duże — pokazano tylko część działek. Zaznacz mniejszy obszar.', 'error');
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        setParcel(customArea);
+      } finally {
+        if (abortRef.current === ctrl) {
+          setLoading(false);
+          setFound(null);
+        }
+      }
     },
     [setParcel]
   );
 
-  return { loading, selectById, selectByLatLng, selectArea };
+  return { loading, found, selectById, selectByLatLng, selectArea };
 }

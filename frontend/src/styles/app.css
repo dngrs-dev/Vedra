@@ -297,3 +297,45 @@ button { font: inherit; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .intro-backdrop, .intro, .intro__step { animation: none; }
 }
+
+/* ---------- групповой выбор делянок ---------- */
+.parcel-chip--group { align-items: center; }
+.parcel-list { flex-basis: 100%; margin-top: 2px; }
+.parcel-list summary { cursor: pointer; color: var(--green-700); font-weight: 600; font-size: 12px; }
+.parcel-list ul { list-style: none; margin: 6px 0 0; padding: 0; max-height: 160px; overflow: auto; display: grid; gap: 2px; }
+.parcel-list li { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 3px 0; border-bottom: 1px dashed #cfdcd6; }
+.parcel-list li span:first-child { font-family: ui-monospace, Consolas, monospace; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- переключатель режима выбора в верхней панели ---------- */
+.topbar__center { flex: 1; display: flex; justify-content: center; min-width: 0; padding: 0 16px; }
+.mode-toggle { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.18); }
+.mode-toggle button { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; padding: 7px 16px; background: transparent; color: rgba(255, 255, 255, 0.85); font-weight: 600; font-size: 13px; white-space: nowrap; transition: background 0.2s, color 0.2s; }
+.mode-toggle button:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.mode-toggle button.is-active { background: #fff; color: var(--green-800); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
+.mode-toggle button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+@media (max-width: 900px) {
+  .topbar { flex-wrap: wrap; row-gap: 8px; }
+  .topbar__center { order: 3; flex-basis: 100%; padding: 0; }
+  .topbar .brand { flex: 1; min-width: 0; }
+  .topbar__actions { flex: none; }
+}
+@media (max-width: 480px) {
+  .topbar { padding: 10px 14px; }
+  .topbar .brand { gap: 10px; }
+  .topbar .brand__text h1 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar__actions { gap: 6px; }
+}
+@media (max-width: 400px) {
+  .mode-toggle button { padding: 7px 11px; font-size: 12px; }
+}
+
+/* ---------- «Zapamiętaj mój wybór» + кнопка «Jak korzystać» ---------- */
+.intro__remember { display: flex; align-items: flex-start; gap: 10px; margin: -4px 0 16px; padding: 10px 12px; border-radius: 12px; background: var(--green-100); cursor: pointer; font-size: 13px; color: var(--green-900); user-select: none; }
+.intro__remember input { accent-color: var(--green-700); width: 17px; height: 17px; margin: 1px 0 0; flex: none; cursor: pointer; }
+.help-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.35); background: transparent; color: #fff; font-weight: 600; font-size: 13px; white-space: nowrap; transition: background 0.2s, border-color 0.2s; }
+.help-btn:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.6); }
+.help-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+@media (max-width: 600px) {
+  .help-btn { width: 36px; padding: 0; justify-content: center; }
+  .help-btn span { display: none; }
+}

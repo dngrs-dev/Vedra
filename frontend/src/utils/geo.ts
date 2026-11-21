@@ -96,3 +96,45 @@ export function rectToRing(a: { lat: number; lng: number }, b: { lat: number; ln
   const w = Math.min(a.lng, b.lng), e = Math.max(a.lng, b.lng);
   return [[s, w], [n, w], [n, e], [s, e], [s, w]];
 }
+
+/**
+ * Обрезает полигон по прямоугольнику (Sutherland–Hodgman, рамка выровнена по осям).
+ * Возвращает часть полигона, лежащую внутри рамки (может быть пустой).
+ */
+export function clipRingToRect(ring: LatLng[], s: number, w: number, n: number, e: number): LatLng[] {
+  type Edge = { inside: (p: LatLng) => boolean; cut: (a: LatLng, b: LatLng) => LatLng };
+  const lerpLat = (a: LatLng, b: LatLng, lat: number): LatLng => [lat, a[1] + ((b[1] - a[1]) * (lat - a[0])) / (b[0] - a[0])];
+  const lerpLng = (a: LatLng, b: LatLng, lng: number): LatLng => [a[0] + ((b[0] - a[0]) * (lng - a[1])) / (b[1] - a[1]), lng];
+  const edges: Edge[] = [
+    { inside: (p) => p[0] >= s, cut: (a, b) => lerpLat(a, b, s) },
+    { inside: (p) => p[0] <= n, cut: (a, b) => lerpLat(a, b, n) },
+    { inside: (p) => p[1] >= w, cut: (a, b) => lerpLng(a, b, w) },
+    { inside: (p) => p[1] <= e, cut: (a, b) => lerpLng(a, b, e) }
+  ];
+  let out = ring.slice();
+  for (const edge of edges) {
+    const input = out;
+    out = [];
+    for (let i = 0; i < input.length; i++) {
+      const cur = input[i]!;
+      const prev = input[(i + input.length - 1) % input.length]!;
+      const ci = edge.inside(cur), pi = edge.inside(prev);
+      if (ci) {
+        if (!pi) out.push(edge.cut(prev, cur));
+        out.push(cur);
+      } else if (pi) {
+        out.push(edge.cut(prev, cur));
+      }
+    }
+    if (!out.length) break;
+  }
+  return out;
+}
+
+/** Доля площади полигона (0..1), лежащая внутри прямоугольника. */
+export function shareInsideRect(ring: LatLng[], s: number, w: number, n: number, e: number): number {
+  const total = polygonAreaHa(ring);
+  if (total <= 0) return 0;
+  const clipped = clipRingToRect(ring, s, w, n, e);
+  return clipped.length < 3 ? 0 : Math.min(1, polygonAreaHa(clipped) / total);
+}

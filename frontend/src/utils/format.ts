@@ -28,3 +28,10 @@ export function addYears(d: Date, years: number): Date {
 export function clamp(v: number, a: number, b: number): number {
   return Math.max(a, Math.min(b, v));
 }
+
+/** «1 działka», «2 działki», «5 działek» */
+export function dzialki(n: number): string {
+  if (n === 1) return '1 działka';
+  const few = n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20);
+  return `${n} ${few ? 'działki' : 'działek'}`;
+}

@@ -39,7 +39,23 @@ export function AnalysisPanel() {
         </div>
       )}
 
-      {parcel && (
+      {parcel?.parts && (
+        <div className="parcel-chip parcel-chip--group">
+          <span className="muted">{pl.confirm.group}</span>
+          <strong>{parcel.parts.length}</strong>
+          <span className="parcel-chip__area">{parcel.areaHa} ha</span>
+          <details className="parcel-list">
+            <summary>{pl.confirm.showList}</summary>
+            <ul>
+              {parcel.parts.map((p) => (
+                <li key={p.id}><span>{p.id}</span><span className="muted">{p.areaHa} ha</span></li>
+              ))}
+            </ul>
+          </details>
+        </div>
+      )}
+
+      {parcel && !parcel.parts && (
         <div className="parcel-chip">
           <span className="muted">{parcel.isCustom ? pl.confirm.custom : pl.confirm.selected}</span>
           <strong>{parcel.isCustom ? `${parcel.areaHa} ha` : parcel.id}</strong>

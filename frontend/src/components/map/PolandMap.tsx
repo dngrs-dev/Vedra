@@ -4,6 +4,7 @@ import { MapContainer, Polygon, TileLayer, Tooltip, useMap, useMapEvents } from 
 import { POLAND_BOUNDS, POLAND_OUTLINE, WORLD_RING } from '@/constants/poland';
 import type { LatLng, Parcel } from '@/types/parcel';
 import type { Voivodeship } from '@/types/region';
+import { dzialki } from '@/utils/format';
 import { AreaSelect } from './AreaSelect';
 import { RegionLayer } from './RegionLayer';
 
@@ -46,7 +47,8 @@ function FitParcel({ parcel }: { parcel: Parcel | null }) {
   const map = useMap();
   useEffect(() => {
     if (!parcel || parcel.isCustom) return; // свою область не «перепрыгиваем» — пользователь её только что нарисовал
-    map.fitBounds(parcel.ring as LatLngTuple[], { maxZoom: 17, padding: [60, 60] });
+    const pts = parcel.outline ? parcel.outline.flatMap((poly) => poly[0] ?? []) : parcel.parts ? parcel.parts.flatMap((p) => p.ring) : parcel.ring;
+    map.fitBounds(pts as LatLngTuple[], { maxZoom: 17, padding: [60, 60] });
   }, [map, parcel]);
   return null;
 }
@@ -81,7 +83,19 @@ export function PolandMap({
 
       {regions && <RegionLayer regions={regions} active={activeRegion} onSelect={onRegionSelect} />}
 
-      {showParcels && parcel && (
+      {/* групповой выбор: один общий (объединённый) контур + подпись в центре */}
+      {showParcels && parcel?.parts && (
+        <Polygon
+          positions={parcel.outline ?? parcel.parts.map((p) => [p.ring])}
+          pathOptions={{ color: '#ffffff', weight: 3, fillColor: '#4fa183', fillOpacity: 0.45, interactive: false }}
+        >
+          <Tooltip permanent direction="center" className="parcel-label">
+            {dzialki(parcel.parts.length)} · {parcel.areaHa} ha
+          </Tooltip>
+        </Polygon>
+      )}
+
+      {showParcels && parcel && !parcel.parts && (
         <Polygon
           positions={parcel.ring}
           pathOptions={{

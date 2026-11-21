@@ -1,7 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface MapIntroModalProps {
-  onClose: () => void;
+  /** remember = true → больше не показывать автоматически при входе на /map */
+  onClose: (remember: boolean) => void;
+  /** Начальное состояние галочки (true, если пользователь уже просил запомнить) */
+  initialRemember?: boolean;
 }
 
 /** Иконка мыши с подсвеченной левой кнопкой */
@@ -27,8 +30,8 @@ const STEPS = [
     keys: <MouseLeft />
   },
   {
-    title: 'Albo zaznacz własny obszar',
-    text: 'Przytrzymaj Ctrl (⌘ na Macu), wciśnij lewy przycisk myszy i przeciągnij, aby narysować prostokąt.',
+    title: 'Albo zaznacz ramką',
+    text: 'Przytrzymaj Ctrl (⌘ na Macu), wciśnij lewy przycisk myszy i przeciągnij ramkę. Na górnym pasku: „Zwykły wybór” — sam prostokąt, „Inteligentny wybór” — wszystkie działki w środku.',
     keys: (
       <>
         <kbd>Ctrl</kbd>
@@ -46,19 +49,20 @@ const STEPS = [
 
 /**
  * Окно-инструкция при входе на /map. Карта под ним недоступна, пока пользователь не нажмёт «OK».
- * Закрывается кнопкой OK или клавишей Enter / Esc.
+ * Закрывается кнопкой OK или клавишей Enter / Esc. Галочка «Zapamiętaj» сохраняется в localStorage этого браузера.
  */
-export function MapIntroModal({ onClose }: MapIntroModalProps) {
+export function MapIntroModal({ onClose, initialRemember = false }: MapIntroModalProps) {
   const okRef = useRef<HTMLButtonElement>(null);
+  const [remember, setRemember] = useState(initialRemember);
 
   useEffect(() => {
     okRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onClose(remember);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, remember]);
 
   return (
     <div className="intro-backdrop">
@@ -79,7 +83,12 @@ export function MapIntroModal({ onClose }: MapIntroModalProps) {
           ))}
         </ol>
 
-        <button ref={okRef} type="button" className="btn-primary btn-block intro__ok" onClick={onClose}>
+        <label className="intro__remember">
+          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+          <span>Zapamiętaj mój wybór — nie pokazuj tego okna przy następnym wejściu</span>
+        </label>
+
+        <button ref={okRef} type="button" className="btn-primary btn-block intro__ok" onClick={() => onClose(remember)}>
           OK, rozumiem
         </button>
       </div>
