@@ -113,7 +113,7 @@ T0 = written once, before the split, by either person (≈ 20 min, code in `docs
 
 ---
 
-## 4. HTTP API (planned)
+## 4. HTTP API
 
 | Method and path | Purpose |
 | --- | --- |
@@ -123,11 +123,15 @@ T0 = written once, before the split, by either person (≈ 20 min, code in `docs
 | `GET /api/parcels/by-point?lat=&lon=` | parcel under a map click |
 | `POST /api/analyses` | start an analysis: `parcel_id`, `crop_code`, `analysis_date`, `include_irrigation` → `analysis_id` |
 | `GET /api/analyses/{id}` | status, progress (Polish messages), `report` when done |
-| `GET /api/analyses/{id}/report.pdf` | PDF |
-| `GET /api/reports/{id}` | saved report (permanent link) |
+| `GET /api/analyses/{id}/report.pdf` (planned) | PDF |
+| `GET /api/reports/{id}` (planned) | saved report (permanent link) |
 
 Interactive docs: `/docs` (FastAPI OpenAPI). Report schema: `app/contracts/report.py`;
 example for the frontend: `tests/fixtures/sample_report.json`.
+
+The CP1 JSON API accepts a request with HTTP 202. Poll the analysis URL until its status is `done`
+or `error`. Reports and progress are held in memory during CP1. Run one API process so every poll
+reaches the same job registry. Use `GEO_PROVIDER=fake` to exercise the flow with synthetic geo data.
 
 ---
 

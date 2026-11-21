@@ -5,8 +5,13 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Literal
 
-from app.analytics.crops import Threshold
-from app.contracts.geo import KbwSoilCategory
+from pydantic import BaseModel, Field
+
+from app.analytics.crops import Crop, Threshold
+from app.contracts.common import SourceResult
+from app.contracts.geo import GeoBundle, KbwSoilCategory
+from app.contracts.parcel import Parcel
+from app.contracts.report import Cause, Metric
 
 KbwVerdict = Literal["drought", "no_drought", "not_applicable", "not_recommended", "off_season", "unavailable"]
 
@@ -61,3 +66,24 @@ class KbwHistory:
     assessed_years: tuple[int, ...]
     drought_years: tuple[int, ...]
     risk_by_month: dict[int, float]
+
+
+class AnalysisRequest(BaseModel):
+    # README.md §4 requires the parcel identifier and crop code in submitted requests.
+    parcel_id: str = Field(min_length=1)
+    crop_code: str = Field(min_length=1)
+    analysis_date: date
+    include_irrigation: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisContext:
+    request: AnalysisRequest
+    parcel: Parcel
+    crop: Crop
+    weather: SourceResult[WeatherData]
+    geo: GeoBundle
+    assessment: KbwResult
+    history: KbwHistory
+    weather_metrics: list[Metric]
+    causes: list[Cause]

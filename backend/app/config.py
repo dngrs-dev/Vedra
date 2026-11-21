@@ -1,6 +1,7 @@
 """Runtime configuration for the backend."""
 from __future__ import annotations
 
+from calendar import monthrange
 from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
@@ -15,6 +16,12 @@ ANALYSIS_TIMEZONE = "Europe/Warsaw"
 
 def analysis_today() -> date:
     return datetime.now(ZoneInfo(ANALYSIS_TIMEZONE)).date()
+
+
+def years_before(day: date, years: int) -> date:
+    """Return the calendar anniversary, using the last day of a shorter month."""
+    target_year = day.year - years
+    return day.replace(year=target_year, day=min(day.day, monthrange(target_year, day.month)[1]))
 
 
 class Settings(BaseSettings):

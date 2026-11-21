@@ -1,8 +1,13 @@
 """Dependency selection for API routes."""
 from __future__ import annotations
 
+from typing import Annotated
+
+from fastapi import Depends, Request
+
 from app.config import settings
 from app.contracts.geo import GeoProvider
+from app.jobs.runner import AnalysisRunner
 
 
 def get_geo_provider() -> GeoProvider:
@@ -18,3 +23,11 @@ def get_geo_provider() -> GeoProvider:
     from app.fakes.fake_geo import FakeGeoProvider
 
     return FakeGeoProvider()
+
+
+def get_analysis_runner(request: Request) -> AnalysisRunner:
+    return request.app.state.analysis_runner
+
+
+GeoDependency = Annotated[GeoProvider, Depends(get_geo_provider)]
+RunnerDependency = Annotated[AnalysisRunner, Depends(get_analysis_runner)]

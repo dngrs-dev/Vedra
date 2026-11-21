@@ -1,7 +1,6 @@
 """Apply the statutory crop thresholds to the prototype's climatic water balance."""
 from __future__ import annotations
 
-from calendar import monthrange
 from collections import Counter
 from dataclasses import replace
 from datetime import date, timedelta
@@ -9,6 +8,7 @@ from datetime import date, timedelta
 from app.analytics import crops, periods
 from app.analytics.evapotranspiration import etp_period
 from app.analytics.models import KbwHistory, KbwResult, Period, WeatherData
+from app.config import years_before
 from app.contracts.geo import KbwSoilCategory
 from app.recommendations import texts_pl as text
 
@@ -87,12 +87,10 @@ def history(
     analysis_date: date,
     years: int = 10,  # Ten-year history specified in docs/PART_B_ANALYTICS_PRODUCT.md §3.
 ) -> KbwHistory:
-    first_year = analysis_date.year - years
-    cutoff_day = min(analysis_date.day, monthrange(first_year, analysis_date.month)[1])
-    cutoff = analysis_date.replace(year=first_year, day=cutoff_day)
+    cutoff = years_before(analysis_date, years)
     results = tuple(
         _period_balance(weather, soil_category, crop, period)
-        for year in range(first_year, analysis_date.year + 1)
+        for year in range(cutoff.year, analysis_date.year + 1)
         for period in periods.for_year(year)
         if cutoff < period.end <= analysis_date
     )

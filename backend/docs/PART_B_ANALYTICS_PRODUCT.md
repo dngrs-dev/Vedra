@@ -159,7 +159,7 @@ def get_geo_provider() -> GeoProvider:
 
 ### CP1 — vertical slice (→ 19:00)
 - [x] `open_meteo.py` (+ verify variable names), `periods.py`, `evapotranspiration.py`, `kbw.py` (+ unit tests).
-- [ ] `pipeline.py` with stages 1–2 minimal, `builder.py` minimal, `jobs/runner.py`, `routes_parcels.py`, `routes_analyses.py`.
+- [x] `pipeline.py` with stages 1–2 minimal, `builder.py` minimal, `jobs/runner.py`, `routes_parcels.py`, `routes_analyses.py`.
 - [ ] First deploy (VPS + HTTPS) with `GEO_PROVIDER=fake`; switch to `fixtures`/`real` as soon as A pushes.
 
 ### CP2 — full assessment (→ 23:00)
