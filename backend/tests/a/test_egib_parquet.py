@@ -135,3 +135,35 @@ async def test_both_down_is_upstream_unavailable(monkeypatch):
         mock.get(source("uldk")["url"]).mock(return_value=httpx.Response(200, text=BLOCKED))
         with pytest.raises(uldk.UpstreamUnavailable):
             await uldk.get_by_id("040704_2.0012.2/1")
+
+
+def _prg(request: httpx.Request) -> httpx.Response:
+    """PRG WFS: name query (PROPERTYNAME=JPT_KOD_JE) -> codes; code query -> envelope."""
+    if request.url.params.get("PROPERTYNAME") == "JPT_KOD_JE":
+        name_ok = "jacewo" in request.url.params["FILTER"].lower()
+        return httpx.Response(200, text="<x><ms:JPT_KOD_JE>040704_2.0012</ms:JPT_KOD_JE></x>" if name_ok else "<x/>")
+    return httpx.Response(200, text=PRG_JACEWO)
+
+
+@pytest.mark.asyncio
+async def test_region_number_fallback():
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(URL).mock(side_effect=_serve)
+        mock.get(PRG).mock(side_effect=_prg)
+        mock.get(source("uldk")["url"]).mock(return_value=httpx.Response(200, text=BLOCKED))
+        parcels = await uldk.get_by_id_or_nr("Jacewo 4/1")
+        assert [p.parcel_id for p in parcels] == ["040704_2.0012.4/1"]
+        with pytest.raises(uldk.ParcelNotFound):
+            await uldk.get_by_id_or_nr("Jacewo 77/1")
+        with pytest.raises(uldk.ParcelNotFound):
+            await uldk.get_by_id_or_nr("Nieistniejące 1")
+
+
+@pytest.mark.asyncio
+async def test_too_many_obreby_is_upstream_error(monkeypatch):
+    async def many(name):
+        return [f"0{i}0101_1.000{i}" for i in range(6)]
+
+    monkeypatch.setattr(egib_parquet, "obreb_codes", many)
+    with pytest.raises(egib_parquet.TooManyObreby):
+        await egib_parquet.by_region_number("Nowa Wieś", "1")

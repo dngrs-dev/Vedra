@@ -259,3 +259,48 @@ async def by_id(parcel_id: str) -> list[str] | None:
     g, k = found[0]
     t = (await _read_groups(size, md, [g], ATTR_COLUMNS + ["geometry"]))[g]
     return record({c: t.column(c)[k].as_py() for c in ATTR_COLUMNS}, t.column("geometry")[k].as_py())
+
+
+MAX_OBREBY = 5   # OUR CHOICE: «Nowa Wieś» matches 108 obręby (PRG, 2026-11-21) - too many row groups to scan
+
+
+class TooManyObreby(UpstreamUnavailable):
+    """The fallback cannot search an obręb name that occurs more than MAX_OBREBY times."""
+
+
+async def obreb_codes(name: str) -> list[str]:
+    """Codes ("040704_2.0012") of the obręby with this name (case-insensitive), from the PRG WFS."""
+    cfg = source("prg_wfs")
+    literal = name.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    flt = ('<fes:Filter xmlns:fes="http://www.opengis.net/fes/2.0"><fes:PropertyIsEqualTo matchCase="false">'
+           f'<fes:ValueReference>JPT_NAZWA_</fes:ValueReference><fes:Literal>{literal}</fes:Literal>'
+           '</fes:PropertyIsEqualTo></fes:Filter>')
+    resp = await http.get(cfg["url"], params={"SERVICE": "WFS", "REQUEST": "GetFeature", "VERSION": "2.0.0",
+                                              "TYPENAMES": cfg["layers"]["obreby"], "PROPERTYNAME": "JPT_KOD_JE",
+                                              "FILTER": flt}, timeout=20.0)
+    return sorted(set(re.findall(r"<ms:JPT_KOD_JE>([^<]+)</ms:JPT_KOD_JE>", resp.text)))
+
+
+async def by_region_number(region: str, number: str) -> list[list[str]]:
+    """Records of the parcels numbered `number` in the obręby named `region` (ULDK GetParcelByIdOrNr fallback)."""
+    codes = await obreb_codes(region)
+    if len(codes) > MAX_OBREBY:
+        raise TooManyObreby(f"egib_parquet: obręb name {region!r} matches {len(codes)} obręby")
+    if not codes:
+        return []
+    boxes = await asyncio.gather(*(obreb_bbox(c) for c in codes))
+    size, foot = await footer()
+    md = await asyncio.to_thread(metadata, foot)
+    groups = sorted({g for b in boxes for g in row_groups_for(md, *b)})
+    ids = await _read_groups(size, md, groups, ["id_dzialki"])
+    wanted = set(codes)
+    found: dict[int, list[int]] = {}
+    for g, t in ids.items():
+        for k, pid in enumerate(t.column("id_dzialki").to_pylist()):
+            if pid and ".".join(pid.split(".")[:2]) in wanted and pid.rsplit(".", 1)[-1] == number:
+                found.setdefault(g, []).append(k)
+    if not found:
+        return []
+    full = await _read_groups(size, md, list(found), ATTR_COLUMNS + ["geometry"])
+    return [record({c: full[g].column(c)[k].as_py() for c in ATTR_COLUMNS}, full[g].column("geometry")[k].as_py())
+            for g, rows in found.items() for k in rows]

@@ -37,7 +37,8 @@ Weather history (precipitation, evapotranspiration) is Part B's (Open-Meteo); se
 - **Limits:** on 2026-11-21 around 19:00 ULDK started to answer *every* API call from the development machine with
   HTTP 302 to `integracja01.gugik.gov.pl/resp/uldk.php`, which returns `0` and a hex string instead of records (the
   documentation page still loaded). The fallback below is used automatically, for lookups by id and by point.
-  «Obręb + number» queries have no fallback.
+  «Obręb + number» queries fall back too, for obręb names that occur at most 5 times in Poland (PRG name
+  lookup; «Nowa Wieś» occurs 108 times and then the user is asked for the id or a map click).
 
 ### 2.2 EGiB GeoParquet export + PRG: ULDK fallback
 - **URLs:** `https://opendata.geoportal.gov.pl/InneDane/latest_exports/eziudp_wfs/PARQUET/0_dzialki.parquet`

@@ -6,8 +6,8 @@ line, fields separated by "|" in the order of `result`. Note: ULDK's `teryt` res
 full parcel id, so Parcel.teryt is derived from the id instead (see `_teryt`).
 
 Fallback: when ULDK fails (it blocked the dev client on 2026-11-21, see config `egib_parquet.role`), lookups by id
-and by point go to the national EGiB GeoParquet export (app/geo/egib_parquet.py, ~4-7 s). «obręb + number» queries
-have no fallback (the export has no name index).
+and by point go to the national EGiB GeoParquet export (app/geo/egib_parquet.py, ~4-7 s); «obręb + number» queries
+too when the obręb name occurs at most egib_parquet.MAX_OBREBY times (names resolved with the PRG WFS).
 """
 from __future__ import annotations
 
@@ -160,8 +160,24 @@ async def get_by_id(parcel_id: str) -> Parcel:
 
 
 async def get_by_id_or_nr(text: str) -> list[Parcel]:
-    """'Krzewina 134' or a full id. May return many parcels (e.g. 58 for 'Nowa Wieś 1', spike 2026-11-21)."""
-    records = await _request("GetParcelByIdOrNr", id=text)
+    """'Krzewina 134' or a full id. May return many parcels (e.g. 58 for 'Nowa Wieś 1', spike 2026-11-21).
+    Fallback when ULDK fails: EGiB GeoParquet, for obręb names that occur at most egib_parquet.MAX_OBREBY times."""
+    from app.geo import egib_parquet
+
+    try:
+        records = await _request("GetParcelByIdOrNr", id=text)
+    except UpstreamUnavailable as exc:
+        m = REGION_NR_RE.match(" ".join(text.split()))
+        if not m:
+            raise
+        log.warning("uldk failed, using the EGiB GeoParquet: %s", exc)
+        region, nr = m.group("region"), m.group("nr")
+        try:
+            records = await _egib("nr", {"region": region.lower(), "nr": nr},
+                                  lambda: egib_parquet.by_region_number(region, nr))
+        except Exception as fallback_exc:  # noqa: BLE001
+            raise UpstreamUnavailable(f"{exc}; egib fallback: {fallback_exc}") from fallback_exc
+        records = records or []
     if not records:
         raise ParcelNotFound(f"uldk: no parcel for {text!r}")
     return [to_parcel(r) for r in records]

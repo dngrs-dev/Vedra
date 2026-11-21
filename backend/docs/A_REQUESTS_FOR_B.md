@@ -225,8 +225,10 @@ complete data within the 22 s. Full details: [`DATA_SOURCES.md`](DATA_SOURCES.md
 - ULDK blocked the dev machine on 2026-11-21 (every API call redirected to a page returning garbage). Lookups by
   id and by point now fall back to the national EGiB GeoParquet export (4–7 s instead of 0.3 s).
 - **For B:** `find_parcels` / `parcel_at_point` can take up to ~7 s when ULDK is down; keep the frontend spinner.
-  «Obręb + number» queries have no fallback: they raise `UpstreamUnavailable`. Suggested Polish message: «Wyszukiwarka
-  działek po nazwie obrębu jest chwilowo niedostępna – podaj pełny identyfikator działki albo wskaż ją na mapie.»
+  «Obręb + number» queries fall back too, when the obręb name occurs at most 5 times in Poland (6–8 s). For
+  more frequent names (e.g. «Nowa Wieś», 108 obręby) they raise `UpstreamUnavailable`. Suggested Polish
+  message: «Wyszukiwarka działek po nazwie obrębu jest chwilowo niedostępna – podaj pełny identyfikator działki
+  albo wskaż ją na mapie.»
 - Commune and obręb names from the export may be in upper case (as stored in EGiB, e.g. «NADARZYCE»).
 
 ### Smaller changes
