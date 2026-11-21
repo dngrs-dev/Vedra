@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 from collections import Counter
+from datetime import date
 
 import httpx
 import numpy as np
@@ -182,3 +183,13 @@ async def test_landcover_sums_tiles_and_drops_zero_shares(parcel, monkeypatch):
     assert d.shares_parcel == {"Cropland": 0.9, "Grassland": 0.1}
     assert d.shares_buffer == {"Cropland": 0.5, "Tree cover": 0.49, "Bare/sparse vegetation": 0.01}
     assert res.status == SourceStatus.OK and res.provenance[0].data_period == "2021"
+
+
+@pytest.mark.asyncio
+async def test_landcover_map_newer_than_analysis_date_is_noted(parcel, monkeypatch):
+    leg = landcover.parse_legend(LEGEND_TAG)
+    monkeypatch.setattr(landcover, "_counts", lambda href, zone, par: (Counter({40: 1}), Counter({40: 1}), leg))
+    monkeypatch.setattr(landcover, "tiles_for", lambda b: ["N51E018"])
+    old = await landcover.landcover(parcel, 500, date(2018, 7, 10))
+    assert any("z 2021 r., późniejszej niż data analizy (2018-07-10)" in n for n in old.notes_pl)
+    assert not (await landcover.landcover(parcel, 500, date(2023, 5, 31))).notes_pl

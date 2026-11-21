@@ -162,6 +162,10 @@ async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> S
                 and not any(results.get(s.scene_id) for s in current_30):
             extended = True
             enqueue(extension, front=True)
+    # Reads still running finish in this pool and fill the cache; their late errors are consumed here (otherwise
+    # asyncio logs "Future exception was never retrieved" for each failed read).
+    for fut in running:
+        fut.add_done_callback(lambda f: f.cancelled() or f.exception())
     # Unfinished work continues in the shared pool and fills the per-scene cache for the next analysis.
     pool.shutdown(wait=False)
     for s in queue:
@@ -221,10 +225,13 @@ async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> S
         scenes_considered=len(considered),
         scenes_processed=processed,
     )
-    cols = source("earth_search")["collections"]
-    prov = [provenance("earth_search", f"{source('earth_search')['url']}/collections/{cols['primary']}",
+    all_scenes = current_all + [s for v in same_by_year.values() for s in v] + \
+        [s for v in season_by_year.values() for s in v]
+    used = sorted({(s.provider, s.collection) for s in all_scenes}) or \
+        [(p["source"], p["collection"]) for p in cfg["providers"][:1]]
+    prov = [provenance(name, f"{source(name)['url']}/collections/{collection}",
                        data_period=f"{min(dates).isoformat()}..{max(dates).isoformat()}" if dates else None,
-                       resolution="10 m")]
+                       resolution="10 m") for name, collection in used]
     return SourceResult[VegetationData](status=status, data=data, provenance=prov, notes_pl=notes,
                                         error=f"{errors} scene reads failed" if errors else None,
                                         elapsed_s=round(time.monotonic() - t0, 3))

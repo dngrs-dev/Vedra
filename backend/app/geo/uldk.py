@@ -4,9 +4,14 @@ Response format (spike 2026-11-21, recorded in config/geo_sources.yaml `uldk.res
 line 1 = status ("0" ok, "-1 brak wyników" none, a count for GetParcelByIdOrNr), then one record per
 line, fields separated by "|" in the order of `result`. Note: ULDK's `teryt` result field returns the
 full parcel id, so Parcel.teryt is derived from the id instead (see `_teryt`).
+
+Fallback: when ULDK fails (it blocked the dev client on 2026-11-21, see config `egib_parquet.role`), lookups by id
+and by point go to the national EGiB GeoParquet export (app/geo/egib_parquet.py, ~4-7 s). «obręb + number» queries
+have no fallback (the export has no name index).
 """
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from typing import Literal
@@ -16,6 +21,9 @@ from app.contracts.parcel import Parcel
 from app.core import cache, http
 from app.geo import geometry
 from app.geo.sources import source
+
+log = logging.getLogger(__name__)
+EGIB_CACHE_S = 30 * 24 * 3600   # OUR CHOICE: parcels change rarely; the export is rebuilt daily
 
 # Full parcel id WWPPGG_R.OOOO.[AR_NR.]NR_DZ - regex from docs/PART_A_DATA_GEO.md (uldk.parse_query)
 PARCEL_ID_RE = re.compile(r"^\d{6}_\d\.\d{4}\.(?:AR_\d+\.)?[0-9A-Za-z/]+$")
@@ -59,22 +67,37 @@ async def _request(request: str, **params: str) -> list[list[str]]:
     query = {"request": request, "result": cfg["result_fields"], "srid": "2180", **params}
     key = cache.make_key("geo.uldk", **query)
     text = cache.get(key)
-    if text is None:
-        resp = await http.get(cfg["url"], params=query, timeout=10.0)
-        text = resp.text
+    if text is not None:
+        return _parse(text, cfg)
+    try:
+        text = (await http.get(cfg["url"], params=query, timeout=10.0)).text
+        records = _parse(text, cfg)
+    except _BadAnswer:
+        # A malformed answer was seen once under load (2026-11-21 profiling, not reproducible); ask once more.
+        text = (await http.get(cfg["url"], params=query, timeout=10.0)).text
+        records = _parse(text, cfg)
+    cache.set(key, text)  # parcels change rarely; no expiry (PART_A_DATA_GEO.md: geo.uldk, no expiry)
+    return records
+
+
+class _BadAnswer(UpstreamUnavailable):
+    """ULDK answered, but not in its documented format."""
+
+
+def _parse(text: str, cfg: dict) -> list[list[str]]:
     lines = [ln for ln in text.strip().splitlines() if ln.strip()]
     if not lines:
-        raise UpstreamUnavailable("uldk: empty response")
+        raise _BadAnswer("uldk: empty response")
     status = lines[0].strip()
     if status.startswith("-1"):
         return []  # "-1 brak wyników" (also returned with SQL error text for malformed ids)
     if not re.fullmatch(r"\d+", status):
-        raise UpstreamUnavailable(f"uldk: unexpected status line {status[:80]!r}")
+        raise _BadAnswer(f"uldk: unexpected status line {status[:80]!r}")
     n_fields = len(cfg["result_fields"].split(","))
     records = [ln.split("|") for ln in lines[1:]]
-    if any(len(r) != n_fields for r in records):
-        raise UpstreamUnavailable("uldk: unexpected record format")
-    cache.set(key, text)  # parcels change rarely; no expiry (PART_A_DATA_GEO.md: geo.uldk, no expiry)
+    bad = [ln for ln, r in zip(lines[1:], records) if len(r) != n_fields]
+    if bad:
+        raise _BadAnswer(f"uldk: unexpected record format ({len(bad)} of {len(records)}): {bad[0][:160]!r}")
     return records
 
 
@@ -108,8 +131,29 @@ def to_parcel(rec: list[str]) -> Parcel:
     )
 
 
+async def _egib(kind: str, key_parts: dict, lookup) -> list[str] | None:
+    """Fallback record from the EGiB GeoParquet, cached (None = the export has no such parcel)."""
+    key = cache.make_key("geo.egib." + kind, **key_parts)
+    hit = cache.get(key)
+    if hit is not None:
+        return hit or None
+    rec = await lookup()
+    cache.set(key, rec or [], expire_s=EGIB_CACHE_S)
+    return rec
+
+
 async def get_by_id(parcel_id: str) -> Parcel:
-    records = await _request("GetParcelById", id=parcel_id)
+    from app.geo import egib_parquet
+
+    try:
+        records = await _request("GetParcelById", id=parcel_id)
+    except UpstreamUnavailable as exc:
+        log.warning("uldk failed, using the EGiB GeoParquet: %s", exc)
+        try:
+            rec = await _egib("id", {"id": parcel_id}, lambda: egib_parquet.by_id(parcel_id))
+        except Exception as fallback_exc:  # noqa: BLE001 - report the ULDK error, the fallback is secondary
+            raise UpstreamUnavailable(f"{exc}; egib fallback: {fallback_exc!r}") from fallback_exc
+        records = [rec] if rec else []
     if not records:
         raise ParcelNotFound(f"uldk: no parcel {parcel_id!r}")
     return to_parcel(records[0])
@@ -124,6 +168,17 @@ async def get_by_id_or_nr(text: str) -> list[Parcel]:
 
 
 async def get_by_xy(lat: float, lon: float) -> Parcel | None:
+    from app.geo import egib_parquet
+
     xy = source("uldk")["xy_format"].format(lon=lon, lat=lat)
-    records = await _request("GetParcelByXY", xy=xy)
+    try:
+        records = await _request("GetParcelByXY", xy=xy)
+    except UpstreamUnavailable as exc:
+        log.warning("uldk failed, using the EGiB GeoParquet: %s", exc)
+        x, y = geometry.lonlat_to_2180(lon, lat)
+        try:
+            rec = await _egib("xy", {"x": round(x, 1), "y": round(y, 1)}, lambda: egib_parquet.by_point(x, y))
+        except Exception as fallback_exc:  # noqa: BLE001
+            raise UpstreamUnavailable(f"{exc}; egib fallback: {fallback_exc!r}") from fallback_exc
+        records = [rec] if rec else []
     return to_parcel(records[0]) if records else None

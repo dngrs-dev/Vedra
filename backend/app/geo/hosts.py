@@ -5,8 +5,9 @@ tests/a/test_hosts.py keeps the two in sync. raster_io enforces the same set for
 """
 
 GEO_HOSTS: set[str] = {
-    # parcels
+    # parcels (ULDK; fallback: national EGiB GeoParquet export)
     "uldk.gugik.gov.pl",
+    "opendata.geoportal.gov.pl",
     # soil map WMS, NMT WCS (GUGiK geoportal)
     "mapy.geoportal.gov.pl",
     # SoilGrids
@@ -17,6 +18,9 @@ GEO_HOSTS: set[str] = {
     "e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com",
     "sentinel-cogs.s3.us-west-2.amazonaws.com",
     "copernicus-dem-30m.s3.amazonaws.com",
+    # Sentinel-2 L2A on Microsoft Planetary Computer (STAC + SAS token, assets)
+    "planetarycomputer.microsoft.com",
+    "sentinel2l2a01.blob.core.windows.net",
     # hydrology: MPHP (Wody Polskie), OpenStreetMap Overpass
     "wody.isok.gov.pl",
     "overpass-api.de",

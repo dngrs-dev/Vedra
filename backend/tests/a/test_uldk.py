@@ -111,3 +111,14 @@ async def test_garbage_response_is_upstream_error():
 
 async def _no_sleep(_s):
     return None
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_one_malformed_answer_is_retried():
+    good = ("0\n040704_2.0012.63/1|SRID=2180;POLYGON((452800 548400,452900 548400,452900 548500,452800 548500,"
+            "452800 548400))|040704_2|kujawsko-pomorskie|powiat inowrocławski|Inowrocław|Jacewo|63/1\n")
+    route = respx.get(URL).mock(side_effect=[httpx.Response(200, text="0\n040704_2.0012.63/1|SRID=2180;POLY"),
+                                             httpx.Response(200, text=good)])
+    p = await uldk.get_by_id("040704_2.0012.63/1")
+    assert p.parcel_id == "040704_2.0012.63/1" and route.call_count == 2

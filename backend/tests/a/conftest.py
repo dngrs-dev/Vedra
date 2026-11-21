@@ -26,6 +26,7 @@ def _isolated_io(monkeypatch):
     monkeypatch.setattr(cache, "set", lambda key, value, expire_s=None: None)
     monkeypatch.setattr(http, "_client", None)
     monkeypatch.setattr(sentinel2, "_preprocessed", lambda: {})
+    monkeypatch.setattr(sentinel2, "_pc_token_value", None)
     vegetation.shutdown_background()          # fresh scene-read pool per test
     yield
     vegetation.shutdown_background()

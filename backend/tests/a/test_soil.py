@@ -43,8 +43,10 @@ def parcel() -> Parcel:
 
 
 def sg_result(layers=None, live=False):
-    return soilgrids.SoilGridsResult(layers if layers is not None else soilgrids.parse_layers(SG_PAYLOAD),
-                                     datetime(2026, 11, 21, tzinfo=timezone.utc), live, source("soilgrids_rest")["url"])
+    if layers is None:
+        layers, _ = soilgrids.add_water_retention(soilgrids.parse_layers(SG_PAYLOAD))
+    return soilgrids.SoilGridsResult(layers, datetime(2026, 11, 21, tzinfo=timezone.utc), live,
+                                     source("soilgrids_rest")["url"])
 
 
 # ---------------------------------------------------------------- category tables (Dz.U. 2019 poz. 739)
@@ -76,12 +78,35 @@ def test_parse_layers_units():
     layers = soilgrids.parse_layers(SG_PAYLOAD)
     assert [(L.top_cm, L.bottom_cm) for L in layers] == [(0, 5), (5, 15), (15, 30), (30, 60), (60, 100), (100, 200)]
     top = layers[0]
-    # raw Q0.5 at 0-5 cm: sand 710 g/kg, bdod 122 cg/cm3, wv0033 378, wv1500 76 (recorded payload)
+    # raw Q0.5 at 0-5 cm: sand 710 g/kg, bdod 122 cg/cm3 (recorded payload); wv0033/wv1500 are not used
     assert top.sand_pct.mid == pytest.approx(71.0)
     assert top.bulk_density_g_cm3.mid == pytest.approx(1.22)
-    assert top.theta_fc.mid == pytest.approx(0.378)
-    assert top.theta_wp.mid == pytest.approx(0.076)
+    assert top.theta_fc is None and top.theta_wp is None
+
+
+def test_saxton_rawls_equations():
+    """Table 1 of Saxton & Rawls (2006), evaluated by hand for S=0.40, C=0.20, OM=2.5 %."""
+    t1500t = -0.024 * 0.4 + 0.487 * 0.2 + 0.006 * 2.5 + 0.005 * 0.4 * 2.5 - 0.013 * 0.2 * 2.5 + 0.068 * 0.4 * 0.2 + 0.031
+    t33t = -0.251 * 0.4 + 0.195 * 0.2 + 0.011 * 2.5 + 0.006 * 0.4 * 2.5 - 0.027 * 0.2 * 2.5 + 0.452 * 0.4 * 0.2 + 0.299
+    fc, wp = soilgrids.saxton_rawls(0.40, 0.20, 2.5)
+    assert fc == pytest.approx(t33t + 1.283 * t33t ** 2 - 0.374 * t33t - 0.015)
+    assert wp == pytest.approx(t1500t + 0.14 * t1500t - 0.02)
+    assert 0.25 < fc < 0.35 and 0.10 < wp < 0.18          # loam: plausible magnitudes
+    sand_fc, sand_wp = soilgrids.saxton_rawls(0.90, 0.03, 1.0)
+    clay_fc, clay_wp = soilgrids.saxton_rawls(0.20, 0.45, 2.0)
+    assert sand_fc < fc < clay_fc and sand_wp < wp < clay_wp and sand_fc > sand_wp
+
+
+def test_water_retention_from_texture():
+    layers, outside = soilgrids.add_water_retention(soilgrids.parse_layers(SG_PAYLOAD))
+    top = layers[0]
+    om = top.soc_g_kg.mid * soilgrids.OM_PER_SOC / 10
+    fc, wp = soilgrids.saxton_rawls(top.sand_pct.mid / 100, top.clay_pct.mid / 100, om)
+    assert top.theta_fc.mid == pytest.approx(fc, abs=1e-4) and top.theta_wp.mid == pytest.approx(wp, abs=1e-4)
     assert top.theta_fc.low <= top.theta_fc.mid <= top.theta_fc.high
+    assert top.theta_wp.low <= top.theta_wp.mid <= top.theta_wp.high
+    assert all(L.theta_fc.mid > L.theta_wp.mid for L in layers)
+    assert soilgrids.wod_mm(layers).mid < 127.5 and outside is False    # 71 % sand: light soil (category I range)
 
 
 def test_wod_mm_hand_computed():
@@ -110,12 +135,35 @@ async def test_soilgrids_budget_exceeded_continues_in_background(monkeypatch):
         await asyncio.sleep(0.3)
         return {"lat": lat, "lon": lon, "fetched_at": "2026-11-21T00:00:00+00:00", "response": SG_PAYLOAD}
 
+    def tiles_down(lat, lon):
+        raise OSError("tiles unreachable")
+
     monkeypatch.setattr(soilgrids, "_fetch_and_cache", slow_fetch)
+    monkeypatch.setattr(soilgrids, "_files_record", tiles_down)          # REST is the fallback of the tile reads
     monkeypatch.setattr(soilgrids, "_preprocessed", lambda lat, lon: None)
     assert await soilgrids.soil_layers(52.1, 18.1, budget_s=0.05) is None   # budget too short
     res = await soilgrids.soil_layers(52.1, 18.1, budget_s=2.0)              # joins the running request
-    assert res is not None and len(res.layers) == 6 and res.live
+    assert res is not None and len(res.layers) == 6 and res.live and res.source_id == "soilgrids_rest"
     assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_soilgrids_tiles_are_the_live_source(monkeypatch):
+    seen = []
+
+    def tiles(lat, lon):
+        seen.append((lat, lon))
+        return {"lat": lat, "lon": lon, "fetched_at": "2026-11-21T00:00:00+00:00", "response": SG_PAYLOAD}
+
+    async def rest_must_not_run(lat, lon):
+        raise AssertionError("REST called although the tiles answered")
+
+    monkeypatch.setattr(soilgrids, "_files_record", tiles)
+    monkeypatch.setattr(soilgrids, "_fetch_and_cache", rest_must_not_run)
+    monkeypatch.setattr(soilgrids, "_preprocessed", lambda lat, lon: None)
+    res = await soilgrids.soil_layers(52.1, 18.1, budget_s=2.0)
+    assert res.source_id == "soilgrids_files" and res.url == source("soilgrids_files")["url"]
+    assert len(res.layers) == 6 and res.layers[0].theta_fc is not None and seen == [(52.1, 18.1)]
 
 
 # ---------------------------------------------------------------- soil map

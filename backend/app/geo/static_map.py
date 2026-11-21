@@ -51,7 +51,7 @@ def _attribution(bundle: GeoBundle) -> str:
     names = []
     for _, res in bundle:
         for p in res.provenance:
-            if p.source_id in ("soil_map", "soilgrids_rest", "edo", "imgw", "earth_search"):
+            if p.source_id in ("soil_map", "soilgrids_rest", "edo", "imgw", "earth_search", "planetary_computer"):
                 continue  # not drawn on the map
             label = p.attribution_pl or p.name
             if label not in names:

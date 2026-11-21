@@ -297,13 +297,18 @@ async def _terrain_data(parcel, hydro_data, budget_s: float, t0: float):
     from app.geo import geometry
     from app.geo.sources import provenance
 
+    # Time kept for the analysis itself, from the size of the NMT grid (the larger of the two DEM grids);
+    # the rest of the budget may be spent waiting for the DEM (config terrain_processing).
+    cfg = dem_mod.tp()
+    (minx, miny, maxx, maxy), res = dem_mod.grid_for(parcel)
+    reserve = float(cfg["analysis_reserve_min_s"]) + (maxx - minx) * (maxy - miny) / res ** 2 * float(cfg["analysis_s_per_cell"])
+    dem_budget = max(budget_s - reserve, 0.5)
     if inspect.isawaitable(hydro_data):
-        # keep ~40 % of the budget for the analysis (our choice; analysis of 250k cells takes ~3 s)
-        (dem, notes), hydro_res = await asyncio.gather(dem_mod.fetch_dem(parcel, budget_s * 0.6),
+        (dem, notes), hydro_res = await asyncio.gather(dem_mod.fetch_dem(parcel, dem_budget),
                                                        asyncio.shield(hydro_data))
         hydro_data = hydro_res.data
     else:
-        dem, notes = await dem_mod.fetch_dem(parcel, budget_s * 0.6)
+        dem, notes = await dem_mod.fetch_dem(parcel, dem_budget)
     ditches = [geometry.to_2180(shape(f.geometry)) for f in (hydro_data.features if hydro_data else [])
                if f.kind == "ditch"]
     data: TerrainData = await asyncio.to_thread(analyse, dem, geometry.parcel_geom_2180(parcel), ditches)

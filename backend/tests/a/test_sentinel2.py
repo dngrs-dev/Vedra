@@ -125,9 +125,16 @@ def _item(sid: str, dt: str) -> dict:
             "assets": {keys[b]: POST_2022 for b in sentinel2.BANDS}}
 
 
+async def _no_sleep(_s):
+    return None
+
+
 @pytest.mark.asyncio
 @respx.mock
-async def test_search_never_returns_scene_after_analysis_date():
+async def test_search_never_returns_scene_after_analysis_date(monkeypatch):
+    """Planetary Computer down -> Earth Search fallback; the request and the result are clipped to the date."""
+    monkeypatch.setattr("asyncio.sleep", _no_sleep)
+    respx.get(source("planetary_computer")["url"] + "/search").mock(return_value=httpx.Response(503))
     url = source("earth_search")["url"] + "/search"
     items = [_item("S2A_after", "2023-06-02T10:00:00Z"), _item("S2A_same_day", "2023-05-31T10:00:00Z"),
              _item("S2A_before", "2023-05-20T10:00:00Z")]
@@ -144,3 +151,47 @@ async def test_search_never_returns_scene_after_analysis_date():
 async def test_search_window_entirely_after_date_is_empty():
     assert await sentinel2.search_scenes((18, 52, 18.1, 52.1), date(2023, 6, 1), date(2023, 6, 30),
                                          not_after=date(2023, 5, 31)) == []
+
+
+# Planetary Computer items as returned 2026-11-21 (no raster:bands; baseline decides the offset)
+def _pc_item(sid: str, dt: str, baseline: str, datatake: str) -> dict:
+    href = "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/34/U/CD/x/" + sid
+    return {"id": sid, "properties": {"datetime": dt, "platform": "Sentinel-2A", "eo:cloud_cover": 1.0,
+                                      "s2:processing_baseline": baseline, "s2:datatake_id": datatake},
+            "assets": {b: {"href": f"{href}_{b}.tif"} for b in sentinel2.BANDS}}
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_planetary_computer_offset_by_baseline_dedupe_and_signing():
+    pc = source("planetary_computer")
+    items = [
+        _pc_item("S2A_MSIL2A_20220731T095041_R079_T34UCD_20240717T075305", "2022-07-31T09:50:41Z", "05.10",
+                 "GS2A_20220731T095041_037113_N05.10"),
+        _pc_item("S2A_MSIL2A_20220731T095041_R079_T34UCD_20220801T095553", "2022-07-31T09:50:41Z", "04.00",
+                 "GS2A_20220731T095041_037113_N04.00"),
+        _pc_item("S2A_MSIL2A_20170730T100031_R122_T34UCD_20210210T164236", "2017-07-30T10:00:31Z", "02.12",
+                 "GS2A_20170730T100031_011010_N02.12"),
+    ]
+    respx.get(pc["url"] + "/search").mock(return_value=httpx.Response(200, json={"features": items, "links": []}))
+    tok = respx.get(pc["token_url"]).mock(return_value=httpx.Response(
+        200, json={"token": "st=x&sig=y", "msft:expiry": "2099-01-01T00:00:00Z"}))
+    out = await sentinel2.search_scenes((18.0, 52.0, 18.1, 52.1), date(2016, 1, 1), date(2022, 12, 31),
+                                        not_after=date(2022, 12, 31))
+    assert [s.scene_id for s in out] == [items[0]["id"], items[2]["id"]]     # reprocessed PB 05.10 kept
+    new, old = out
+    assert new.provider == old.provider == "planetary_computer"
+    assert new.bands["B04"].offset == -0.1 and old.bands["B04"].offset == 0.0   # MTD_MSIL2A.xml BOA_ADD_OFFSET
+    assert new.bands["B04"].scale == 0.0001 and new.bands["SCL"].nodata == 0
+    assert sentinel2.signed_href(new, "B04").endswith("_B04.tif?st=x&sig=y")
+    await sentinel2.pc_token()
+    assert tok.call_count == 1                                                  # token cached until expiry
+    from app.geo import raster_io
+    assert raster_io.check_host(sentinel2.signed_href(new, "SCL")).startswith("/vsicurl/https://sentinel2l2a01")
+
+
+def test_same_reflectance_from_both_baselines():
+    """PB 04.00+ DN carry +1000: DN 1284 (offset) and 284 (no offset) are the same red reflectance."""
+    a = sentinel2.band_info({"href": "h"}, "sentinel-2-l2a", "planetary_computer", "05.09")
+    b = sentinel2.band_info({"href": "h"}, "sentinel-2-l2a", "planetary_computer", "03.00")
+    assert np.isclose(sentinel2.reflectance(np.array([1284]), a), sentinel2.reflectance(np.array([284]), b)).all()

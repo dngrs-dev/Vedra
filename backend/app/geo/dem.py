@@ -101,7 +101,7 @@ async def _fetch_nmt(parcel: Parcel, timeout_s: float | None = None) -> bytes:
                           retries=0)
     if "tiff" not in (resp.headers.get("content-type") or ""):
         raise ValueError(f"nmt: {resp.text[:200]}")
-    z, origin, got_res = _read_tiff(resp.content)
+    z, origin, got_res = await asyncio.to_thread(_read_tiff, resp.content)
     blob = _write_tiff(z, origin, got_res)
     cache.set(_key(parcel), {"tiff": blob, "fetched_at": datetime.now(timezone.utc).isoformat()})
     return blob
@@ -196,22 +196,25 @@ def preprocessed_path(parcel: Parcel):
 
 
 async def fetch_dem(parcel: Parcel, budget_s: float) -> tuple[Dem, list[str]]:
-    """DEM + Polish notes. Raises if no DEM at all could be obtained."""
+    """DEM + Polish notes. Raises if no DEM at all could be obtained.
+
+    GDAL work (_read_tiff) always runs in a worker thread: on the event loop it can wait on GDAL-internal locks held
+    by background COG reads stalled on the network (seen 2026-11-21: one collect() blocked for 142 s)."""
     notes: list[str] = []
     path = preprocessed_path(parcel)
     if path.exists():
         mtime = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
-        return _from_blob(path.read_bytes(), mtime, live=False), notes
+        return await asyncio.to_thread(_from_blob, path.read_bytes(), mtime, False), notes
     hit = cache.get(_key(parcel))
     if hit is not None:
-        return _from_blob(hit["tiff"], datetime.fromisoformat(hit["fetched_at"]), live=True), notes
+        return await asyncio.to_thread(_from_blob, hit["tiff"], datetime.fromisoformat(hit["fetched_at"]), True), notes
     t0 = time.monotonic()
     nmt = _start_nmt(parcel)
     cop_hit = cache.get(_cop_key(parcel))
     cop = None if cop_hit is not None else _start_copernicus(parcel)
     try:
         blob = await wait_shared(nmt, timeout=max(budget_s - float(tp()["copernicus_reserve_s"]), 0.1))
-        return _from_blob(blob, datetime.now(timezone.utc), live=True), notes
+        return await asyncio.to_thread(_from_blob, blob, datetime.now(timezone.utc), True), notes
     except Exception:  # noqa: BLE001 - timeout or NMT error: use Copernicus
         pass
     try:
@@ -223,7 +226,7 @@ async def fetch_dem(parcel: Parcel, budget_s: float) -> tuple[Dem, list[str]]:
                  "Copernicus DEM jest modelem powierzchni (uwzględnia drzewa i zabudowę), więc część wykrytych "
                  "zagłębień może wynikać z zadrzewień. Model GUGiK jest pobierany w tle i zostanie użyty przy "
                  "kolejnej analizie tej działki.")
-    return _cop_dem(rec, live=cop_hit is None), notes
+    return await asyncio.to_thread(_cop_dem, rec, cop_hit is None), notes
 
 
 async def prefetch_nmt(parcel: Parcel, timeout_s: float = 400.0) -> bytes:

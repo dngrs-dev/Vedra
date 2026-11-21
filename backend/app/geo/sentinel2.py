@@ -1,16 +1,18 @@
-"""Sentinel-2 L2A: STAC search on Earth Search and per-scene NDVI/NDMI statistics for a parcel interior.
+"""Sentinel-2 L2A: STAC search and per-scene NDVI/NDMI statistics for a parcel interior.
 
-Collections, asset keys, search parameters and the offset/duplicate behaviour are recorded in
-config/geo_sources.yaml `earth_search` (spike + CP2 probe 2026-11-21).
+Providers are tried in the order of config/geo_sources.yaml `sentinel2_processing.providers`: Microsoft Planetary
+Computer first (10x faster COG reads from Europe, see `planetary_computer.why_primary`), then Earth Search.
+Asset keys, search parameters and the offset/duplicate behaviour of each are recorded in their config entries.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import threading
+import time
 from dataclasses import dataclass
 from functools import lru_cache
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import numpy as np
@@ -47,11 +49,27 @@ class SceneRef:
     collection: str
     bands: dict[str, BandInfo]
     datatake: str | None = None   # s2:datatake_id without the "_Nxx.xx" baseline suffix
+    provider: str = "earth_search"   # config entry the scene comes from
 
 
-def band_info(asset: dict, collection: str) -> BandInfo:
-    """Scale/offset/nodata from the item's raster:bands. For collections whose pixels are harmonized to the
-    pre-PB-04.00 scale (sentinel-2-l2a) the declared offset is NOT applied - see geo_sources.yaml offset_note."""
+def _baseline_tuple(baseline: str | None) -> tuple[int, ...]:
+    try:
+        return tuple(int(x) for x in (baseline or "").split("."))
+    except ValueError:
+        return ()
+
+
+def band_info(asset: dict, collection: str, provider: str = "earth_search", baseline: str | None = None) -> BandInfo:
+    """Scale/offset/nodata of one band asset.
+
+    planetary_computer: no raster:bands; values from MTD_MSIL2A.xml by processing baseline (config offset_rule).
+    earth_search: the item's raster:bands; for collections whose pixels are harmonized to the pre-PB-04.00 scale
+    (sentinel-2-l2a) the declared offset is NOT applied - see geo_sources.yaml earth_search.offset_note."""
+    if provider == "planetary_computer":
+        cfg = source("planetary_computer")
+        with_offset = _baseline_tuple(baseline) >= _baseline_tuple(cfg["offset_from_baseline"])
+        return BandInfo(href=asset["href"], scale=float(cfg["scale"]),
+                        offset=float(cfg["offset_reflectance"]) if with_offset else 0.0, nodata=cfg["nodata"])
     rb = (asset.get("raster:bands") or [{}])[0]
     offset = float(rb.get("offset", 0.0))
     if collection in source("earth_search")["harmonized_collections"]:
@@ -59,22 +77,24 @@ def band_info(asset: dict, collection: str) -> BandInfo:
     return BandInfo(href=asset["href"], scale=float(rb.get("scale", 1.0)), offset=offset, nodata=rb.get("nodata"))
 
 
-def scene_from_item(item: dict, collection: str) -> SceneRef | None:
-    keys = source("earth_search")["assets"]
+def scene_from_item(item: dict, collection: str, provider: str = "earth_search") -> SceneRef | None:
+    keys = source(provider)["assets"]
     assets = item.get("assets", {})
     if any(keys[b] not in assets for b in BANDS):
         return None
     p = item["properties"]
+    baseline = p.get("s2:processing_baseline")
     return SceneRef(
         scene_id=item["id"],
         acquired=date.fromisoformat(p["datetime"][:10]),
         sensing=p["datetime"],
         platform=p.get("platform", ""),
         cloud_cover=p.get("eo:cloud_cover"),
-        baseline=p.get("s2:processing_baseline"),
+        baseline=baseline,
         collection=collection,
-        bands={b: band_info(assets[keys[b]], collection) for b in BANDS},
+        bands={b: band_info(assets[keys[b]], collection, provider, baseline) for b in BANDS},
         datatake=(p.get("s2:datatake_id") or "").split("_N")[0] or None,
+        provider=provider,
     )
 
 
@@ -89,14 +109,14 @@ def dedupe(scenes: list[SceneRef]) -> list[SceneRef]:
     for s in scenes:
         k = ("dt", s.datatake) if s.datatake else (s.platform, s.sensing[:16])
         cur = best.get(k)
-        if cur is None or ((s.baseline or ""), s.scene_id) > ((cur.baseline or ""), cur.scene_id):
+        if cur is None or (_baseline_tuple(s.baseline), s.scene_id) > (_baseline_tuple(cur.baseline), cur.scene_id):
             best[k] = s
     return sorted(best.values(), key=lambda s: s.sensing, reverse=True)
 
 
 async def _search(collection: str, bbox: tuple[float, float, float, float], start: date, end: date,
-                  limit: int | None, by_cloud: bool) -> list[dict]:
-    cfg = source("earth_search")
+                  limit: int | None, by_cloud: bool, provider: str = "earth_search") -> list[dict]:
+    cfg = source(provider)
     params: dict[str, Any] = {
         "collections": collection,
         "bbox": ",".join(f"{v:.6f}" for v in bbox),
@@ -106,7 +126,7 @@ async def _search(collection: str, bbox: tuple[float, float, float, float], star
     }
     if by_cloud:
         params[cfg["search"]["sortby_param"]] = "+properties.eo:cloud_cover"
-    key = cache.make_key("geo.s2.search", **params)
+    key = cache.make_key("geo.s2.search", provider=provider, **params)
     hit = cache.get(key)
     if hit is not None:
         return hit
@@ -136,17 +156,45 @@ async def search_scenes(bbox_wgs84: tuple[float, float, float, float], start: da
     end = min(end, not_after)
     if start > end:
         return []
-    cols = source("earth_search")["collections"]
     last_exc: Exception | None = None
-    for collection in (cols["primary"], cols["fallback"]):
+    for prov in s2_params()["providers"]:
+        provider, collection = prov["source"], prov["collection"]
         try:
-            items = await _search(collection, bbox_wgs84, start, end, limit, by_cloud)
-        except UpstreamUnavailable as exc:
-            last_exc = exc
+            items = await _search(collection, bbox_wgs84, start, end, limit, by_cloud, provider)
+            if provider == "planetary_computer":
+                await pc_token()          # scenes from this provider are only readable with a token
+        except (UpstreamUnavailable, KeyError, ValueError) as exc:
+            last_exc = exc if isinstance(exc, UpstreamUnavailable) else UpstreamUnavailable(f"{provider}: {exc!r}")
             continue
-        scenes = [s for s in (scene_from_item(i, collection) for i in items) if s is not None]
+        scenes = [s for s in (scene_from_item(i, collection, provider) for i in items) if s is not None]
         return dedupe([s for s in scenes if start <= s.acquired <= not_after])
-    raise last_exc or UpstreamUnavailable("earth search: no collection answered")
+    raise last_exc or UpstreamUnavailable("sentinel-2: no provider answered")
+
+
+# ---------------------------------------------------------------- Planetary Computer SAS token
+_pc_token_value: tuple[str, float] | None = None   # (token, expiry as time.time())
+
+
+async def pc_token() -> str:
+    """Anonymous SAS token for Planetary Computer assets, cached until token_refresh_margin_s before expiry."""
+    global _pc_token_value
+    cfg = source("planetary_computer")
+    if _pc_token_value and _pc_token_value[1] - float(cfg["token_refresh_margin_s"]) > time.time():
+        return _pc_token_value[0]
+    data = (await http.get(cfg["token_url"], timeout=10.0)).json()
+    expiry = datetime.fromisoformat(data["msft:expiry"].replace("Z", "+00:00")).timestamp()
+    _pc_token_value = (data["token"], expiry)
+    return data["token"]
+
+
+def signed_href(scene: SceneRef, band: str) -> str:
+    """Readable href of one band (sync, for worker threads): Planetary Computer hrefs get the cached token."""
+    href = scene.bands[band].href
+    if scene.provider != "planetary_computer":
+        return href
+    if _pc_token_value is None:
+        raise UpstreamUnavailable("planetary_computer: no SAS token (search_scenes fetches it)")
+    return f"{href}?{_pc_token_value[0]}"
 
 
 # ---------------------------------------------------------------- per-scene statistics (sync, thread pool)
@@ -222,14 +270,14 @@ def scene_stats(scene: SceneRef, interior_2180: dict) -> tuple[SceneStat | None,
     cfg = s2_params()
     res = cfg["grid_m"]
     with raster_io.gdal_env():
-        scl = raster_io.read_window(scene.bands["SCL"].href, interior_2180, "EPSG:2180", out_res=res)
+        scl = raster_io.read_window(signed_href(scene, "SCL"), interior_2180, "EPSG:2180", out_res=res)
         inside = scl.inside
         n_inside = int(inside.sum())
         clear = np.isin(scl.data, cfg["scl_keep_classes"]) & inside
         if n_inside == 0 or clear.sum() / n_inside < cfg["valid_fraction_min"]:
             result: tuple[SceneStat | None, int] = (None, n_inside)
         else:
-            arrs = {b: raster_io.read_window(scene.bands[b].href, interior_2180, "EPSG:2180", out_res=res).data
+            arrs = {b: raster_io.read_window(signed_href(scene, b), interior_2180, "EPSG:2180", out_res=res).data
                     for b in ("B04", "B08", "B8A", "B11")}
             result = stats_from_arrays(scene, arrs["B04"], arrs["B08"], arrs["B8A"], arrs["B11"], scl.data, inside)
     value = [result[0].model_dump(mode="json") if result[0] else None, result[1]]

@@ -12,6 +12,7 @@ import math
 import re
 import time
 from collections import Counter
+from datetime import date
 
 import numpy as np
 from shapely.geometry import mapping
@@ -71,7 +72,7 @@ def _shares(counts: Counter, legend: dict[int, str]) -> dict[str, float]:
     return {k: v for k, v in shares.items() if v > 0}   # classes below 0.005 % would only add noise
 
 
-async def landcover(parcel: Parcel, buffer_m: int) -> SourceResult[LandCoverData]:
+async def landcover(parcel: Parcel, buffer_m: int, analysis_date: date | None = None) -> SourceResult[LandCoverData]:
     t0 = time.monotonic()
     g = geometry.parcel_geom_2180(parcel)
     zone = g.buffer(buffer_m)
@@ -93,6 +94,10 @@ async def landcover(parcel: Parcel, buffer_m: int) -> SourceResult[LandCoverData
     notes = []
     if not hit["parcel"]:
         notes.append("Mapa pokrycia terenu ESA WorldCover nie zawiera danych dla obszaru działki.")
+    map_year = int(source("worldcover")["map_year"])
+    if analysis_date is not None and analysis_date.year < map_year:
+        notes.append(f"Pokrycie terenu pochodzi z mapy ESA WorldCover z {map_year} r., późniejszej niż data "
+                     f"analizy ({analysis_date.isoformat()}); w dniu analizy mogło się różnić.")
     return SourceResult[LandCoverData](
         status=SourceStatus.OK if hit["parcel"] else SourceStatus.PARTIAL, data=data,
         provenance=[provenance("worldcover", source("worldcover")["url_template"].format(tile=",".join(hit["tiles"])),

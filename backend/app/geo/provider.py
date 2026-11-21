@@ -73,7 +73,7 @@ class RealGeoProvider:
             "vegetation": lambda budget: vegetation.vegetation_data(parcel, req, budget),
             "terrain": lambda budget: terrain.terrain_data(parcel, hydro_task, budget),
             "hydro": hydro_result,
-            "landcover": lambda budget: landcover.landcover(parcel, req.hydro_buffer_m),
+            "landcover": lambda budget: landcover.landcover(parcel, req.hydro_buffer_m, req.analysis_date),
             "edo": lambda budget: edo.edo_signal(parcel.centroid_lat, parcel.centroid_lon, req.analysis_date),
             "imgw": lambda budget: imgw.imgw_context(parcel, req.analysis_date),
         }

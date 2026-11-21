@@ -107,8 +107,14 @@ async def soil_info(parcel: Parcel, budget_s: float) -> SourceResult[SoilInfo]:
     else:
         info.layers = sg_res.layers
         info.wod_mm = soilgrids.wod_mm(sg_res.layers, info.wod_depth_cm)
-        prov.append(provenance("soilgrids_rest", sg_res.url, live=sg_res.live, fetched_at=sg_res.fetched_at,
+        prov.append(provenance(sg_res.source_id, sg_res.url, live=sg_res.live, fetched_at=sg_res.fetched_at,
                                resolution="250 m"))
+        notes.append("Pojemność polową i punkt trwałego więdnięcia oszacowano funkcjami pedotransferowymi Saxtona "
+                     "i Rawlsa (2006) z uziarnienia i zawartości materii organicznej według modelu SoilGrids "
+                     "(rozdzielczość 250 m).")
+        if sg_res.ptf_outside_range:
+            notes.append("Skład gleby wykracza poza zakres danych, na których opracowano funkcje Saxtona i Rawlsa "
+                         "(materia organiczna do 8%, ił do 60%); oszacowanie retencji jest mniej pewne.")
         if info.category_source == "soil_map" and info.wod_mm is not None:
             wod_cat = category_from_wod(info.wod_mm.mid)
             if wod_cat != info.kbw_category:

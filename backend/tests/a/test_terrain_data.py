@@ -77,3 +77,35 @@ async def test_copernicus_is_partial_with_note(parcel, monkeypatch):
 def test_grid_for_respects_max_cells(parcel):
     (minx, miny, maxx, maxy), res = dem_mod.grid_for(parcel)
     assert res == 2.0 and (maxx - minx) / res * (maxy - miny) / res <= dem_mod.tp()["max_cells"]
+
+
+@pytest.mark.asyncio
+async def test_gdal_decoding_never_blocks_the_event_loop(parcel, monkeypatch, tmp_path):
+    """Regression (2026-11-21): _read_tiff ran on the loop and froze collect() for 142 s while GDAL was busy."""
+    import asyncio
+    import time as _time
+
+    real = dem_mod._read_tiff
+
+    def slow_read(data, *a, **kw):
+        _time.sleep(0.5)                       # stands in for a GDAL call waiting on a lock
+        return real(data, *a, **kw)
+
+    d = synthetic_dem()
+    blob = dem_mod._write_tiff(d.z, d.origin, d.res)
+    path = tmp_path / "p.tif"
+    path.write_bytes(blob)
+    monkeypatch.setattr(dem_mod, "_read_tiff", slow_read)
+    monkeypatch.setattr(dem_mod, "preprocessed_path", lambda p: path)
+    ticks = 0
+
+    async def ticker():
+        nonlocal ticks
+        while True:
+            await asyncio.sleep(0.01)
+            ticks += 1
+
+    t = asyncio.ensure_future(ticker())
+    got, _ = await dem_mod.fetch_dem(parcel, 5)
+    t.cancel()
+    assert got.z.shape == d.z.shape and ticks >= 20      # the loop kept running during the 0.5 s decode

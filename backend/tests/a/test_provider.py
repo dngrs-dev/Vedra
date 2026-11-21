@@ -47,8 +47,11 @@ def _offline_sources(monkeypatch):
     async def two_arg_stub(p, buffer_m):
         return SourceResult(status=SourceStatus.MISSING, notes_pl=["stub"])
 
+    async def landcover_stub(p, buffer_m, analysis_date=None):
+        return SourceResult(status=SourceStatus.MISSING, notes_pl=["stub"])
+
     monkeypatch.setattr(hydro, "water_features", two_arg_stub)
-    monkeypatch.setattr(landcover, "landcover", two_arg_stub)
+    monkeypatch.setattr(landcover, "landcover", landcover_stub)
     from app.geo import terrain
 
     async def terrain_stub(p, hydro_task, budget):

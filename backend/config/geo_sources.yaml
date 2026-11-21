@@ -37,6 +37,47 @@ uldk:
   licence_source: https://www.geoportal.gov.pl/ (warunki korzystania z usług GUGiK)
   attribution_pl: null          # exact required text to be taken from licence_source (CP5)
 
+egib_parquet:
+  name: EGiB - działki ewidencyjne (eksport GeoParquet, GUGiK)
+  url: https://opendata.geoportal.gov.pl/InneDane/latest_exports/eziudp_wfs/PARQUET/0_dzialki.parquet
+  source: KOWR task 5.2 (dane przestrzenne) ; probe 2026-11-21
+  role: >-
+    Fallback of ULDK for parcel lookups by id and by point. Seen 2026-11-21 ~19:00: every ULDK API request from the
+    dev link was answered with HTTP 302 to https://integracja01.gugik.gov.pl/resp/uldk.php, which returns "0" and a
+    hex string instead of records (the documentation page still loaded), i.e. the client was blocked.
+  probe: >-
+    4 591 485 104 bytes, Last-Modified 2026-11-21 03:03 GMT (rebuilt daily), HTTP Range supported. GeoParquet 1.1,
+    38 909 091 rows in 594 row groups (~65 500 rows, 5-9 MB of WKB per group), columns id_dzialki, numer_dzialki,
+    nazwa_obrebu, numer_obrebu, numer_jednostki, nazwa_gminy, data, pole_ewidencyjne, klasouzytki_egib,
+    grupa_rejestrowa, pozostale_atrybuty, czas_pozyskania, geometry (WKB), geometry_bbox {xmin,ymin,xmax,ymax}.
+    Row groups are spatially clustered: their geometry_bbox statistics select ~10 groups per point.
+    Point 452850,548450 -> 040704_2.0012.63/1 (same parcel as ULDK).
+  crs: >-
+    "ETRF2000-PL / CS92" (EPSG:9702 base): the PUWG 1992 projection on the ETRF2000 frame. x = easting, y = northing
+    in the data (the parcel above contains the same EPSG:2180 point as in ULDK); used as EPSG:2180 - the frames
+    differ by centimetres.
+  parallel_requests: 16          # measured 2026-11-21: 1 stream 0.53 MB/s, 8: 4.5, 16: 7.4, 32: 1.0 MB/s (throttled)
+  chunk_bytes: 524288            # OUR CHOICE: range request size (16 x 0.5 MB in flight)
+  footer_cache_s: 21600          # OUR CHOICE: 6 h; the cache key also holds Last-Modified and size
+  licence: Dane PZGiK udostępniane bez opłat
+  licence_verified: false
+  licence_source: https://www.geoportal.gov.pl/pl/dane/ewidencja-gruntow-i-budynkow-egib/
+  attribution_pl: "Dane EGiB: Główny Urząd Geodezji i Kartografii (geoportal.gov.pl)"   # OUR wording, no official text found
+
+prg_wfs:
+  name: PRG - państwowy rejestr granic (WFS, GUGiK)
+  url: https://mapy.geoportal.gov.pl/wss/service/PZGIK/PRG/WFS/AdministrativeBoundaries
+  source: GetCapabilities ; probe 2026-11-21
+  layers:
+    voivodeships: ms:A01_Granice_wojewodztw
+    counties: ms:A02_Granice_powiatow
+    obreby: ms:A06_Granice_obrebow_ewidencyjnych   # JPT_KOD_JE = "040704_2.0012" (parcel id prefix); 0.34 s by filter
+  envelope_axis_order: northing easting            # gml:Envelope srsName urn:ogc:def:crs:EPSG::2180 (probe: Jacewo)
+  names_file: data/a/teryt_names.json              # scripts/a/build_teryt_names.py
+  licence: Dane PZGiK udostępniane bez opłat
+  licence_verified: false
+  licence_source: https://www.geoportal.gov.pl/pl/dane/panstwowy-rejestr-granic-prg/
+
 soil_map:
   name: Mapa glebowo-rolnicza (GUGiK, WMS)
   url: https://mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer
@@ -80,7 +121,7 @@ soilgrids_rest:
   name: SoilGrids 2.0 (ISRIC) REST API
   url: https://rest.isric.org/soilgrids/v2.0/properties/query
   source: https://rest.isric.org/soilgrids/v2.0/docs ; spike 2026-11-21
-  properties: [sand, silt, clay, soc, bdod, wv0033, wv1500]
+  properties: [sand, silt, clay, soc, bdod]   # wv0033/wv1500 not used: see soilgrids_files.water_retention
   depths: [0-5cm, 5-15cm, 15-30cm, 30-60cm, 60-100cm, 100-200cm]
   values: ["Q0.05", "Q0.5", "Q0.95", mean]
   # Integer values must be divided by d_factor (returned per property in `unit_measure`; spike 2026-11-21):
@@ -105,11 +146,28 @@ soilgrids_files:
   source: directory listing https://files.isric.org/soilgrids/latest/data/ ; spike 2026-11-21
   path_template: "{prop}/{prop}_{depth}_{value}.vrt"   # spike: sand/sand_0-5cm_Q0.5.vrt -> value 710 (same as REST)
   available_properties: [bdod, cec, cfvo, clay, landmask, nitrogen, ocd, ocs, phh2o, sand, silt, soc, wrb]
-  missing_properties: [wv0033, wv1500]   # not in the listing (404) -> water retention only via REST
+  missing_properties: [wv0033, wv1500]   # not in the listing (404); also not served by maps.isric.org WCS (msLoadMap error, 2026-11-21)
   crs: Interrupted Goode Homolosine (from the file)
   resolution: "250 m"
   nodata: -32768
   observed_latency_s: 77-291     # first open of one VRT; at 52.80N 18.30E sand_0-5cm_Q0.5 returned nodata (-32768)
+  tiles_index_file: data/a/soilgrids_tiles.json   # scripts/a/build_soilgrids_tiles.py (per property; tiling differs)
+  tile_read_note: >-
+    Pixels are read from the 450 x 450 px tiles named in the VRTs, not through the VRT (6 MB XML per layer).
+    Check 2026-11-21 at the 8 points of data/a/soilgrids_points.json: sand, silt, clay, soc, bdod for 6 depths x
+    Q0.05/Q0.5/Q0.95 identical to the REST answers at all 8 points. Full profile (90 reads): 5-16 s with 16 workers,
+    1.8 s with 32 workers and the gdal_extra options below (3 points, dev link).
+  read_workers: 32               # measured above; OUR CHOICE among the tested values (16, 32)
+  gdal_extra:                    # fewer requests per tile open (GDAL config options, https://gdal.org/user/configoptions.html)
+    CPL_VSIL_CURL_USE_HEAD: "NO"
+    GDAL_INGESTED_BYTES_AT_OPEN: "32768"
+  water_retention: >-
+    Field capacity (33 kPa) and wilting point (1500 kPa) are estimated with the Saxton & Rawls (2006) pedotransfer
+    functions from SoilGrids sand, clay and organic matter (app/geo/soilgrids.py saxton_rawls), not taken from
+    SoilGrids wv0033/wv1500. Reason (check 2026-11-21, 0-100 cm WOD at the test parcels vs the 1:5000 soil map
+    category, Dz.U. 2019 poz. 739): SoilGrids wv gives 204-240 mm (category IV) at the ps/pgl/pgm sandy parcels
+    (map categories I/II; e.g. 71-78 % sand with field capacity 0.38-0.43 m3/m3), Saxton & Rawls 75-97 mm.
+    Exact category match with the map: wv 1 of 5, Saxton & Rawls 2 of 5; within one category: wv 1 of 5, S&R 4 of 5.
   licence: CC BY 4.0             # same dataset as soilgrids_rest
   licence_verified: false
   licence_source: https://www.isric.org/explore/soilgrids/faq-soilgrids
@@ -164,6 +222,54 @@ earth_search:
   licence_source: https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice
   attribution_pl: "Contains modified Copernicus Sentinel data [year]"   # official English wording; no official Polish text known
 
+planetary_computer:
+  name: Microsoft Planetary Computer STAC (Sentinel-2 L2A)
+  url: https://planetarycomputer.microsoft.com/api/stac/v1
+  source: https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a ; probe 2026-11-21
+  collection: sentinel-2-l2a
+  token_url: https://planetarycomputer.microsoft.com/api/sas/v1/token/sentinel-2-l2a   # anonymous SAS token
+  token_note: >-
+    Asset hrefs need "?<token>" appended. GET token_url -> {"token", "msft:expiry"}; probe 2026-11-21: valid ~45 min
+    (expiry 18:21:16Z requested at 17:36:17Z). Refreshed token_refresh_margin_s before expiry.
+  token_refresh_margin_s: 300   # OUR CHOICE
+  why_primary: >-
+    Same scene window (5 bands, Inowroclaw parcel, 2022-07-31) read 2026-11-21 from the dev link: Earth Search /
+    sentinel-cogs (us-west-2) 22.6 s per scene, Planetary Computer (West Europe) 1.3-1.9 s per scene. A cold analysis
+    can only cover the 10-year history with the faster store; Earth Search stays as fallback.
+  coverage_note: >-
+    Items per year at 52.80N 18.30E (probe 2026-11-21): 2016:125 2017:203 2018:286 2019:294 2020:292 2021:296
+    2022:432 2023:470 2024:281 2025:403 2026:352 - complete from 2016.
+  search:                        # GET /search supports these (probe 2026-11-21)
+    query_param: query
+    sortby_param: sortby
+    pagination: links rel=next (GET)
+    max_cloud_cover_pct: 60      # same as earth_search
+  duplicates_note: >-
+    Reprocessed products are listed next to the originals (e.g. S2A_MSIL2A_20220731T095041_R079_T34UCD_20240717T075305
+    PB 05.10 and ..._20220801T095553 PB 04.00) and overlapping MGRS tiles repeat a datatake. Same de-duplication as
+    earth_search: s2:datatake_id without "_Nxx.xx", higher processing baseline kept.
+  offset_rule: >-
+    No raster:bands in the items; scale, offset and nodata come from the product metadata (MTD_MSIL2A.xml, asset
+    product-metadata), checked 2026-11-21 for one product per baseline at 52.80N 18.30E:
+      PB 02.12 (S2A_MSIL2A_20170730T100031_R122_T34UCD_20210210T164236) and PB 03.00 (S2B_..._20210731T095029_...):
+        BOA_ADD_OFFSET absent, BOA_QUANTIFICATION_VALUE 10000
+      PB 04.00, 05.09, 05.10, 05.11: BOA_ADD_OFFSET -1000 for every band, BOA_QUANTIFICATION_VALUE 10000
+    -> reflectance = (DN + offset_dn) / 10000 with offset_dn = -1000 from PB 04.00 on, else 0 (ESA introduced the
+       offset with PB 04.00, 25 Jan 2022).
+  scale: 0.0001                  # 1 / BOA_QUANTIFICATION_VALUE (MTD_MSIL2A.xml)
+  offset_from_baseline: "04.00"
+  offset_reflectance: -0.1       # BOA_ADD_OFFSET -1000 / 10000
+  nodata: 0                      # L2A SPECIAL_VALUES NODATA index 0 (MTD_MSIL2A.xml)
+  asset_hosts:                   # every B04/SCL href in 1600 items (4 places x 4 years) on one storage account
+    - https://sentinel2l2a01.blob.core.windows.net/
+  assets: {B04: B04, B08: B08, B8A: B8A, B11: B11, SCL: SCL}
+  observed_latency_s: 0.5
+  licence: Copernicus Sentinel data – free, full and open access
+  licence_verified: false
+  licence_source: https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice
+  terms_of_use: https://planetarycomputer.microsoft.com/terms   # service terms (hosting of the open dataset)
+  attribution_pl: "Contains modified Copernicus Sentinel data [year]"   # official English wording; no official Polish text known
+
 sentinel2_processing:
   name: Sentinel-2 parcel statistics (Vedra processing parameters)
   source: docs/PART_A_DATA_GEO.md (sentinel2.py / vegetation.py specs); values marked "our choice" are ours
@@ -175,6 +281,10 @@ sentinel2_processing:
   current_window_max_days: 60    # PART_A_DATA_GEO.md / GeoRequest: "extended by A up to 60 if no clear scene"
   season_months: [4, 8]          # PART_A_DATA_GEO.md: season peaks "Apr-Aug"
   season_max_scenes: 6           # PART_A_DATA_GEO.md: "sample <= 6 least-cloudy scenes per season"
+  providers:                     # tried in this order (see planetary_computer.why_primary)
+    - {source: planetary_computer, collection: sentinel-2-l2a}
+    - {source: earth_search, collection: sentinel-2-l2a}
+    - {source: earth_search, collection: sentinel-2-c1-l2a}
   workers: 16                    # PART_A_DATA_GEO.md: "ThreadPool 16-32"; lower bound because reads are bandwidth-bound
                                  # (24 parallel streams truncated tile reads on the dev link, 2026-11-21)
   background_workers: 4          # OUR CHOICE: separate pool for scenes left over after a deadline (warm-up only)
@@ -248,6 +358,8 @@ terrain_processing:
   nmt_timeout_s: 120             # OUR CHOICE: background NMT request limit (observed 52-56 s per request)
   copernicus_res_m: 30           # Copernicus GLO-30 native ~30 m (1 arc-second); reprojected to EPSG:2180 at 30 m
   copernicus_reserve_s: 8        # OUR CHOICE: time kept for the Copernicus read when NMT is late (observed 0.5-31 s)
+  analysis_s_per_cell: 1.2e-5    # measured: ~6 s for 490k cells (see max_cells) -> time kept for the analysis
+  analysis_reserve_min_s: 1.0    # OUR CHOICE: fixed part of that reserve (hydro geometry, contract assembly)
   depression_min_area_m2: 100    # OUR CHOICE: smaller pits are below a practical retention measure
   depression_min_depth_m: 0.1    # OUR CHOICE: ignore fill depths at the level of DEM rounding/noise
   flow_min_upstream_ha: 1.0      # OUR CHOICE: flow lines drawn where >= 1 ha drains through a cell
@@ -317,6 +429,7 @@ worldcover:
   source: https://esa-worldcover.org/en/data-access ; COG read spike 2026-11-21 (value 40 at 52.80N 18.30E)
   crs: EPSG:4326
   resolution: "10 m"
+  map_year: 2021                # dataset name and the /v200/2021/ path above
   observed_latency_s: 0.7
   licence: CC BY 4.0
   licence_verified: false

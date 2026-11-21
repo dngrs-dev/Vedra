@@ -108,8 +108,10 @@ async def bdot10k_features(parcel: Parcel, buffer_m: int) -> tuple[list[WaterFea
     layers = list(cfg["layers"])
     masks = await asyncio.gather(*(_get_map(L, bbox, w, h) for L in layers))
     found: list[tuple[str, BaseGeometry, float]] = []
-    for layer, mask in zip(layers, masks):
-        for comp, _ in components(mask, bbox, px):
+    # rasterio.features.shapes is GDAL: off the event loop (see app/geo/dem.py fetch_dem)
+    comps = await asyncio.to_thread(lambda: [components(m, bbox, px) for m in masks])
+    for layer, layer_comps in zip(layers, comps):
+        for comp, _ in layer_comps:
             if comp.is_empty or not comp.intersects(zone):
                 continue
             found.append((layer, comp, comp.distance(g)))

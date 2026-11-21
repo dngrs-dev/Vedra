@@ -6,6 +6,7 @@ spi3 stay None (see docs/A_REQUESTS_FOR_B.md section 4).
 """
 from __future__ import annotations
 
+import asyncio
 import re
 import time
 from datetime import date, timedelta
@@ -109,7 +110,7 @@ async def edo_signal(lat: float, lon: float, analysis_date: date) -> SourceResul
             status=SourceStatus.MISSING, error=f"edo: no {layer} dekad <= {analysis_date}",
             notes_pl=["Brak danych Europejskiego Obserwatorium Suszy (EDO) dla daty analizy."],
             elapsed_s=round(time.monotonic() - t0, 3))
-    code = sample_code(await _strip(layer, t, lon), lat, lon)
+    code = await asyncio.to_thread(sample_code, await _strip(layer, t, lon), lat, lon)  # GDAL off the event loop
     label = cfg["cdi_levels"].get(code) if code is not None else None
     notes = [NO_VALUES_NOTE_PL]
     if label is None:
