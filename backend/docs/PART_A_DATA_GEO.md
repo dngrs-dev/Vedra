@@ -20,20 +20,23 @@ app/geo/
 ├─ hosts.py             GEO_HOSTS allowlist
 ├─ provider.py          RealGeoProvider (bodies; signatures frozen)
 ├─ uldk.py              parcel lookup
+├─ egib_parquet.py      ULDK fallback: national EGiB GeoParquet export via HTTP range reads (CP4)
 ├─ soil_map.py          mapa glebowo-rolnicza WMS GetFeatureInfo (+ IUNG WMS fallback)
-├─ soilgrids.py         SoilGrids layers with quantiles
+├─ soilgrids.py         SoilGrids layers with quantiles; Saxton & Rawls water retention (CP4)
+├─ soilgrids_files.py   SoilGrids pixels straight from the 250 m tiles (CP4)
 ├─ soil.py              SoilInfo assembly + KBW soil category
 ├─ raster_io.py         GDAL env, COG window reads, host check for /vsicurl/
-├─ sentinel2.py         STAC search + per-scene statistics
+├─ sentinel2.py         STAC search (Planetary Computer, Earth Search) + per-scene statistics
 ├─ vegetation.py        VegetationData assembly
 ├─ dem.py               NMT GUGiK WCS / Copernicus DEM
 ├─ terrain.py           pure numpy terrain analysis
-├─ hydro.py             MPHP WFS / OSM Overpass
+├─ hydro.py             BDOT10k WMS (MPHP had no vector access) / OSM Overpass
 ├─ landcover.py         ESA WorldCover shares
 ├─ edo.py               EDO WMS GetFeatureInfo
 ├─ imgw.py              IMGW synop + hydro warnings (current only)
 ├─ static_map.py        PNG for the PDF
-└─ geometry.py          CRS transforms, buffers, sampling points (private helpers)
+├─ geometry.py          CRS transforms, buffers, sampling points (private helpers)
+└─ aio.py               waiting on shared background tasks
 config/geo_sources.yaml           endpoints, layer names, licences, attribution texts (with `source:` urls)
 config/soil_categories.yaml       soil type code -> KBW category I-IV, WOD thresholds (Dz.U. 2019 poz. 739)
 requirements/a-geo.txt            rasterio, pystac-client (+ anything else you add)

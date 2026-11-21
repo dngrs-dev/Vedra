@@ -304,8 +304,12 @@ copernicus_dem:
   crs: EPSG:4326
   resolution: "1 arc-second (~30 m)"
   observed_latency_s: 0.5-31
+  licence: Copernicus DEM licence (GLO-30 free of charge, worldwide)
   licence_verified: false
-  licence_source: https://spacedata.copernicus.eu/collections/copernicus-digital-elevation-model
+  licence_source: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf
+  # Notice for modified data (we reproject and analyse it), as quoted on the Copernicus DEM dataset page
+  # https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
+  attribution_pl: "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
 
 gugik_nmt_wcs:
   name: NMT GRID1 GUGiK (WCS)

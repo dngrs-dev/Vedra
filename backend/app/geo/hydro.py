@@ -10,6 +10,7 @@ import asyncio
 import io
 import re
 import time
+from datetime import datetime, timezone
 
 import numpy as np
 from scipy import ndimage
@@ -212,8 +213,18 @@ async def water_features(parcel: Parcel, buffer_m: int) -> SourceResult[HydroDat
     g = geometry.parcel_geom_2180(parcel)
     notes: list[str] = []
     try:
-        feats, px = await bdot10k_features(parcel, buffer_m)
-        prov = [provenance("bdot10k_water", source("bdot10k_water")["url"], resolution=f"1:10 000, odczyt co {px:g} m")]
+        # the derived features are cached like the BDOT10k maps they come from (30 days, our choice)
+        key = cache.make_key("geo.bdot.features", parcel=parcel.geometry_2180_wkt, buffer=buffer_m)
+        hit = cache.get(key)
+        if hit is None:
+            feats, px = await bdot10k_features(parcel, buffer_m)
+            hit = {"features": [f.model_dump(mode="json") for f in feats], "px": px,
+                   "fetched_at": datetime.now(timezone.utc).isoformat()}
+            cache.set(key, hit, expire_s=30 * 24 * 3600)
+        feats = [WaterFeature.model_validate(f) for f in hit["features"]]
+        px = hit["px"]
+        prov = [provenance("bdot10k_water", source("bdot10k_water")["url"], fetched_at=datetime.fromisoformat(
+            hit["fetched_at"]), resolution=f"1:10 000, odczyt co {px:g} m")]
         notes.append(f"Cieki, rowy i wody powierzchniowe odczytano z warstw BDOT10k (siatka {px:g} m); odległości "
                      "mogą być zaniżone o połowę szerokości symbolu na mapie.")
         status = SourceStatus.OK

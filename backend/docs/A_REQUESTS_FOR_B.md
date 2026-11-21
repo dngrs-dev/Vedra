@@ -196,9 +196,52 @@ categorical cross-check (`cdi_class`, `date_used`) and never wait for those nume
 
 ---
 
+## 4c. Added in CP4 (robustness and the cold path)
+
+Every source now has a fallback, and a parcel nobody has analysed before (the jury's case) gets almost
+complete data within the 22 s. Full details: [`DATA_SOURCES.md`](DATA_SOURCES.md).
+
+### Soil: WOD and `theta_fc` / `theta_wp` changed method (please read before using them)
+- Field capacity and wilting point are now computed with the **Saxton & Rawls (2006)** pedotransfer functions
+  from SoilGrids texture and organic matter. They are no longer SoilGrids' own `wv0033` / `wv1500`.
+- **Why:** SoilGrids' values made sandy parcels look like heavy soils. At the 5 test parcels with a soil-map code,
+  SoilGrids wv gave WOD 204–240 mm (category IV) where the 1:5000 map says I or II. Saxton & Rawls matches the
+  map exactly at 2 of 5 parcels and within one category at 4 of 5; SoilGrids wv at 1 of 5.
+- **Effect for B:**
+  - `wod_mm` is much lower on sands (75–100 mm instead of 200–240 mm). Any TAW / FAO-56 numbers you computed
+    from earlier fixtures will change.
+  - `category_source == "soilgrids_wod"` now means «Saxton & Rawls on SoilGrids texture»; a Polish note in
+    `soil.notes_pl` says so.
+  - Provenance `source_id` is `"soilgrids_files"` (tiles, the live path) or `"soilgrids_rest"`.
+- **§2.2 update:** `layers` is now normally filled on the first analysis too. The tiles answer in about 2 s;
+  REST took 26–163 s. Keep the empty-layers guard anyway: some points have no SoilGrids values.
+
+### Vegetation: Sentinel-2 now comes from Microsoft Planetary Computer
+- Provenance `source_id` is `"planetary_computer"`, or `"earth_search"` when Planetary Computer is down. Use the
+  attribution in the provenance as before.
+- A cold analysis now usually has the whole 10-year history (`status == "ok"`). It was `partial` before.
+
+### Parcel lookup: ULDK fallback
+- ULDK blocked the dev machine on 2026-11-21 (every API call redirected to a page returning garbage). Lookups by
+  id and by point now fall back to the national EGiB GeoParquet export (4–7 s instead of 0.3 s).
+- **For B:** `find_parcels` / `parcel_at_point` can take up to ~7 s when ULDK is down; keep the frontend spinner.
+  «Obręb + number» queries have no fallback: they raise `UpstreamUnavailable`. Suggested Polish message: «Wyszukiwarka
+  działek po nazwie obrębu jest chwilowo niedostępna – podaj pełny identyfikator działki albo wskaż ją na mapie.»
+- Commune and obręb names from the export may be in upper case (as stored in EGiB, e.g. «NADARZYCE»).
+
+### Smaller changes
+- `landcover.notes_pl` says when the analysis date is before 2021, the year of the WorldCover map.
+- Vegetation note «Brak bezchmurnych zdjęć …» now also names water, snow and shadows as reasons.
+- Every source result can come from the disk cache. Warm analyses take a few seconds; provenance keeps the original
+  fetch time.
+
+---
+
 ## 5. Environment notes
 
 - Dockerfile uses Python 3.11; A develops on 3.14. A's code uses no 3.12+ features, but please run the
   image's `pytest tests/a` once after merging (A's tests need no network).
-- A's runtime dependencies: `requirements/a-geo.txt` (rasterio, pystac-client, pyyaml; all BSD/Apache/MIT).
-  Your Dockerfile already installs it.
+- A's runtime dependencies: `requirements/a-geo.txt` (rasterio, pystac-client, pyyaml, **pyarrow** added in CP4
+  for the ULDK fallback; all BSD/Apache/MIT). Your Dockerfile already installs the file.
+- README (B): please link [`DATA_SOURCES.md`](DATA_SOURCES.md) in the data-sources / licences / limitations
+  sections. It lists live versus prepared data with download dates, as task §4.2 points 4, 5, 7 and 8 require.

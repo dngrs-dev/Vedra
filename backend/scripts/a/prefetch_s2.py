@@ -30,10 +30,10 @@ MANIFEST = DATA_DIR / "manifest.json"
 def write_manifest() -> None:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {}
     manifest["s2_scene_stats.json"] = {
-        "url": f"{source('earth_search')['url']} (collections {source('earth_search')['collections']['primary']}, "
-               f"{source('earth_search')['collections']['fallback']})",
+        "url": "; ".join(f"{source(p['source'])['url']} (collection {p['collection']})"
+                         for p in sentinel2.s2_params()["providers"]) + " - providers in this order",
         "downloaded": datetime.now(timezone.utc).date().isoformat(),
-        "licence": source("earth_search")["licence"],
+        "licence": source("planetary_computer")["licence"],
         "content": "per scene x parcel-interior NDVI/NDMI medians computed by app.geo.sentinel2.scene_stats "
                    "for the test parcels and fixture dates; key = scene_id|sha1(interior geometry)[:16]",
         "script": "scripts/a/prefetch_s2.py",

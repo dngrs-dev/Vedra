@@ -14,7 +14,7 @@
     "script": "scripts/a/build_imgw_stations.py"
   },
   "s2_scene_stats.json": {
-    "url": "https://earth-search.aws.element84.com/v1 (collections sentinel-2-l2a, sentinel-2-c1-l2a)",
+    "url": "https://planetarycomputer.microsoft.com/api/stac/v1 (collection sentinel-2-l2a); https://earth-search.aws.element84.com/v1 (collection sentinel-2-l2a); https://earth-search.aws.element84.com/v1 (collection sentinel-2-c1-l2a) - providers in this order",
     "downloaded": "2026-11-21",
     "licence": "Copernicus Sentinel data – free, full and open access",
     "content": "per scene x parcel-interior NDVI/NDMI medians computed by app.geo.sentinel2.scene_stats for the test parcels and fixture dates; key = scene_id|sha1(interior geometry)[:16]",

@@ -311,7 +311,18 @@ async def _terrain_data(parcel, hydro_data, budget_s: float, t0: float):
         dem, notes = await dem_mod.fetch_dem(parcel, dem_budget)
     ditches = [geometry.to_2180(shape(f.geometry)) for f in (hydro_data.features if hydro_data else [])
                if f.kind == "ditch"]
-    data: TerrainData = await asyncio.to_thread(analyse, dem, geometry.parcel_geom_2180(parcel), ditches)
+    # The analysis is deterministic for one DEM (source, fetch time, grid) and one set of ditches: cache it, so a
+    # warm analysis does not spend ~3 s on a 250k-cell grid again.
+    from app.core import cache
+
+    key = cache.make_key("geo.terrain", parcel=parcel.geometry_2180_wkt, dem=dem.source, res=dem.res,
+                         fetched=dem.fetched_at.isoformat(), origin=list(dem.origin), ditches=[d.wkt for d in ditches])
+    hit = cache.get(key)
+    if hit is not None:
+        data = TerrainData.model_validate(hit)
+    else:
+        data = await asyncio.to_thread(analyse, dem, geometry.parcel_geom_2180(parcel), ditches)
+        cache.set(key, data.model_dump(mode="json"), expire_s=30 * 24 * 3600)   # OUR CHOICE, as for BDOT10k
     if hydro_data is None:
         notes.append("Brak danych o rowach – miejsca odpływu rowami nie zostały wskazane.")
     name = "gugik_nmt_wcs" if dem.source == "gugik_nmt_1m" else "copernicus_dem"
