@@ -1,96 +1,106 @@
-# Methodology
+# Metodyka analizy
 
-## Weather observations and model data
+## Dane pogodowe
 
-The weather series uses Open-Meteo ERA5-Seamless from 1 January 1991. The prototype caches complete
-archive results by 0.1° cell and archive end date. It averages hourly soil moisture by local day
-and converts daily daylight and sunshine seconds to hours. The recent gap in ERA5 publication uses
-daily values from the forecast API. Recent soil moisture remains unavailable until the ERA5-Land
-data arrive. All calculations cut off at the selected local analysis date.
-[Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) and
-[Forecast API](https://open-meteo.com/en/docs).
+Seria Open-Meteo ERA5-Seamless zaczyna się 1 stycznia 1991 r. Backend buforuje kompletne
+archiwum według komórki 0,1° i daty końcowej. Średnia z godzinowych wartości wilgotności
+gleby dotyczy doby w polskiej strefie czasowej. Długość dnia i usłonecznienie są przeliczane
+z sekund na godziny. Bieżący model pogodowy uzupełnia dni oczekujące na publikację
+archiwum, z wyjątkiem wilgotności gleby. Obliczenia używają wyłącznie danych do daty
+analizy. Prognoza na kolejne dni jest osobnym wejściem dla bieżącej oceny nawadniania.
+[Archiwum Open-Meteo](https://open-meteo.com/en/docs/historical-weather-api),
+[API prognoz](https://open-meteo.com/en/docs).
 
-## Climatic water balance
+## Klimatyczny bilans wodny
 
-The assessment compares the latest completed six-decade period with the crop and soil threshold
-from the annex to [Dz.U. 2019 poz. 739](https://eli.gov.pl/api/acts/DU/2019/739/text.pdf). The drought
-criterion is strictly below the threshold, as specified in article 3(2)(10) of the crop insurance act.
-[Dz.U. 2019 poz. 477](https://eli.gov.pl/api/acts/DU/2019/477/text/I/D20190477.pdf).
-The statutory `x` and `-` markers are reported separately. The history attributes each completed
-period to its ending month and divides the number of drought periods by the number with a numeric
-verdict. The data window ends on the selected analysis date.
+Vedra odejmuje szacowaną ewapotranspirację potencjalną od sumy opadów. Wynik dla ostatniego
+zakończonego okresu sześciodekadowego porównuje z progiem dla uprawy i kategorii gleby.
+Susza w tym okresie wymaga wartości niższej od progu. Znaki `x` i `-` oznaczają odpowiednio
+brak progu dla uprawy w danym okresie i niewskazaną uprawę na danej kategorii gleby.
+[Dz.U. 2019 poz. 739](https://eli.gov.pl/api/acts/DU/2019/739/text.pdf),
+[art. 3 ust. 2 pkt 10 ustawy, Dz.U. 2019 poz. 477](https://eli.gov.pl/api/acts/DU/2019/477/text/I/D20190477.pdf).
 
-The prototype subtracts monthly Doroszewski–Górski potential evapotranspiration from total
-precipitation. It apportions monthly ETP by the calendar days covered by the period. When a period
-ends mid-month, observed days up to the period end supply the temperature mean and daily sunshine
-mean. The sunshine mean is multiplied by the full month's day count. The 15th represents mid-month
-daylight. If that day falls after the cutoff or its daylight is missing, the calculation uses
-astronomical daylight from the parcel latitude. A missing temperature or sunshine day leaves the
-primary estimate unavailable. [IUNG, equations (1) and (2)](https://iung.pl/images/wyd/Susza%20rolnicza%20w%20Polsce.pdf)
-and [FAO-56, chapter 3](https://www.fao.org/4/x0490e/x0490e07.htm).
+Miesięczne ETP Doroszewskiego–Górskiego w mm wynosi
 
-The daily FAO-56 reference evapotranspiration supplies a parallel water balance. The prototype
-flags a borderline result when the statutory threshold lies between the two balances, or when the
-primary balance equals it. The spread describes sensitivity to the ETP method. Official SMSR
-determinations use IUNG's own weather inputs and estimation methodology.
-[IUNG SMSR](https://susza.iung.pulawy.pl/system/).
+```text
+ETP = -89,6 + 0,0621 · t² + 0,00448 · h^(1,66) + 9,1 · f
+```
 
-## Corroborating signals and causes
+W równaniu `t` to średnia temperatura w °C, `h` to suma godzin usłonecznienia,
+a `f` to reprezentatywna długość dnia w godzinach. Vedra przyjmuje 15. dzień miesiąca zgodnie
+z tabelą FAO-56 i oblicza długość dnia astronomicznie, jeśli brakuje tej wartości lub
+dzień wypada po końcu zakresu. Dla niepełnego miesiąca średnia temperatura i dzienne
+usłonecznienie dotyczą dotychczasowych dni, a całkowite usłonecznienie to oszacowanie
+z tej średniej i liczby dni miesiąca. Miesięczne ETP rozkłada się proporcjonalnie do liczby
+dni przypadających na okres sześciodekadowy. Założenie wprowadza niepewność przy zmianach
+pogody w trakcie miesiąca. Brak wymaganych wartości w serii uniemożliwia oszacowanie ETP.
+[IUNG, wzory 1 i 2](https://iung.pl/images/wyd/Susza%20rolnicza%20w%20Polsce.pdf),
+[FAO-56, rozdział 3](https://www.fao.org/4/x0490e/x0490e07.htm).
 
-SPI-1 and SPI-3 use complete months. A separate gamma distribution is fitted for each calendar
-month of the accumulation end within the 1991–2020 reference. Months with zero rainfall contribute
-an empirical probability mass. A shorter available reference gives an indicative result with its
-sample count. [McKee et al. (1993)](https://www.droughtmanagement.info/literature/AMS_Relationship_Drought_Frequency_Duration_Time_Scales_1993.pdf)
-and [WMO-No. 1090](https://www.droughtmanagement.info/literature/WMO_standardized_precipitation_index_user_guide_en_2012.pdf).
+Równoległy wariant korzysta z sumy dziennego ET0 FAO-56. Wynik graniczny oznacza, że próg
+mieści się między obydwoma wariantami lub jest równy głównemu oszacowaniu. Rozpiętość
+pokazuje wrażliwość na metodę. SMSR IUNG stosuje własne dane i metody estymacji,
+a obwieszczenie podaje wartość dla gminy.
+[Opis SMSR](https://susza.iung.pulawy.pl/system/), [walidacja KBW](VALIDATION.md).
 
-Soil moisture uses the latest available ERA5-Land value at or before the selected date. It
-compares each layer against the same calendar day in the previous ten years. The 20th percentile
-from the European Climate Data Explorer soil drought product is used here as an indicative cutoff
-for daily layer values. The report gives the observation date and sample counts.
-[ECMWF European Climate Data Explorer](https://confluence.ecmwf.int/spaces/CKB/pages/453680707).
+## Sygnały, przyczyny i podatność historyczna
 
-The satellite signal computes a parcel VCI from the median NDVI in the current window and the
-minimum and maximum of the annual medians for comparable windows. Crop-sensitive dates use the
-statutory KBW windows as a proxy, since sowing, emergence and harvest dates are usually unknown.
-POLSA §6.3.4 describes phenological effects qualitatively. The numeric VCI interpretation uses
-the NOAA STAR experimental cutoffs as indicative values for the prototype's parcel-scale index.
-[FAO VCI definition](https://www.fao.org/giews/earthobservation/asis/index_2.jsp?lang=en),
-[POLSA handbook](https://polsa.gov.pl/wp-content/themes/polsa/files/Podrecznik.pdf#page=293) and
-[NOAA STAR VCI](https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_browseByCountry_province.php).
+- **SPI-1 i SPI-3** używają pełnych miesięcy. Dla miesiąca kończącego okno dopasowywany jest
+  odrębny rozkład gamma z bazy 1991–2020, z uwzględnieniem częstości miesięcy bez opadów.
+  Krótsza baza daje wynik orientacyjny z podaną liczebnością.
+  [McKee i in. (1993)](https://www.droughtmanagement.info/literature/AMS_Relationship_Drought_Frequency_Duration_Time_Scales_1993.pdf),
+  [podręcznik WMO 1090](https://www.droughtmanagement.info/literature/WMO_standardized_precipitation_index_user_guide_en_2012.pdf).
+- **Wilgotność gleby** wykorzystuje ostatnią dostępną wartość przed lub w dniu analizy.
+  Percentyl każdej warstwy wynika z porównania z tym samym dniem kalendarzowym w poprzednich
+  dziesięciu latach. Jako orientacyjną granicę niskiej wilgotności przyjęto 20. percentyl
+  z produktu referencyjnego, stosując go tutaj dla dobowych wartości warstwy.
+  [European Climate Data Explorer](https://confluence.ecmwf.int/spaces/CKB/pages/453680707).
+- **VCI** odnosi bieżącą medianę NDVI działki do minimum i maksimum median w porównywalnych
+  oknach wcześniejszych lat. Terminy wrażliwości na niedobór zależą od uprawy. Aplikacja
+  przyjmuje okresy KBW jako przybliżenie, gdy brakuje dat siewu, wschodów i zbioru.
+  PolSA opisuje wpływ fenologii jakościowo. Zakresy poniżej 40 i powyżej 60 pochodzą
+  z eksperymentalnej interpretacji NOAA i pełnią rolę orientacyjnych wartości.
+  [FAO VCI](https://www.fao.org/giews/earthobservation/asis/index_2.jsp?lang=en),
+  [PolSA §6.3.4](https://polsa.gov.pl/wp-content/themes/polsa/files/Podrecznik.pdf#page=293),
+  [NOAA STAR](https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_browseByCountry_province.php).
+- **CDI** opisuje sytuację regionalną. Jest wskaźnikiem złożonym i zawiera m.in. informacje
+  o opadach, wilgotności gleby i roślinności.
+  [Copernicus EDO](https://drought.emergency.copernicus.eu/data/factsheets/factsheet_combinedDroughtIndicator_v4.pdf).
 
-Confidence uses two different forms of corroboration, modelled deep-layer soil moisture and
-satellite vegetation. ERA5-Land and ERA5 share atmospheric forcing, so this is a qualitative
-confidence level. SPI reuses the precipitation input and CDI combines several regional inputs.
-Both appear as context. The model-derived runoff and land-cover findings describe possible local
-contributors. The ranking places the strongest quantified weather departures first, followed by
-soil, runoff, surroundings and crop demand. Historical NDVI comparisons use completed April–August
-seasons, with sample counts for both sets of years.
-[Copernicus EDO CDI](https://drought.emergency.copernicus.eu/data/factsheets/factsheet_combinedDroughtIndicator_v4.pdf).
+Pewność ma charakter jakościowy. Aplikacja sprawdza, czy KBW wspierają sygnały wilgotności
+głębszej warstwy i satelitarnej kondycji upraw. ERA5 i ERA5-Land korzystają ze wspólnych
+danych wymuszających, a SPI wykorzystuje te same opady co KBW. Niedobór opadów i
+podwyższony popyt atmosferyczny wyprzedzają w rankingu wpływ gleby, odpływu, otoczenia
+i wymagań uprawy. Wnioski przestrzenne zależą od rozdzielczości i pokrycia danych.
+[Konfiguracja progów](../config/thresholds.yaml), [opis reguł części B](PART_B_ANALYTICS_PRODUCT.md).
 
-## Dates outside the monitoring season
+Historia przypisuje okres KBW do jego miesiąca końcowego. Udział okresów suszy jest liczony
+wśród okresów z werdyktem liczbowym. Porównanie szczytów NDVI w latach z suszą i bez
+suszy wykorzystuje zakończone sezony kwiecień–sierpień, z podaniem liczebności obu grup.
+Poza okresem od 21 marca do 30 września raport pokazuje osobny wynik poza sezonem,
+obserwacje opisowe i dostępną historię. Aktualne przyczyny suszy i dawka nawadniania
+w tym trybie nie są wyznaczane.
+[Okresy z załącznika do rozporządzenia](https://eli.gov.pl/api/acts/DU/2019/739/text.pdf).
 
-For dates outside 21 March through 30 September, the current KBW returns an off-season result.
-Weather, soil moisture and EDO remain available as descriptive context, and recent satellite
-observations are interpreted with crop dates in mind. History includes the completed windows
-available before the analysis. The report omits current deficit causes and gives an off-season
-explanation when irrigation is requested. [Statutory annex](https://eli.gov.pl/api/acts/DU/2019/739/text.pdf).
+## Zalecenia i nawadnianie
 
-## Recommendations and optional irrigation
+Reguły przechodzą od retencji krajobrazowej przez glebową i agrotechnikę do nawadniania.
+Zalecenia wynikają z przesłanek, takich jak oszacowany niedobór, okresy suszy w historii,
+podatność gleby albo cechy przestrzenne działki. Lokalizacje i objętości pochodzą z danych
+części A. Porównanie zmiany materii organicznej oblicza różnicę dwóch estymacji Saxtona–Rawlsa
+dla tej samej tekstury. Przyrost węgla przyjęto z pracy Minasny'ego i McBratneya,
+a konwersję z węgla do materii organicznej opisuje Pribyl. Brak pełnego profilu lub zmiennych
+wejściowych pozostawia scenariusz bez wartości liczbowej.
+[Saxton i Rawls](https://doi.org/10.2136/sssaj2005.0117),
+[Minasny i McBratney](https://doi.org/10.1111/ejss.12475),
+[Pribyl](https://doi.org/10.1016/j.geoderma.2010.02.003).
 
-Recommendations are evaluated in the order landscape retention, soil retention, agrotech and
-irrigation. They require a negative estimated current balance, recorded historical drought, a
-susceptible soil classification, or an optional root-zone estimate for irrigation. Locations and
-volumes come from Part A's measurements. The organic matter calculation compares two Saxton–Rawls
-predictions for the same texture, with the carbon increment used by Minasny and McBratney and the
-conventional carbon-to-organic-matter conversion. It describes sensitivity, with no estimate if
-the root profile or inputs are incomplete. [Saxton and Rawls](https://doi.org/10.2136/sssaj2005.0117),
-[Minasny and McBratney](https://doi.org/10.1111/ejss.12475) and [Pribyl](https://doi.org/10.1016/j.geoderma.2010.02.003).
-
-The daily irrigation balance integrates soil hydraulic properties over the crop rooting depth.
-It initializes from an ERA5-Land soil moisture observation covering that depth and advances with
-daily precipitation and ET0. It uses the crop profile for full development, since actual growth
-stages and prior irrigation are typically unknown. Crop-profile range endpoints give alternate
-net doses. The daily model omits runoff, capillary rise and irrigation history. Forecasts are
-used for a current-date analysis in season when the balance supports a projection. The proposed
-date is when the central estimate reaches RAW, and the net dose refills the estimated depletion.
-[FAO-56, chapter 8](https://www.fao.org/4/x0490e/x0490e0e.htm).
+Dobowy model nawadniania integruje właściwości gleby do głębokości korzeni. Rozpoczyna
+od wilgotności ERA5-Land dla tego profilu i uwzględnia dzienne opady i ET0. Korzysta
+z parametrów uprawy w pełnym rozwoju, ponieważ rzeczywiste terminy poszczególnych faz
+najczęściej są nieznane. Krańce zakresu parametrów uprawy dają alternatywne dawki netto.
+Model pomija wcześniejsze nawadnianie, podsiąk i odpływ. W sezonie dla bieżącej daty
+prognoza może wskazać dzień osiągnięcia RAW. Dawka netto uzupełnia oszacowany ubytek
+wody w strefie korzeniowej.
+[FAO-56, rozdział 8](https://www.fao.org/4/x0490e/x0490e0e.htm),
+[parametry upraw](../config/crops.yaml).

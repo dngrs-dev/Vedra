@@ -181,7 +181,7 @@ def get_geo_provider() -> GeoProvider:
 - [x] Error paths: 422/404/503 with Polish messages; job timeout; every source `missing` → still a report.
 
 ### CP5 — docs and release (→ 10:00)
-- [ ] `README.md` (9 mandatory points of the task §4.2), `METHODOLOGY.md`, `SCALABILITY.md`, `SECURITY.md`, `AI_USAGE.md`.
+- [x] `README.md` (9 mandatory points of the task §4.2), `METHODOLOGY.md`, `SCALABILITY.md`, `SECURITY.md`, `AI_USAGE.md`.
 - [ ] `scripts/b/generate_sample_reports.py` → `samples/reports/*.pdf`.
 - [ ] Deploy the validated backend with `GEO_PROVIDER=real` over HTTPS and smoke-test it from a clean browser.
   This is the final task. Earlier checkpoints run locally with `fake`, `fixtures`, or `real` as available.

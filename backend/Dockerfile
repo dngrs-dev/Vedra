@@ -18,7 +18,12 @@ COPY tests/fixtures/sample_report.json ./tests/fixtures/sample_report.json
 RUN python -m pytest tests/b
 
 FROM base AS runtime
-RUN mkdir /app/data && chown nobody /app /app/data
+COPY tests/fixtures/ ./tests/fixtures/
+# Bundle Part A's prepared source data when the branches are integrated.
+RUN --mount=type=bind,source=data,target=/source-data \
+    mkdir /app/data /app/state \
+    && if [ -d /source-data/a ]; then cp -r /source-data/a /app/data/; fi \
+    && chown nobody /app /app/data /app/state
 USER nobody
 # The backend API port is documented in README.md §5.
 EXPOSE 8000
