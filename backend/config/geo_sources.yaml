@@ -361,7 +361,7 @@ terrain_processing:
                                  # 490k cells on the dev machine (2026-11-21), so grids are capped at ~250k cells
   nmt_timeout_s: 120             # OUR CHOICE: background NMT request limit (observed 52-56 s per request)
   copernicus_res_m: 30           # Copernicus GLO-30 native ~30 m (1 arc-second); reprojected to EPSG:2180 at 30 m
-  copernicus_reserve_s: 8        # OUR CHOICE: time kept for the Copernicus read when NMT is late (observed 0.5-31 s)
+  dem_choice: first DEM to arrive (NMT 52-164 s never fits the budget; it replaces Copernicus at the next analysis)
   analysis_s_per_cell: 1.2e-5    # measured: ~6 s for 490k cells (see max_cells) -> time kept for the analysis
   analysis_reserve_min_s: 1.0    # OUR CHOICE: fixed part of that reserve (hydro geometry, contract assembly)
   depression_min_area_m2: 100    # OUR CHOICE: smaller pits are below a practical retention measure

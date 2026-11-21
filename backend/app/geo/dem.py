@@ -20,7 +20,6 @@ import numpy as np
 
 from app.contracts.parcel import Parcel
 from app.core import cache, http
-from app.geo.aio import wait_shared
 from app.geo import geometry
 from app.geo.sources import DATA_DIR, source
 
@@ -208,25 +207,35 @@ async def fetch_dem(parcel: Parcel, budget_s: float) -> tuple[Dem, list[str]]:
     hit = cache.get(_key(parcel))
     if hit is not None:
         return await asyncio.to_thread(_from_blob, hit["tiff"], datetime.fromisoformat(hit["fetched_at"]), True), notes
-    t0 = time.monotonic()
+    # NMT needs 52-164 s per request (config gugik_nmt_wcs), never less than the budget: waiting for it only delays
+    # the analysis (profile 2026-11-21: warm analyses spent ~12 s here). So the first DEM to arrive is used; NMT keeps
+    # downloading in the background and replaces Copernicus at the next analysis of the parcel.
+    deadline = time.monotonic() + budget_s
     nmt = _start_nmt(parcel)
-    cop_hit = cache.get(_cop_key(parcel))
-    cop = None if cop_hit is not None else _start_copernicus(parcel)
-    try:
-        blob = await wait_shared(nmt, timeout=max(budget_s - float(tp()["copernicus_reserve_s"]), 0.1))
-        return await asyncio.to_thread(_from_blob, blob, datetime.now(timezone.utc), True), notes
-    except Exception:  # noqa: BLE001 - timeout or NMT error: use Copernicus
-        pass
-    try:
-        rec = cop_hit or await wait_shared(cop, timeout=max(budget_s - (time.monotonic() - t0), 0.1))
-    except asyncio.TimeoutError as exc:
-        raise DemNotReady("no DEM within the budget") from exc
+    rec = cache.get(_cop_key(parcel))
+    cop_live = rec is None
+    pending = set() if rec is not None else {nmt, _start_copernicus(parcel)}
+    while pending:
+        done, pending = await asyncio.wait(pending, timeout=max(deadline - time.monotonic(), 0.0),
+                                           return_when=asyncio.FIRST_COMPLETED)
+        if not done:
+            raise DemNotReady("no DEM within the budget")
+        ok = {t for t in done if not t.cancelled() and t.exception() is None}
+        if nmt in ok:
+            return await asyncio.to_thread(_from_blob, nmt.result(), datetime.now(timezone.utc), True), notes
+        if ok:
+            rec = ok.pop().result()
+            break
+    if rec is None:
+        raise DemNotReady("both DEM requests failed")
+    if nmt.done() and not nmt.cancelled() and nmt.exception() is None:   # cached Copernicus, NMT just finished
+        return await asyncio.to_thread(_from_blob, nmt.result(), datetime.now(timezone.utc), True), notes
     notes.append("Ukształtowanie terenu oceniono na modelu Copernicus DEM (30 m), bo numeryczny model terenu GUGiK "
                  "(1 m) nie odpowiedział w wyznaczonym czasie; drobne zagłębienia i bruzdy nie są widoczne. "
                  "Copernicus DEM jest modelem powierzchni (uwzględnia drzewa i zabudowę), więc część wykrytych "
                  "zagłębień może wynikać z zadrzewień. Model GUGiK jest pobierany w tle i zostanie użyty przy "
                  "kolejnej analizie tej działki.")
-    return await asyncio.to_thread(_cop_dem, rec, cop_hit is None), notes
+    return await asyncio.to_thread(_cop_dem, rec, cop_live), notes
 
 
 async def prefetch_nmt(parcel: Parcel, timeout_s: float = 400.0) -> bytes:

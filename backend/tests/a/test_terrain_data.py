@@ -109,3 +109,46 @@ async def test_gdal_decoding_never_blocks_the_event_loop(parcel, monkeypatch, tm
     got, _ = await dem_mod.fetch_dem(parcel, 5)
     t.cancel()
     assert got.z.shape == d.z.shape and ticks >= 20      # the loop kept running during the 0.5 s decode
+
+
+@pytest.mark.asyncio
+async def test_first_dem_to_arrive_is_used(parcel, monkeypatch, tmp_path):
+    """Regression (profile 2026-11-21): waiting ~12 s for an NMT answer that needs 52-164 s."""
+    import asyncio
+    import time as _time
+
+    d = synthetic_dem()
+    cop_rec = {"tiff": dem_mod._write_tiff(d.z, d.origin, d.res), "fetched_at": "2026-11-21T00:00:00+00:00",
+               "url": "https://copernicus-dem-30m.s3.amazonaws.com/x.tif"}
+
+    async def slow_nmt(p, timeout_s=None):
+        await asyncio.sleep(30)
+
+    monkeypatch.setattr(dem_mod, "preprocessed_path", lambda p: tmp_path / "none.tif")
+    monkeypatch.setattr(dem_mod, "_fetch_nmt", slow_nmt)
+    monkeypatch.setattr(dem_mod, "_copernicus_sync", lambda p: cop_rec)
+    t = _time.monotonic()
+    got, notes = await dem_mod.fetch_dem(parcel, 20)
+    assert got.source == "copernicus_dem_30m" and _time.monotonic() - t < 2 and notes
+    # Copernicus now cached (cache is stubbed in tests/a: emulate the hit) -> no wait at all
+    monkeypatch.setattr(dem_mod.cache, "get", lambda k: cop_rec if "geo.dem.cop" in k else None)
+    t = _time.monotonic()
+    got, _ = await dem_mod.fetch_dem(parcel, 20)
+    assert got.source == "copernicus_dem_30m" and _time.monotonic() - t < 1
+    for task in list(dem_mod._inflight.values()):
+        task.cancel()
+
+
+@pytest.mark.asyncio
+async def test_nmt_failure_falls_back_and_both_failing_is_not_ready(parcel, monkeypatch, tmp_path):
+    async def nmt_down(p, timeout_s=None):
+        raise RuntimeError("wcs down")
+
+    def cop_down(p):
+        raise RuntimeError("cog down")
+
+    monkeypatch.setattr(dem_mod, "preprocessed_path", lambda p: tmp_path / "none.tif")
+    monkeypatch.setattr(dem_mod, "_fetch_nmt", nmt_down)
+    monkeypatch.setattr(dem_mod, "_copernicus_sync", cop_down)
+    with pytest.raises(dem_mod.DemNotReady):
+        await dem_mod.fetch_dem(parcel, 5)
