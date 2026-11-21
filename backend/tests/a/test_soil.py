@@ -200,3 +200,18 @@ async def test_soil_info_everything_down_is_missing(parcel, monkeypatch):
 
 async def _no_sleep(_s):
     return None
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_soil_info_soilgrids_all_null_is_explained(parcel, monkeypatch):
+    respx.get(MAP_URL).mock(return_value=httpx.Response(200, text=feature_xml("glp")))
+
+    async def layers(lat, lon, budget_s):
+        return sg_result(layers=[])
+
+    monkeypatch.setattr(soilgrids, "soil_layers", layers)
+    res = await soil.soil_info(parcel, budget_s=5)
+    assert res.status == SourceStatus.PARTIAL and res.data.kbw_category == "III"
+    assert any("SoilGrids nie zawiera danych" in n for n in res.notes_pl)
+    assert "soilgrids_rest" not in {p.source_id for p in res.provenance}

@@ -146,7 +146,7 @@ Cache: `geo.uldk`, no expiry.
 - [x] `uldk.py` + tests (all three query types, ambiguous «obręb nr», invalid input, not found).
 - [x] `soil_map.py`, `soilgrids.py`, `soil.py`, `config/soil_categories.yaml` + tests.
 - [x] `provider.find_parcels`, `parcel_at_point`; `collect` returning real `soil` and `MISSING` placeholders for the rest.
-- [ ] `scripts/a/run_geo.py`, `scripts/a/record_geo_fixtures.py`; record fixtures for 3 parcels × 3 dates (today, 2018-07-10, 2023-05-31); push.
+- [x] `scripts/a/run_geo.py`, `scripts/a/record_geo_fixtures.py`; record fixtures for 3 parcels × 3 dates (today, 2018-07-10, 2023-05-31); push.
 
 ### CP2 — satellite, EDO, IMGW (→ 23:00)
 - [ ] `raster_io.py`, `sentinel2.py`, `vegetation.py` (+ test that no scene is after `analysis_date`; test of the offset handling on one pre-2022 and one post-2022 scene).

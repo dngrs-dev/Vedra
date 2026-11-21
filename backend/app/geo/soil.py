@@ -99,6 +99,11 @@ async def soil_info(parcel: Parcel, budget_s: float) -> SourceResult[SoilInfo]:
     elif sg_res is None:
         notes.append("Profil glebowy SoilGrids nie został pobrany w wyznaczonym czasie; pobieranie trwa w tle "
                      "i dane będą dostępne przy kolejnej analizie tej działki.")
+    elif not sg_res.layers:
+        # Seen for 040704_2.0012.63/1 (2026-11-21): SoilGrids answers, but every value is null at that point.
+        notes.append("Model SoilGrids nie zawiera danych dla lokalizacji działki (brak wartości w modelu); "
+                     "brak profilu glebowego (uziarnienie, retencja wody).")
+        errors.append("soilgrids: all values null at the query point")
     else:
         info.layers = sg_res.layers
         info.wod_mm = soilgrids.wod_mm(sg_res.layers, info.wod_depth_cm)

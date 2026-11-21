@@ -1,0 +1,385 @@
+{
+ "parcel": {
+  "parcel_id": "142513_2.0039.102",
+  "teryt": "142513_2",
+  "voivodeship": "mazowieckie",
+  "county": "powiat radomski",
+  "commune": "Zakrzew",
+  "region": "Wola Taczewska",
+  "parcel_number": "102",
+  "area_ha": 0.297,
+  "geometry_wgs84": {
+   "type": "Polygon",
+   "coordinates": [
+    [
+     [
+      21.05183797440405,
+      51.451722785518804
+     ],
+     [
+      21.051716579205515,
+      51.45174827770786
+     ],
+     [
+      21.048912578791782,
+      51.44903195653531
+     ],
+     [
+      21.04902217261215,
+      51.44900710139447
+     ],
+     [
+      21.05183797440405,
+      51.451722785518804
+     ]
+    ]
+   ]
+  },
+  "geometry_2180_wkt": "POLYGON ((642524.552811409 400345.671493254, 642516.04187703 400348.269045491, 642329.737690406 400040.861326178, 642337.427318836 400038.311336664, 642524.552811409 400345.671493254))",
+  "centroid_lat": 51.450397,
+  "centroid_lon": 21.050393
+ },
+ "bundle": {
+  "soil": {
+   "status": "ok",
+   "data": {
+    "kbw_category": "II",
+    "category_source": "soil_map",
+    "soil_type_code": "pgl",
+    "soil_type_name_pl": "piasek gliniasty lekki",
+    "wod_mm": {
+     "low": 110.0,
+     "mid": 203.7,
+     "high": 203.7
+    },
+    "wod_depth_cm": 100,
+    "layers": [
+     {
+      "top_cm": 0,
+      "bottom_cm": 5,
+      "sand_pct": {
+       "low": 21.6,
+       "mid": 66.2,
+       "high": 84.3
+      },
+      "silt_pct": {
+       "low": 5.6,
+       "mid": 23.8,
+       "high": 74.9
+      },
+      "clay_pct": {
+       "low": 1.0,
+       "mid": 6.3,
+       "high": 37.7
+      },
+      "soc_g_kg": {
+       "low": 6.9,
+       "mid": 19.4,
+       "high": 245.5
+      },
+      "bulk_density_g_cm3": {
+       "low": 0.28,
+       "mid": 1.27,
+       "high": 1.7
+      },
+      "theta_fc": {
+       "low": 0.211,
+       "mid": 0.361,
+       "high": 0.52
+      },
+      "theta_wp": {
+       "low": 0.035,
+       "mid": 0.07,
+       "high": 0.155
+      }
+     },
+     {
+      "top_cm": 5,
+      "bottom_cm": 15,
+      "sand_pct": {
+       "low": 20.9,
+       "mid": 67.3,
+       "high": 85.6
+      },
+      "silt_pct": {
+       "low": 5.8,
+       "mid": 23.8,
+       "high": 76.3
+      },
+      "clay_pct": {
+       "low": 0.8,
+       "mid": 5.9,
+       "high": 25.3
+      },
+      "soc_g_kg": {
+       "low": 6.4,
+       "mid": 11.2,
+       "high": 63.9
+      },
+      "bulk_density_g_cm3": {
+       "low": 0.39,
+       "mid": 1.35,
+       "high": 1.7
+      },
+      "theta_fc": {
+       "low": 0.169,
+       "mid": 0.331,
+       "high": 0.494
+      },
+      "theta_wp": {
+       "low": 0.034,
+       "mid": 0.069,
+       "high": 0.14
+      }
+     },
+     {
+      "top_cm": 15,
+      "bottom_cm": 30,
+      "sand_pct": {
+       "low": 16.0,
+       "mid": 67.0,
+       "high": 86.0
+      },
+      "silt_pct": {
+       "low": 4.9,
+       "mid": 22.9,
+       "high": 79.0
+      },
+      "clay_pct": {
+       "low": 0.6,
+       "mid": 6.0,
+       "high": 64.6
+      },
+      "soc_g_kg": {
+       "low": 2.0,
+       "mid": 10.0,
+       "high": 62.0
+      },
+      "bulk_density_g_cm3": {
+       "low": 0.93,
+       "mid": 1.41,
+       "high": 1.76
+      },
+      "theta_fc": {
+       "low": 0.161,
+       "mid": 0.329,
+       "high": 0.459
+      },
+      "theta_wp": {
+       "low": 0.033,
+       "mid": 0.07,
+       "high": 0.139
+      }
+     },
+     {
+      "top_cm": 30,
+      "bottom_cm": 60,
+      "sand_pct": {
+       "low": 14.1,
+       "mid": 63.8,
+       "high": 81.7
+      },
+      "silt_pct": {
+       "low": 4.3,
+       "mid": 21.8,
+       "high": 79.0
+      },
+      "clay_pct": {
+       "low": 0.7,
+       "mid": 6.8,
+       "high": 65.4
+      },
+      "soc_g_kg": {
+       "low": 0.9,
+       "mid": 3.0,
+       "high": 25.8
+      },
+      "bulk_density_g_cm3": {
+       "low": 0.29,
+       "mid": 1.53,
+       "high": 1.81
+      },
+      "theta_fc": {
+       "low": 0.139,
+       "mid": 0.311,
+       "high": 0.445
+      },
+      "theta_wp": {
+       "low": 0.032,
+       "mid": 0.12,
+       "high": 0.288
+      }
+     },
+     {
+      "top_cm": 60,
+      "bottom_cm": 100,
+      "sand_pct": {
+       "low": 16.0,
+       "mid": 61.5,
+       "high": 80.2
+      },
+      "silt_pct": {
+       "low": 4.9,
+       "mid": 22.3,
+       "high": 79.9
+      },
+      "clay_pct": {
+       "low": 0.9,
+       "mid": 8.1,
+       "high": 65.4
+      },
+      "soc_g_kg": {
+       "low": 0.6,
+       "mid": 2.0,
+       "high": 16.6
+      },
+      "bulk_density_g_cm3": {
+       "low": 0.87,
+       "mid": 1.58,
+       "high": 1.86
+      },
+      "theta_fc": {
+       "low": 0.121,
+       "mid": 0.298,
+       "high": 0.41
+      },
+      "theta_wp": {
+       "low": 0.03,
+       "mid": 0.131,
+       "high": 0.288
+      }
+     },
+     {
+      "top_cm": 100,
+      "bottom_cm": 200,
+      "sand_pct": {
+       "low": 14.1,
+       "mid": 62.2,
+       "high": 87.3
+      },
+      "silt_pct": {
+       "low": 2.4,
+       "mid": 21.8,
+       "high": 79.0
+      },
+      "clay_pct": {
+       "low": 0.5,
+       "mid": 7.7,
+       "high": 66.5
+      },
+      "soc_g_kg": {
+       "low": 0.5,
+       "mid": 1.8,
+       "high": 13.1
+      },
+      "bulk_density_g_cm3": {
+       "low": 0.56,
+       "mid": 1.61,
+       "high": 1.84
+      },
+      "theta_fc": {
+       "low": 0.11,
+       "mid": 0.296,
+       "high": 0.419
+      },
+      "theta_wp": {
+       "low": 0.028,
+       "mid": 0.131,
+       "high": 0.299
+      }
+     }
+    ]
+   },
+   "provenance": [
+    {
+     "source_id": "soil_map",
+     "name": "Mapa glebowo-rolnicza (GUGiK, WMS)",
+     "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer",
+     "fetched_at": "2026-11-21T15:12:15.049230Z",
+     "live": true,
+     "data_period": "1973",
+     "resolution": "1:5000",
+     "licence": "Fees: no conditions apply; AccessConstraints: otherRestrictions (WMS GetCapabilities)",
+     "attribution_pl": null
+    },
+    {
+     "source_id": "soilgrids_rest",
+     "name": "SoilGrids 2.0 (ISRIC) REST API",
+     "url": "https://rest.isric.org/soilgrids/v2.0/properties/query",
+     "fetched_at": "2026-11-21T15:09:00.983496Z",
+     "live": false,
+     "data_period": null,
+     "resolution": "250 m",
+     "licence": "CC BY 4.0",
+     "attribution_pl": null
+    }
+   ],
+   "notes_pl": [
+    "Mapa glebowo-rolnicza dla tego obszaru: stan na rok 1973.",
+    "Niepewność: woda ogólnie dostępna z modelu SoilGrids (≈ 204 mm, rozdzielczość 250 m) odpowiadałaby kategorii IV; przyjęto kategorię II z mapy glebowo-rolniczej (skala 1:5000)."
+   ],
+   "error": null,
+   "elapsed_s": 0.002
+  },
+  "vegetation": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Analiza zdjęć satelitarnych Sentinel-2 nie jest jeszcze dostępna w tej wersji prototypu."
+   ],
+   "error": "vegetation: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "terrain": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Analiza ukształtowania terenu (NMT) nie jest jeszcze dostępna w tej wersji prototypu."
+   ],
+   "error": "terrain: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "hydro": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Dane o ciekach i rowach w otoczeniu działki nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "hydro: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "landcover": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Dane o pokryciu terenu (ESA WorldCover) nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "landcover: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "edo": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Wskaźniki Europejskiego Obserwatorium Suszy (EDO) nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "edo: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "imgw": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Dane bieżące IMGW-PIB nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "imgw: not implemented yet",
+   "elapsed_s": 0.0
+  }
+ }
+}

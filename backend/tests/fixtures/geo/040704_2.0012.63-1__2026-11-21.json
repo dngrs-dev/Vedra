@@ -1,0 +1,179 @@
+{
+ "parcel": {
+  "parcel_id": "040704_2.0012.63/1",
+  "teryt": "040704_2",
+  "voivodeship": "kujawsko-pomorskie",
+  "county": "powiat inowrocławski",
+  "commune": "Inowrocław",
+  "region": "Jacewo",
+  "parcel_number": "63/1",
+  "area_ha": 1.5044,
+  "geometry_wgs84": {
+   "type": "Polygon",
+   "coordinates": [
+    [
+     [
+      18.300724143309132,
+      52.79954929272305
+     ],
+     [
+      18.300399670125902,
+      52.80031705344035
+     ],
+     [
+      18.29824936847275,
+      52.79999463592228
+     ],
+     [
+      18.297311748753366,
+      52.79985418723326
+     ],
+     [
+      18.29739975603418,
+      52.79960503060554
+     ],
+     [
+      18.29755916571535,
+      52.79962880569946
+     ],
+     [
+      18.297675681812876,
+      52.79964639736862
+     ],
+     [
+      18.297812382737842,
+      52.79966681407053
+     ],
+     [
+      18.297975207441947,
+      52.79969120911673
+     ],
+     [
+      18.2981090883893,
+      52.79971118321398
+     ],
+     [
+      18.29821061337837,
+      52.799726475428244
+     ],
+     [
+      18.29835028333744,
+      52.799747333393626
+     ],
+     [
+      18.298449906291843,
+      52.79950641469005
+     ],
+     [
+      18.29846069878972,
+      52.79948014590552
+     ],
+     [
+      18.298569865230345,
+      52.79922563292265
+     ],
+     [
+      18.300724143309132,
+      52.79954929272305
+     ]
+    ]
+   ]
+  },
+  "geometry_2180_wkt": "POLYGON ((452868.745833335 548445.817420562, 452847.707009956 548531.406896749, 452702.431184412 548496.965082373, 452639.084451118 548481.963808233, 452644.745386455 548454.199060457, 452655.515273574 548456.737970348, 452663.387449623 548458.617520024, 452672.623123452 548460.797951558, 452683.623822311 548463.403616929, 452692.668933627 548465.536722918, 452699.528201018 548467.170485963, 452708.96442957 548469.398103692, 452715.417602953 548442.541881045, 452716.116518421 548439.6136356, 452723.19826098 548411.239435634, 452868.745833335 548445.817420562))",
+  "centroid_lat": 52.799775,
+  "centroid_lon": 18.29928
+ },
+ "bundle": {
+  "soil": {
+   "status": "partial",
+   "data": {
+    "kbw_category": "III",
+    "category_source": "soil_map",
+    "soil_type_code": "glp",
+    "soil_type_name_pl": "glina lekka pylasta",
+    "wod_mm": null,
+    "wod_depth_cm": 100,
+    "layers": []
+   },
+   "provenance": [
+    {
+     "source_id": "soil_map",
+     "name": "Mapa glebowo-rolnicza (GUGiK, WMS)",
+     "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer",
+     "fetched_at": "2026-11-21T15:12:10.628568Z",
+     "live": true,
+     "data_period": "2000",
+     "resolution": "1:5000",
+     "licence": "Fees: no conditions apply; AccessConstraints: otherRestrictions (WMS GetCapabilities)",
+     "attribution_pl": null
+    }
+   ],
+   "notes_pl": [
+    "Mapa glebowo-rolnicza dla tego obszaru: stan na rok 2000.",
+    "Model SoilGrids nie zawiera danych dla lokalizacji działki (brak wartości w modelu); brak profilu glebowego (uziarnienie, retencja wody)."
+   ],
+   "error": "soilgrids: all values null at the query point",
+   "elapsed_s": 0.008
+  },
+  "vegetation": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Analiza zdjęć satelitarnych Sentinel-2 nie jest jeszcze dostępna w tej wersji prototypu."
+   ],
+   "error": "vegetation: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "terrain": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Analiza ukształtowania terenu (NMT) nie jest jeszcze dostępna w tej wersji prototypu."
+   ],
+   "error": "terrain: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "hydro": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Dane o ciekach i rowach w otoczeniu działki nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "hydro: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "landcover": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Dane o pokryciu terenu (ESA WorldCover) nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "landcover: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "edo": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Wskaźniki Europejskiego Obserwatorium Suszy (EDO) nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "edo: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "imgw": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Dane bieżące IMGW-PIB nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "imgw: not implemented yet",
+   "elapsed_s": 0.0
+  }
+ }
+}

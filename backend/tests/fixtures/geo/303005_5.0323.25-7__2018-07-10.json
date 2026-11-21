@@ -1,0 +1,440 @@
+{
+ "parcel": {
+  "parcel_id": "303005_5.0323.25/7",
+  "teryt": "303005_5",
+  "voivodeship": "wielkopolskie",
+  "county": "powiat wrzesiński",
+  "commune": "Września",
+  "region": "Nadarzyce",
+  "parcel_number": "25/7",
+  "area_ha": 9.0808,
+  "geometry_wgs84": {
+   "type": "Polygon",
+   "coordinates": [
+    [
+     [
+      17.614674919247356,
+      52.301019439995585
+     ],
+     [
+      17.61506454653031,
+      52.30090626867192
+     ],
+     [
+      17.615426819629075,
+      52.30080046667744
+     ],
+     [
+      17.61617849326525,
+      52.30057534017209
+     ],
+     [
+      17.616563188982425,
+      52.30044850231827
+     ],
+     [
+      17.61659025633742,
+      52.30048037707192
+     ],
+     [
+      17.616848545522075,
+      52.30039436502874
+     ],
+     [
+      17.61759708388469,
+      52.30036781866515
+     ],
+     [
+      17.618327622503678,
+      52.300301500808544
+     ],
+     [
+      17.619032312934877,
+      52.300178035977176
+     ],
+     [
+      17.619908507164595,
+      52.299962949330755
+     ],
+     [
+      17.620633554472374,
+      52.29978367158063
+     ],
+     [
+      17.621708231598006,
+      52.301192710515224
+     ],
+     [
+      17.61904614338045,
+      52.30181012139046
+     ],
+     [
+      17.616304167220164,
+      52.30244599695225
+     ],
+     [
+      17.61495211864931,
+      52.3027594913209
+     ],
+     [
+      17.613774544904214,
+      52.3012810056924
+     ],
+     [
+      17.61383627529637,
+      52.30126305248504
+     ],
+     [
+      17.614674919247356,
+      52.301019439995585
+     ]
+    ]
+   ]
+  },
+  "geometry_2180_wkt": "POLYGON ((405566.559274035 493683.632867988, 405592.876986678 493670.541574041, 405617.345935351 493658.305453889, 405668.104575297 493632.294710071, 405694.057627087 493617.690847347, 405695.970380741 493621.199650969, 405713.3938288 493611.299841469, 405764.361310857 493607.373714584, 405814.01751997 493599.049455299, 405861.790745762 493584.405301635, 405921.060640764 493559.351594492, 405970.103948749 493538.476374175, 406046.342465826 493693.748173011, 405866.194827833 493765.854093364, 405680.646258068 493840.123759202, 405589.155490341 493876.742487324, 405505.743322811 493713.890297504, 405509.912847505 493711.813569947, 405566.559274035 493683.632867988))",
+  "centroid_lat": 52.301242,
+  "centroid_lon": 17.617668
+ },
+ "bundle": {
+  "soil": {
+   "status": "ok",
+   "data": {
+    "kbw_category": "I",
+    "category_source": "soil_map",
+    "soil_type_code": "ps",
+    "soil_type_name_pl": "piasek słabo gliniasty",
+    "wod_mm": {
+     "low": 75.4,
+     "mid": 230.1,
+     "high": 265.6
+    },
+    "wod_depth_cm": 100,
+    "layers": [
+     {
+      "top_cm": 0,
+      "bottom_cm": 5,
+      "sand_pct": {
+       "low": 51.6,
+       "mid": 78.0,
+       "high": 90.7
+      },
+      "silt_pct": {
+       "low": 4.4,
+       "mid": 14.6,
+       "high": 27.9
+      },
+      "clay_pct": {
+       "low": 2.0,
+       "mid": 5.7,
+       "high": 28.7
+      },
+      "soc_g_kg": {
+       "low": 5.3,
+       "mid": 17.0,
+       "high": 113.7
+      },
+      "bulk_density_g_cm3": {
+       "low": 0.67,
+       "mid": 1.34,
+       "high": 1.76
+      },
+      "theta_fc": {
+       "low": 0.17,
+       "mid": 0.387,
+       "high": 0.507
+      },
+      "theta_wp": {
+       "low": 0.03,
+       "mid": 0.053,
+       "high": 0.107
+      }
+     },
+     {
+      "top_cm": 5,
+      "bottom_cm": 15,
+      "sand_pct": {
+       "low": 62.2,
+       "mid": 78.3,
+       "high": 89.8
+      },
+      "silt_pct": {
+       "low": 4.9,
+       "mid": 15.0,
+       "high": 28.1
+      },
+      "clay_pct": {
+       "low": 2.0,
+       "mid": 5.4,
+       "high": 15.1
+      },
+      "soc_g_kg": {
+       "low": 5.6,
+       "mid": 9.2,
+       "high": 22.1
+      },
+      "bulk_density_g_cm3": {
+       "low": 1.0,
+       "mid": 1.34,
+       "high": 1.79
+      },
+      "theta_fc": {
+       "low": 0.136,
+       "mid": 0.319,
+       "high": 0.488
+      },
+      "theta_wp": {
+       "low": 0.031,
+       "mid": 0.053,
+       "high": 0.102
+      }
+     },
+     {
+      "top_cm": 15,
+      "bottom_cm": 30,
+      "sand_pct": {
+       "low": 43.9,
+       "mid": 75.5,
+       "high": 89.0
+      },
+      "silt_pct": {
+       "low": 4.2,
+       "mid": 15.0,
+       "high": 30.3
+      },
+      "clay_pct": {
+       "low": 2.0,
+       "mid": 5.8,
+       "high": 32.6
+      },
+      "soc_g_kg": {
+       "low": 3.0,
+       "mid": 8.3,
+       "high": 29.7
+      },
+      "bulk_density_g_cm3": {
+       "low": 1.1,
+       "mid": 1.43,
+       "high": 1.76
+      },
+      "theta_fc": {
+       "low": 0.108,
+       "mid": 0.304,
+       "high": 0.436
+      },
+      "theta_wp": {
+       "low": 0.03,
+       "mid": 0.053,
+       "high": 0.106
+      }
+     },
+     {
+      "top_cm": 30,
+      "bottom_cm": 60,
+      "sand_pct": {
+       "low": 27.5,
+       "mid": 72.6,
+       "high": 89.0
+      },
+      "silt_pct": {
+       "low": 4.1,
+       "mid": 14.8,
+       "high": 36.6
+      },
+      "clay_pct": {
+       "low": 1.9,
+       "mid": 6.0,
+       "high": 42.9
+      },
+      "soc_g_kg": {
+       "low": 1.0,
+       "mid": 4.9,
+       "high": 19.0
+      },
+      "bulk_density_g_cm3": {
+       "low": 1.1,
+       "mid": 1.46,
+       "high": 1.82
+      },
+      "theta_fc": {
+       "low": 0.08,
+       "mid": 0.3,
+       "high": 0.416
+      },
+      "theta_wp": {
+       "low": 0.022,
+       "mid": 0.08,
+       "high": 0.183
+      }
+     },
+     {
+      "top_cm": 60,
+      "bottom_cm": 100,
+      "sand_pct": {
+       "low": 37.6,
+       "mid": 70.1,
+       "high": 89.1
+      },
+      "silt_pct": {
+       "low": 2.4,
+       "mid": 15.0,
+       "high": 41.3
+      },
+      "clay_pct": {
+       "low": 1.1,
+       "mid": 14.0,
+       "high": 42.1
+      },
+      "soc_g_kg": {
+       "low": 0.3,
+       "mid": 1.8,
+       "high": 9.8
+      },
+      "bulk_density_g_cm3": {
+       "low": 1.11,
+       "mid": 1.48,
+       "high": 1.83
+      },
+      "theta_fc": {
+       "low": 0.094,
+       "mid": 0.294,
+       "high": 0.425
+      },
+      "theta_wp": {
+       "low": 0.022,
+       "mid": 0.086,
+       "high": 0.206
+      }
+     },
+     {
+      "top_cm": 100,
+      "bottom_cm": 200,
+      "sand_pct": {
+       "low": 37.9,
+       "mid": 71.6,
+       "high": 94.4
+      },
+      "silt_pct": {
+       "low": 0.5,
+       "mid": 14.3,
+       "high": 49.1
+      },
+      "clay_pct": {
+       "low": 1.0,
+       "mid": 12.4,
+       "high": 34.5
+      },
+      "soc_g_kg": {
+       "low": 0.3,
+       "mid": 1.4,
+       "high": 5.2
+      },
+      "bulk_density_g_cm3": {
+       "low": 1.18,
+       "mid": 1.53,
+       "high": 1.88
+      },
+      "theta_fc": {
+       "low": 0.076,
+       "mid": 0.292,
+       "high": 0.413
+      },
+      "theta_wp": {
+       "low": 0.022,
+       "mid": 0.08,
+       "high": 0.218
+      }
+     }
+    ]
+   },
+   "provenance": [
+    {
+     "source_id": "soil_map",
+     "name": "Mapa glebowo-rolnicza (GUGiK, WMS)",
+     "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer",
+     "fetched_at": "2026-11-21T15:12:14.252705Z",
+     "live": true,
+     "data_period": null,
+     "resolution": "1:5000",
+     "licence": "Fees: no conditions apply; AccessConstraints: otherRestrictions (WMS GetCapabilities)",
+     "attribution_pl": null
+    },
+    {
+     "source_id": "soilgrids_rest",
+     "name": "SoilGrids 2.0 (ISRIC) REST API",
+     "url": "https://rest.isric.org/soilgrids/v2.0/properties/query",
+     "fetched_at": "2026-11-21T15:07:50.665713Z",
+     "live": false,
+     "data_period": null,
+     "resolution": "250 m",
+     "licence": "CC BY 4.0",
+     "attribution_pl": null
+    }
+   ],
+   "notes_pl": [
+    "Niepewność: woda ogólnie dostępna z modelu SoilGrids (≈ 230 mm, rozdzielczość 250 m) odpowiadałaby kategorii IV; przyjęto kategorię I z mapy glebowo-rolniczej (skala 1:5000)."
+   ],
+   "error": null,
+   "elapsed_s": 0.01
+  },
+  "vegetation": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Analiza zdjęć satelitarnych Sentinel-2 nie jest jeszcze dostępna w tej wersji prototypu."
+   ],
+   "error": "vegetation: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "terrain": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Analiza ukształtowania terenu (NMT) nie jest jeszcze dostępna w tej wersji prototypu."
+   ],
+   "error": "terrain: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "hydro": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Dane o ciekach i rowach w otoczeniu działki nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "hydro: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "landcover": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Dane o pokryciu terenu (ESA WorldCover) nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "landcover: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "edo": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Wskaźniki Europejskiego Obserwatorium Suszy (EDO) nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "edo: not implemented yet",
+   "elapsed_s": 0.0
+  },
+  "imgw": {
+   "status": "missing",
+   "data": null,
+   "provenance": [],
+   "notes_pl": [
+    "Dane bieżące IMGW-PIB nie są jeszcze dostępne w tej wersji prototypu."
+   ],
+   "error": "imgw: not implemented yet",
+   "elapsed_s": 0.0
+  }
+ }
+}

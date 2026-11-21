@@ -1,0 +1,9 @@
+{
+  "soilgrids_points.json": {
+    "url": "https://rest.isric.org/soilgrids/v2.0/properties/query",
+    "downloaded": "2026-11-21",
+    "licence": "CC BY 4.0",
+    "content": "raw SoilGrids 2.0 /properties/query responses for query_point() of each test parcel",
+    "script": "scripts/a/prefetch_soilgrids.py"
+  }
+}
