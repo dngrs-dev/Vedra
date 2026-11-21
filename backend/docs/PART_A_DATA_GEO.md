@@ -135,7 +135,7 @@ Cache: `geo.uldk`, no expiry.
 ## 3. Tasks by checkpoint (tick as you go)
 
 ### T0 (with B, ≈ 20 min)
-- [ ] One of you commits the T0 files from `CONTRACTS.md` §5; both pull.
+- [x] One of you commits the T0 files from `CONTRACTS.md` §5; both pull.
 
 ### CP0 — spikes (→ 15:30)
 - [ ] `scripts/a/spike_sources.py`: one call to ULDK, soil map WMS (GetCapabilities + GetFeatureInfo), SoilGrids REST, Earth Search STAC, one COG window read, NMT WCS GetCapabilities + small GetCoverage, MPHP WFS GetCapabilities, Overpass, WorldCover, EDO GetCapabilities, IMGW synop + warningshydro. Write exact URLs, layer names, attribute names into `config/geo_sources.yaml`.
