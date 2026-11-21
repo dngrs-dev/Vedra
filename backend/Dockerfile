@@ -23,6 +23,8 @@ COPY tests/fixtures/ ./tests/fixtures/
 RUN --mount=type=bind,source=data,target=/source-data \
     mkdir /app/data /app/state \
     && if [ -d /source-data/a ]; then cp -r /source-data/a /app/data/; fi \
+    && if [ -f /source-data/b/imgw_daily.sqlite ]; then mkdir /app/data/b \
+        && cp /source-data/b/imgw_daily.sqlite /app/data/b/; fi \
     && chown nobody /app /app/data /app/state
 USER nobody
 # The backend API port is documented in README.md §5.

@@ -9,7 +9,7 @@ from statistics import mean
 
 import pandas as pd
 
-from app.analytics import crops, kbw, open_meteo
+from app.analytics import crops, imgw_weather, kbw, periods, weather as weather_provider
 from app.analytics.models import KbwResult
 from app.config import CONFIG_DIR
 from app.contracts.geo import GeoRequest, KbwSoilCategory
@@ -78,7 +78,7 @@ def _metrics(cases: list[tuple[KbwResult, int | None, str | None]]) -> list[str]
     return lines
 
 
-async def build(table: pd.DataFrame, fixtures: Path, crop: str, offline_reason: str | None) -> str:
+async def build(table: pd.DataFrame, fixtures: Path, crop: str, offline_reason: str | None, imgw_only: bool) -> str:
     provider = FixtureGeoProvider(fixtures)
     parcels = sorted(await asyncio.to_thread(provider.recorded_parcels), key=lambda parcel: parcel.parcel_id)
     if not parcels:
@@ -88,8 +88,11 @@ async def build(table: pd.DataFrame, fixtures: Path, crop: str, offline_reason: 
         "# Walidacja KBW",
         "",
         f"Uprawa porównawcza to **{crops.load()[crop].name_pl.lower()}**. Klasa gleby pochodzi z zapisu części A dla danej działki i daty.",
-        "Meteorologiczna część porównania korzysta z tego samego archiwum Open-Meteo i obliczeń KBW co aplikacja.",
-        "Podana różnica to KBW Vedry minus KBW MRiRW. Wynik z obwieszczenia dotyczy gminy, a wynik Vedry punktu w siatce meteorologicznej przypisanego do działki.",
+        (
+            "Porównanie korzysta z dobowych pomiarów stacji IMGW-PIB oraz tych samych obliczeń KBW co aplikacja."
+            if imgw_only else "Porównanie korzysta z doboru pogody i obliczeń KBW stosowanych przez aplikację."
+        ),
+        "Podana różnica to KBW Vedry minus KBW MRiRW. Wynik z obwieszczenia dotyczy gminy. Vedra wykorzystuje komórkę modelu lub pomiary stacji przypisanej do działki.",
         "Ocena Vedry używa progów z 2019 r. Dla 2018 r. zgodność werdyktów ma charakter orientacyjny ze względu na wcześniejsze przepisy.",
         "[Progi dla 2018 r.](https://eli.gov.pl/eli/DU/2017/732/ogl), [progi od 2019 r.](https://eli.gov.pl/eli/DU/2019/739/ogl)",
         "",
@@ -101,7 +104,7 @@ async def build(table: pd.DataFrame, fixtures: Path, crop: str, offline_reason: 
         "```sh",
         "python -m pip install pypdf pyarrow",
         "python -m scripts.b.build_kbw_official --pdf-2018 2018-13.pdf --pdf-2023 2023-25.pdf",
-        "python -m scripts.b.backtest",
+        "python -m scripts.b.backtest --imgw-only" if imgw_only else "python -m scripts.b.backtest",
         "```",
         "",
     ]
@@ -124,11 +127,15 @@ async def build(table: pd.DataFrame, fixtures: Path, crop: str, offline_reason: 
             verdicts = published.loc[published.soil_category == category, "verdict"]
             official_verdict = verdicts.iloc[0] if not verdicts.empty else None
             if offline_reason:
-                weather = None
+                fetched = None
+            elif imgw_only:
+                period = periods.latest_completed(day)
+                fetched = await asyncio.to_thread(
+                    imgw_weather.read_weather, parcel.centroid_lat, parcel.centroid_lon, day, period,
+                ) if period is not None else None
             else:
-                fetched = await open_meteo.fetch_weather(parcel.centroid_lat, parcel.centroid_lon, day)
-                weather = fetched.data
-            result = kbw.assess(weather, category, crop, day)
+                fetched = await weather_provider.fetch_weather(parcel.centroid_lat, parcel.centroid_lon, day)
+            result = kbw.assess(fetched.data if fetched is not None else None, category, crop, day)
             cases.append((result, official, official_verdict))
             fields = (
                 parcel.parcel_id, parcel.commune, category or "—", _number(official),
@@ -142,7 +149,7 @@ async def build(table: pd.DataFrame, fixtures: Path, crop: str, offline_reason: 
 
 async def _run(args: argparse.Namespace) -> None:
     try:
-        document = await build(pd.read_parquet(args.official), args.fixtures, args.crop, args.offline_reason)
+        document = await build(pd.read_parquet(args.official), args.fixtures, args.crop, args.offline_reason, args.imgw_only)
         args.output.write_text(document, encoding="utf-8")
         print(f"Zapisano wyniki walidacji w pliku {args.output}.")
     finally:
@@ -155,7 +162,9 @@ def main() -> None:
     parser.add_argument("--fixtures", type=Path, default=FIXTURES_DIR)
     parser.add_argument("--crop", choices=tuple(crops.load()), default=DEFAULT_CROP, help="Kod uprawy.")
     parser.add_argument("--output", type=Path, default=VALIDATION)
-    parser.add_argument("--offline-reason", help="Pomiń pobieranie pogody i wpisz przyczynę w dokumencie.")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--offline-reason", help="Pomiń pobieranie pogody i wpisz przyczynę w dokumencie.")
+    mode.add_argument("--imgw-only", action="store_true", help="Użyj tylko lokalnego archiwum pomiarów IMGW-PIB.")
     asyncio.run(_run(parser.parse_args()))
 
 

@@ -72,7 +72,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Wygeneruj przykładowe raporty Vedry na podstawie zapisanych danych geo.")
     parser.add_argument("--fixtures", type=Path, default=FIXTURES_DIR, help="Katalog zapisanych danych przestrzennych.")
     parser.add_argument("--output", type=Path, default=OUTPUT, help="Katalog raportów PDF.")
-    parser.add_argument("--offline", action="store_true", help="Pomiń archiwum pogody i pokaż w raportach jego brak.")
+    parser.add_argument("--offline", action="store_true", help="Korzystaj z zapisanych pomiarów IMGW-PIB i danych geo.")
     asyncio.run(_run(parser.parse_args()))
 
 

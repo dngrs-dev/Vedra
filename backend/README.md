@@ -107,7 +107,8 @@ użyj `POST /api/analyses` z poniższą demonstracyjną działką i jedną z dat
 
 Skopiuj zwrócony `analysis_id`, sprawdź `GET /api/analyses/{id}` do stanu `done`, a potem
 otwórz `/api/analyses/{id}/report.pdf`. Tryb `fake` dostarcza syntetyczne dane przestrzenne,
-a backend nadal próbuje pobrać pogodę. Przy limicie usługi raport wyjaśnia brak wyniku pogodowego.
+a backend nadal próbuje pobrać pogodę. Gdy model nie dostarcza danych potrzebnych do KBW,
+backend korzysta z dołączonego archiwum dobowego IMGW-PIB i wskazuje stację w raporcie.
 
 | Zmienna | Wartość domyślna | Znaczenie |
 | --- | --- | --- |
@@ -125,7 +126,8 @@ W Dockerze można oddzielić dane raportów od dołączonych danych źródłowyc
 
 | Źródło | Zakres i sposób pozyskania | Warunki |
 | --- | --- | --- |
-| Open-Meteo, ERA5 / ERA5-Land | Pobieranie na żądanie od 1 stycznia 1991 r. do daty analizy. Dzienne opady, ET0, temperatura, usłonecznienie i długość dnia, a także dobowe średnie wilgotności gleby z obserwacji godzinowych modelu. Prognoza uzupełnia końcową lukę archiwum i może posłużyć jako dane do planowania nawadniania dla bieżącej daty. | Dane CC BY 4.0 z przypisaniem autorstwa. Bezpłatna usługa ma limity i warunki użycia niekomercyjnego. [Warunki Open-Meteo](https://open-meteo.com/en/terms). |
+| Open-Meteo, ERA5 / ERA5-Land | Pobieranie na żądanie od 1 stycznia 1991 r. do daty analizy. Dzienne opady, ET0, temperatura, usłonecznienie i długość dnia oraz średnie dobowe wilgotności gleby. Prognoza uzupełnia końcową lukę archiwum i może posłużyć jako dane do planowania nawadniania dla bieżącej daty. | Dane CC BY 4.0 z przypisaniem autorstwa. Bezpłatna usługa ma limity i warunki użycia niekomercyjnego. [Warunki Open-Meteo](https://open-meteo.com/en/terms). |
+| IMGW-PIB, dobowe SYNOP | Dołączona baza SQLite obejmuje opad, temperaturę i usłonecznienie z 63 stacji. Zakres dostępnych plików to 1991-01-01 – 2026-10-31. Dane pobrano 21.11.2026. Daty pobrań i sumy kontrolne plików są w tabeli `input`. | Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone. [Regulamin](https://danepubliczne.imgw.pl/pl/regulations). |
 | ULDK i mapa glebowo-rolnicza | Geometria i dane opisowe działki oraz kategoria gleby. Część A odpytuje usługi na żądanie i odczytuje zapisane odpowiedzi z pamięci podręcznej. | [ULDK GUGiK](https://uldk.gugik.gov.pl/), [informacja o usłudze WMS](https://www.geoportal.gov.pl/aktualnosci/usluga-wms-prezentujaca-mape-glebowo-rolnicza-dostepna-w-serwisie-www-geoportal-gov-pl/). |
 | SoilGrids 2.0 | Profil glebowy o rozdzielczości 250 m. Dla działek kontrolnych część A korzysta także z odpowiedzi pobranych 21.11.2026. | CC BY 4.0, ISRIC. [Warunki SoilGrids](https://isric.org/explore/soilgrids/). |
 | Sentinel-2, NMT, hydrografia, pokrycie terenu, EDO i IMGW | Docelowe źródła części A to Sentinel-2 przez Earth Search, GUGiK lub Copernicus DEM, MPHP lub OSM, ESA WorldCover, Copernicus EDO oraz bieżące dane IMGW. Potok B przyjmuje zakresy i metadane zwracane przez część A. W sprawdzonej integracji te źródła były niedostępne. | Źródła i status sprawdzenia warunków opisuje konfiguracja części A `config/geo_sources.yaml` na gałęzi `part_A`. |
@@ -135,6 +137,11 @@ Zapisane odpowiedzi geo z 21.11.2026 służą lokalnym testom oraz demonstracji 
 Potok za każdym uruchomieniem oblicza wynik i zalecenia na podstawie wejściowych danych.
 Raport wskazuje źródło, datę pobrania, warunki i przypisanie autorstwa w zakresie dostępnych metadanych.
 [Metodyka](docs/METHODOLOGY.md).
+
+Aby odtworzyć bazę IMGW-PIB, uruchom w katalogu `backend` polecenie
+`python -m scripts.b.build_imgw_weather --cache-dir <katalog-roboczy>`. Budowa pobiera
+publiczne pliki SYNOP i zapisuje `data/b/imgw_daily.sqlite`. Do aktualizacji użyj nowego
+katalogu roboczego, aby odczytać nowsze wersje opublikowanych plików.
 
 ## 7. Komponenty i licencje
 
@@ -154,7 +161,7 @@ Zasady korzystania z narzędzia wspierającego rozwój opisuje [wykaz użycia AI
 
 ## 8. Ograniczenia
 
-- Werdykt działki jest oszacowaniem z siatki meteorologicznej. Urzędowe obwieszczenia podają wynik dla gminy.
+- Werdykt działki jest oszacowaniem z siatki meteorologicznej lub ze stacji IMGW-PIB. Urzędowe obwieszczenia podają wynik dla gminy.
 - Geometria i kategoria gleby mogą pochodzić ze źródeł o różnej rozdzielczości. Zalecenia przestrzenne
   zależą od pokrycia danymi i od szczegółowości modelu terenu.
 - Brak pełnych danych pogodowych może uniemożliwić obliczenie KBW, historii lub dawki. Ograniczenia
@@ -173,8 +180,8 @@ W katalogu `backend` uruchom `python -m pytest tests/b`. W zintegrowanym drzewie
 - W raporcie porównaj datę i kategorię gleby, okres KBW, wartość i próg. Sprawdź wskazaną przesłankę,
   źródło i odsyłacz przy każdym zaleceniu.
 - Dla dat historycznych przejrzyj urzędowe wartości odpowiednich gmin. Tabela podaje przypadki
-  ocenione, rozbieżności metod oraz brakujące porównania. W CP4 dzienny limit Open-Meteo uniemożliwił
-  obliczenie błędów liczbowych. [Walidacja KBW](docs/VALIDATION.md).
+  ocenione, rozbieżności metod oraz brakujące porównania. Skrypt obsługuje porównanie z lokalnymi
+  pomiarami IMGW-PIB. [Walidacja KBW](docs/VALIDATION.md).
 - Testy sprawdzają między innymi progi, brak danych, zapis raportu, odczyt po restarcie i PDF.
   Scenariusze porównawcze oraz kolejne kroki dokumentuje [lista kontrolna części B](docs/PART_B_ANALYTICS_PRODUCT.md).
 
@@ -187,6 +194,6 @@ podczas przygotowania przykładów. Raporty wskazują ten brak obok dostępnych 
 - [Inowrocław, 31.05.2023](data/b/samples/reports/inowroclaw-2023-05-31.pdf)
 - [Kętrzyn, 21.11.2026](data/b/samples/reports/ketrzyn-2026-11-21.pdf)
 
-W zintegrowanym drzewie i w katalogu `backend` odtwórz przykłady poleceniem
-`python -m scripts.b.generate_sample_reports --offline`. Pominięcie `--offline` pozwala
-wykorzystać pogodę, gdy archiwum odpowiada.
+W zintegrowanym drzewie i w katalogu `backend` wygeneruj raporty z zapisanymi danymi geo
+i archiwum IMGW-PIB poleceniem `python -m scripts.b.generate_sample_reports --offline`.
+Bez tej opcji aplikacja sprawdza dostępność Open-Meteo przed użyciem danych stacyjnych.

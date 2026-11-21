@@ -7,7 +7,7 @@ from dataclasses import replace
 from datetime import date
 
 from app.analytics import causes, crops, edo_signal, irrigation, kbw, open_meteo, periods, season
-from app.analytics import soil_moisture, spi, vegetation_signal, vulnerability, water_balance
+from app.analytics import soil_moisture, spi, vegetation_signal, vulnerability, water_balance, weather as weather_provider
 from app.analytics.models import AnalysisContext, AnalysisRequest, WeatherData
 from app.config import analysis_today
 from app.contracts.common import SourceResult, SourceStatus
@@ -88,7 +88,7 @@ async def run_analysis(
 
     progress(text.PROGRESS_DATA)
     weather, bundle = await asyncio.gather(
-        open_meteo.fetch_weather(parcel.centroid_lat, parcel.centroid_lon, req.analysis_date),
+        weather_provider.fetch_weather(parcel.centroid_lat, parcel.centroid_lon, req.analysis_date),
         geo.collect(GeoRequest(parcel=parcel, analysis_date=req.analysis_date)),
     )
     if on_geo is not None:

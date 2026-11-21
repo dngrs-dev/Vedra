@@ -13,6 +13,20 @@ analizy. Prognoza na kolejne dni jest osobnym wejściem dla bieżącej oceny naw
 [Archiwum Open-Meteo](https://open-meteo.com/en/docs/historical-weather-api),
 [API prognoz](https://open-meteo.com/en/docs).
 
+Gdy dane modelu nie wystarczają do obliczenia KBW, aplikacja może użyć dobowych pomiarów
+opadu, średniej temperatury i usłonecznienia IMGW-PIB. Wybiera najbliższą stację z kompletem
+pomiarów dla najnowszego zakończonego okresu. Gdy w lokalnym archiwum brakuje tego okresu,
+aplikacja korzysta z najbliższej stacji z najnowszymi dostępnymi pomiarami do daty analizy
+i nadal sprawdza, które okresy historyczne da się ocenić. Wybór lokalizacji opiera się na
+kodzie stacji i aktualnej metryce IMGW-PIB. Raport pokazuje nazwę stacji i jej przybliżoną
+odległość od działki. Różnice lokalne, zmiany położenia stacji i luki w obserwacjach wpływają
+na wynik. Jedna stacja dostarcza całą zastępczą serię dla KBW i historii. Archiwum nie zawiera
+wilgotności gleby ani ET₀. Braki pomiaru pozostają puste, a oficjalny status braku zjawiska
+oznacza zerowy opad lub zerowe usłonecznienie.
+[Dane dobowe IMGW-PIB](https://danepubliczne.imgw.pl/data/dane_pomiarowo_obserwacyjne/dane_meteorologiczne/dobowe/synop/),
+[metadane stacji](https://danepubliczne.imgw.pl/api/data/meteo),
+[warunki wykorzystania](https://danepubliczne.imgw.pl/pl/regulations).
+
 ## Klimatyczny bilans wodny
 
 Vedra odejmuje szacowaną ewapotranspirację potencjalną od sumy opadów. Wynik dla ostatniego

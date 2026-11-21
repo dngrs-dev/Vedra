@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
-from app.analytics import open_meteo, periods
+from app.analytics import imgw_weather, open_meteo, periods
 from app.analytics.models import WeatherData, WeatherDay
 from app.api import routes_analyses
 from app.api.deps import get_geo_provider
@@ -117,6 +117,7 @@ def test_missing_weather_still_yields_a_report(monkeypatch):
         status=SourceStatus.MISSING, notes_pl=[text.WEATHER_ARCHIVE_UNAVAILABLE], error="HTTP 429"
     ))
     monkeypatch.setattr(open_meteo, "fetch_weather", fetch)
+    monkeypatch.setattr(imgw_weather, "read_weather", lambda *_: SourceResult[WeatherData](status=SourceStatus.MISSING))
 
     with TestClient(app) as client:
         started = client.post("/api/analyses", json=_request())
@@ -227,6 +228,7 @@ def test_all_assessment_sources_missing_still_yields_saved_report(monkeypatch):
     monkeypatch.setattr(open_meteo, "fetch_weather", AsyncMock(return_value=SourceResult[WeatherData](
         status=SourceStatus.MISSING, notes_pl=[text.WEATHER_ARCHIVE_UNAVAILABLE],
     )))
+    monkeypatch.setattr(imgw_weather, "read_weather", lambda *_: SourceResult[WeatherData](status=SourceStatus.MISSING))
 
     with TestClient(app) as client:
         started = client.post("/api/analyses", json=_request())

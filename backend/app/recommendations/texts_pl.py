@@ -20,6 +20,22 @@ KBW_NO_DROUGHT = "Oszacowany bilans wodny jest równy progowi lub wyższy."
 KBW_NEAR_THRESHOLD = "Wynik jest na granicy progu przy porównaniu metod obliczania bilansu."
 WEATHER_ARCHIVE_UNAVAILABLE = "Brak dostępnych danych pogodowych z archiwum Open-Meteo."
 WEATHER_ARCHIVE_RATE_LIMITED = "Archiwum Open-Meteo ograniczyło pobieranie danych. Analiza korzysta z danych zapisanych wcześniej, jeśli są dostępne."
+IMGW_DAILY_NAME = "IMGW-PIB – pomiary dobowe (stacja {station})"
+IMGW_DAILY_RESOLUTION = "pomiary punktowe na stacji"
+IMGW_DAILY_LICENCE = "Dane publiczne IMGW-PIB, § 5 regulaminu udostępniania"
+# https://danepubliczne.imgw.pl/pl/regulations § 5 ust. 3–4 requires these notices for processed data.
+IMGW_DAILY_ATTRIBUTION = (
+    "Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. "
+    "Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone."
+)
+IMGW_DAILY_LIMITATION = (
+    "Użyto pomiarów stacji {station} (około {distance} km od środka działki). "
+    "Opady na działce mogą się różnić od pomiarów stacji."
+)
+IMGW_DAILY_VARIABLES_MISSING = (
+    "Archiwum stacji obejmuje opad, temperaturę i usłonecznienie. "
+    "Brak w nim wilgotności gleby i ewapotranspiracji referencyjnej ET₀ potrzebnej do oceny dawki nawadniania."
+)
 WEATHER_FORECAST_UNAVAILABLE = "Brak dostępnych danych z modelu prognozy Open-Meteo."
 WEATHER_COVERAGE_INCOMPLETE = "W danych pogodowych są luki w dniach lub zmiennych."
 WEATHER_RECENT_MODEL = "Ostatnie dni uzupełniono danymi z modelu prognozy. Dla tych dni brakuje wilgotności gleby z ERA5-Land."
