@@ -174,7 +174,10 @@ def get_geo_provider() -> GeoProvider:
 ### CP4 — validation and robustness (→ 07:00)
 - [x] `scripts/b/build_kbw_official.py` (MRiRW obwieszczenia → `data/b/kbw_official.parquet`, legend read from the PDFs) and `scripts/b/backtest.py` → `docs/VALIDATION.md`.
   The official annexes and all historical matches are verified. Numeric agreement is pending access to the Open-Meteo archive (HTTP 429).
-- [ ] `tests/contract/test_pipeline_on_fixtures.py` green for every fixture; end-to-end with `real` on all parcels × 3 dates; timings.
+- [x] `tests/contract/test_pipeline_on_fixtures.py` green for every fixture; end-to-end with `real` on all parcels × 3 dates; timings.
+  Local integration of Part A `8a4099b` finished all 24 API scenarios on both passes.
+  The eight first-lookups took 0.453–2.110 s; the 24 repeated analyses took 0.062–0.079 s.
+  Timings include live geo access or its cache and the missing-weather path after the verified archive quota error.
 - [ ] Error paths: 422/404/503 with Polish messages; job timeout; every source `missing` → still a report.
 
 ### CP5 — docs and release (→ 10:00)
