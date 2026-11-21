@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-/**
- * КОНТРАКТ С БЭКЕНДОМ.
- * Единственный источник правды о формате ответа POST /analyze.
- * Бэкенд-разработчик отдаёт JSON ровно такой формы; фронт валидирует ответ через AnalysisSchema.
- * Даты — ISO (YYYY-MM-DD для analysisDate, полный ISO для generatedAt/fetchedAt).
- */
+// View model for the frontend's demonstration analysis.
 
 export const WaterStateSchema = z.enum(['optimal', 'attention', 'critical']);
 export const DroughtRiskLevelSchema = z.enum(['low', 'moderate', 'high']);
@@ -90,27 +85,11 @@ export type Confidence = z.infer<typeof ConfidenceSchema>;
 export type Priority = z.infer<typeof PrioritySchema>;
 export type SourceStatus = z.infer<typeof SourceStatusSchema>;
 
-/** Тело запроса POST /analyze */
 export interface AnalysisRequest {
   parcelId: string;
   lat: number;
   lng: number;
   areaHa: number;
-  /** Контур делянки [[lat, lng], ...] (замкнутое кольцо) — обязателен для самостоятельно выделенных областей */
-  geometry: [number, number][];
-  /** true, если область выделена пользователем вручную, а не взята из ewidencji (ULDK) */
-  isCustomArea: boolean;
-  /**
-   * Все делянки выбора с контурами. Для одной делянки — один элемент,
-   * для группового выбора (рамка Ctrl + ЛКМ) — все найденные делянки. Для isCustomArea — пустой массив.
-   */
-  parcels: { id: string; geometry: [number, number][] }[];
-  /**
-   * Объединённый контур выбранных делянок (мультиполигон [[внешний, ...дыры], ...]),
-   * только для группового выбора. Удобно для расчёта по всей площади сразу.
-   */
-  outline?: [number, number][][][];
   cropIds: string[];
-  /** YYYY-MM-DD — сегодня или любая дата за последние 10 лет */
   date: string;
 }

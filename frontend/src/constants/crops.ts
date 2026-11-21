@@ -17,3 +17,14 @@ export const CROPS: readonly Crop[] = [
 ];
 
 export const DEFAULT_CROP_IDS = ['winter-wheat'];
+
+// Categories from backend/config/crops.yaml. The existing corn option uses grain maize.
+export const BACKEND_CROP_CODES: Readonly<Record<string, string>> = {
+  'winter-wheat': 'winter_cereals',
+  corn: 'grain_maize',
+  rapeseed: 'rapeseed',
+  'spring-barley': 'spring_cereals',
+  potato: 'potatoes',
+  'sugar-beet': 'sugar_beet',
+  rye: 'winter_cereals'
+};

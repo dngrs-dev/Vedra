@@ -106,7 +106,8 @@ button { font: inherit; cursor: pointer; }
 .card__title { margin: 0 0 10px; font-size: 16px; font-weight: 700; line-height: 1.25; }
 .card__foot { margin-top: 10px; }
 .results { display: flex; flex-direction: column; gap: 12px; transition: opacity 0.2s; }
-.results.is-stale { opacity: 0.55; pointer-events: none; }
+.analysis-crop { margin: 0; font-size: 16px; }
+.backend-report + .backend-report { margin-top: 16px; }
 
 .status-line { display: flex; gap: 6px; font-weight: 600; margin-bottom: 8px; }
 .st { font-weight: 700; }

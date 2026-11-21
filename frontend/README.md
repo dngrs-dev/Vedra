@@ -8,7 +8,7 @@ Aplikacja webowa dla rolników: wskaż działkę (ID lub klik na mapie), wybierz
 
 ```bash
 npm install
-cp .env.example .env     # domyślnie VITE_USE_MOCK=true (dane demonstracyjne)
+cp .env.example .env     # domyślnie backend dla jednej działki ewidencyjnej
 npm run dev              # http://localhost:5173
 npm run build            # typecheck + produkcyjny build do dist/
 ```
@@ -23,8 +23,8 @@ Build to zwykłe pliki statyczne (`dist/`). Adresy: `/` (strona główna), `/map
    - **Zwykły wybór** — ramka = dokładnie zaznaczony prostokąt (własny obszar, max 5000 ha).
    - **Inteligentny wybór** (domyślny) — zaznaczane są wszystkie działki z ramki (`findParcelsInArea`: siatka punktów co ≥12 m, limit 150 działek / 300 zapytań). Działka trafia do wyboru tylko, gdy **co najmniej 50% jej powierzchni** leży w ramce (`MIN_INSIDE_SHARE` w `services/parcelApi.ts`) — pola tylko zahaczone krawędzią są pomijane. Gdy w ramce nie ma działki albo ULDK nie odpowiada — używany jest sam prostokąt.
    - Znalezione działki są **łączone w jeden kontur** (`utils/union.ts`: usuwanie wspólnych krawędzi, sklejanie wierzchołków z tolerancją ~0,2 m, obsługa styków typu „T”, dziury). Działki rozdzielone drogą/rowem dają kilka części — luki nie są zamalowywane, bo to nie jest ziemia użytkownika.
-4. **Potwierdź działkę** → dopiero teraz startuje obliczenie (backend). Zmiana uprawy/daty po potwierdzeniu przelicza wynik.
-5. **Generuj Raport PDF** → `/report`.
+4. **Potwierdź działkę** → uruchamia analizę. Zmiana uprawy lub daty wykorzystuje wynik z pamięci aplikacji lub uruchamia nowe zadanie.
+5. **Generuj Raport PDF** otwiera `/report`. Analiza backendowa udostępnia plik przez **Pobierz PDF**, a raport demonstracyjny korzysta z dialogu drukowania przeglądarki.
 
 Granice województw: `public/data/wojewodztwa.geojson` (jeśli plik istnieje), w przeciwnym razie CDN jsDelivr z repozytorium `ppatrzyk/polska-geojson` (MIT). Nazwy pól w GeoJSON są wykrywane automatycznie (`nazwa`, `name`, `JPT_NAZWA_`…). Chcesz pracować offline — wrzuć plik do `public/data/`.
 
@@ -42,23 +42,23 @@ src/
   components/          współdzielone, bez logiki biznesowej
     layout/ map/ charts/ ui/
   services/            warstwa danych (jedyne miejsce rozmów z siecią)
-    analysisApi.ts       analyze() — mock lub POST /analyze + walidacja zod
+    analysisApi.ts       uruchamianie zadania, odczyt postępu i adres PDF
     mockAnalysis.ts      deterministyczne dane demo
     parcelApi.ts         GUGiK ULDK (kontur działki po ID / po kliknięciu)
-  types/               analysis.ts (KONTRAKT z backendem, zod), parcel.ts
+  types/               backendReport.ts (walidacja Zod), analysis.ts (model demo), parcel.ts
   constants/           pl.ts (wszystkie teksty), crops.ts, poland.ts
   utils/               geo, format, rng, validation
 ```
 
-Zasady: komponenty nie wywołują `fetch` — tylko przez `services/` i hooki; teksty UI tylko w `constants/pl.ts`; kształt odpowiedzi backendu zdefiniowany raz (`types/analysis.ts`).
+Komponenty korzystają z API przez `services/` i hooki. `types/backendReport.ts` waliduje pola raportu wykorzystywane przez interfejs.
 
 ## Podłączenie backendu
 
-1. W `.env`: `VITE_USE_MOCK=false`, `VITE_API_URL=https://twoj-backend/api`.
-2. Backend implementuje `POST /analyze`:
-   - **Request:** `{ parcelId, lat, lng, areaHa, geometry: [[lat,lng],…], isCustomArea, parcels: [{ id, geometry }], cropIds[], date: "YYYY-MM-DD" }` (`AnalysisRequest`). Przy wyborze grupowym `parcels` zawiera wszystkie działki z ramki, `outline` — ich połączony kontur (multipolygon `[[zewnętrzny, ...dziury], ...]`), `geometry` to sama ramka, `areaHa` to suma powierzchni. Dla `isCustomArea=true` backend używa wyłącznie `geometry` (id typu `OBSZAR_lat_lng` nie istnieje w ewidencji).
-   - **Response:** JSON zgodny z `AnalysisSchema` w `src/types/analysis.ts` — odpowiedź jest walidowana, niezgodność = czytelny błąd w UI.
-3. Nic więcej we froncie nie trzeba zmieniać.
+Uruchom aplikację z gałęzi `backend` na `127.0.0.1:8000` zgodnie z `backend/README.md`. Vite domyślnie przekazuje żądania `/api` na ten adres. Do lokalnej próby z `GEO_PROVIDER=fixtures` wybierz zapisaną działkę, np. `040704_2.0012.63/1` z datą `2023-05-31`. Do hostingu ustaw `VITE_API_URL` na publiczny adres zakończony `/api` lub skonfiguruj reverse proxy.
+
+Dla jednej potwierdzonej działki ewidencyjnej frontend przesyła `parcel_id`, `crop_code` i `analysis_date` do `POST /api/analyses`. Następnie odczytuje stan i raport przez `GET /api/analyses/{analysis_id}` oraz udostępnia plik z `GET /api/analyses/{analysis_id}/report.pdf`. Każda wybrana kategoria uprawy otrzymuje osobny raport. Przypisanie opcji formularza do kategorii backendu znajduje się w `src/constants/crops.ts`.
+
+Grupy działek, własne obszary i zastępcze obrysy demo korzystają z jawnie oznaczonych danych demonstracyjnych. `VITE_USE_MOCK=true` uruchamia tryb demo dla każdego wyboru. Błąd analizy działki ewidencyjnej jest widoczny w panelu i można ponowić próbę.
 
 ## Co jest wymagane przez ZT, a gdzie to jest w UI
 
@@ -68,18 +68,15 @@ Zasady: komponenty nie wywołują `fetch` — tylko przez `services/` i hooki; t
 | Potwierdzenie przed obliczeniem | `AnalysisPanel` (`store.confirmed`) |
 | Wybór uprawy | `CropSelect` |
 | Dowolna data z ostatnich 10 lat | `DateField` |
-| Ocena bieżąca + 10 lat | `MoistureCard` |
-| Rekomendacje z uzasadnieniem | `RecommendationsCard` („Dlaczego?”) |
-| Źródła, daty, ograniczenia, niepewność | `BasisCard`, `ConfidenceBadge`, raport |
-| Brak danych komunikowany wprost | `Gauge` („Brak danych”), `limitations` |
-| Raport do zapisu / wydruku | `ReportPage` → druk → PDF |
+| Ocena bieżąca i historia | `BackendReportCards`; w demo `MoistureCard` |
+| Rekomendacje, źródła i ograniczenia | `BackendReportCards`; w demo `RecommendationsCard` i `BasisCard` |
+| Raport do zapisu / wydruku | `ReportPage` udostępnia PDF z backendu lub wydruk demo |
 | Działa na telefonie | responsywny CSS |
 
 ## Znane ograniczenia (TODO)
 
 - Granice województw ładowane z CDN w przeglądarce — nie mogłem ich zweryfikować w środowisku budowy (brak sieci). Jeśli nazwy się nie wyświetlą poprawnie, sprawdź pola w GeoJSON (`services/regionsApi.ts → NAME_KEYS`). Uproszczony kontur Polski w `constants/poland.ts` to tylko zapas na czas ładowania.
 - Tryb demo: wartości są losowe (deterministyczne), widoczny baner „dane demonstracyjne”.
-- Pasek postępu analizy działa na timerze — gdy backend zacznie raportować etapy, przekazać `step` do `AnalysisProgress`.
 - ULDK bywa blokowany przez CORS — wtedy przy kliknięciu pokazywany jest kontur demo (z komunikatem); docelowo proxy przez backend.
 - Brak testów automatycznych (do dodania: Vitest dla `utils/` i `services/mockAnalysis`).
 

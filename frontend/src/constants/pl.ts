@@ -98,9 +98,49 @@ export const pl = {
   empty: 'Wskaż działkę na mapie lub wpisz jej identyfikator, aby zobaczyć ocenę sytuacji wodnej.',
   error: {
     title: 'Nie udało się wykonać analizy',
-    retry: 'Spróbuj ponownie'
+    retry: 'Spróbuj ponownie',
+    connection: 'Brak połączenia z serwerem',
+    invalidParcel: 'Identyfikator wybranej działki jest nieprawidłowy.',
+    invalidResponse: 'Serwer zwrócił nieprawidłową odpowiedź.',
+    unknown: 'Wystąpił nieznany błąd analizy.'
   },
-  demoBanner: 'Dane demonstracyjne — backend nie jest jeszcze podłączony. Wyniki nie odzwierciedlają rzeczywistości.',
+  demoBanner: 'Dane demonstracyjne. Wyniki są przykładowe i nie opisują wybranego obszaru.',
+
+  backend: {
+    preparing: 'Uruchamiam analizę…',
+    kbw: 'Klimatyczny bilans wodny (KBW)',
+    verdict: {
+      drought: 'Susza rolnicza według KBW',
+      no_drought: 'Brak suszy rolniczej według KBW',
+      not_applicable: 'Próg KBW nie ma zastosowania',
+      not_recommended: 'Uprawa niezalecana na tej glebie',
+      off_season: 'Poza okresem oceny KBW',
+      unavailable: 'Ocena KBW niedostępna'
+    },
+    period: 'Okres oceny',
+    soilCategory: 'Kategoria gleby',
+    threshold: 'Próg KBW',
+    distanceToThreshold: 'Odległość od progu KBW',
+    signals: 'Wskaźniki uzupełniające',
+    availability: { ok: 'Dostępne', partial: 'Dane częściowe', missing: 'Brak danych' },
+    history: 'Podatność historyczna',
+    assessedYears: 'Lata objęte oceną',
+    droughtYears: 'Lata z suszą',
+    noDroughtYears: 'Nie stwierdzono suszy w ocenionych latach',
+    causes: 'Możliwe przyczyny niedoboru wody',
+    categories: {
+      landscape_retention: 'Retencja krajobrazowa',
+      soil_retention: 'Retencja glebowa',
+      agrotechnics: 'Agrotechnika',
+      irrigation: 'Nawadnianie'
+    },
+    irrigationDate: 'Proponowany termin',
+    irrigationDose: 'Dawka netto',
+    references: 'Podstawy metodyczne',
+    liveSource: 'Pobrano podczas analizy',
+    savedSource: 'Źródło zapisane wcześniej',
+    noSources: 'Brak dostępnych źródeł.'
+  },
 
   footer: {
     lastUpdate: 'Ostatnia Aktualizacja Danych:',
@@ -116,6 +156,7 @@ export const pl = {
     sources: 'Źródła danych',
     limitations: 'Ograniczenia raportu',
     print: 'Drukuj / Zapisz jako PDF',
+    download: 'Pobierz PDF',
     back: 'Wróć do mapy',
     disclaimer:
       'Raport ma charakter pomocniczy i nie zastępuje oceny agronomicznej. Wynik obarczony jest niepewnością wynikającą z jakości i aktualności danych źródłowych.'

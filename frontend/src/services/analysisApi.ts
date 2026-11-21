@@ -1,23 +1,42 @@
-import { AnalysisSchema, type Analysis, type AnalysisRequest } from '@/types/analysis';
-import { request } from './http';
-import { mockAnalyze } from './mockAnalysis';
+import { z } from 'zod';
+import { pl } from '@/constants/pl';
+import { BackendReportSchema } from '@/types/backendReport';
+import { API_URL, request } from './http';
 
-const USE_MOCK = (import.meta.env.VITE_USE_MOCK ?? 'true') !== 'false';
+// Job response fields from backend/app/api/routes_analyses.py and app/jobs/runner.py.
+const started = z.object({ analysis_id: z.string().uuid() });
+const progress = z.object({ progress: z.array(z.string()) });
+const analysisStatus = z.discriminatedUnion('status', [
+  progress.extend({ status: z.literal('queued') }),
+  progress.extend({ status: z.literal('running') }),
+  progress.extend({ status: z.literal('done'), report: BackendReportSchema }),
+  progress.extend({ status: z.literal('error'), error: z.string().nullable() })
+]);
 
-/**
- * Главная точка входа в аналитику.
- * - VITE_USE_MOCK=true  → демо-данные (пока нет бэкенда)
- * - VITE_USE_MOCK=false → POST {VITE_API_URL}/analyze, ответ валидируется zod-схемой
- *
- * Остальной фронтенд работает ТОЛЬКО через эту функцию.
- */
-export async function analyze(req: AnalysisRequest, signal?: AbortSignal): Promise<Analysis> {
-  if (USE_MOCK) return mockAnalyze(req, signal);
+export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
-  const raw = await request<unknown>('/analyze', {
+export async function startAnalysis(parcelId: string, cropCode: string, date: string) {
+  const raw = await request<unknown>('/analyses', {
     method: 'POST',
-    body: JSON.stringify(req),
-    signal
+    body: JSON.stringify({
+      parcel_id: parcelId,
+      crop_code: cropCode,
+      analysis_date: date,
+      include_irrigation: true
+    })
   });
-  return AnalysisSchema.parse(raw);
+  const result = started.safeParse(raw);
+  if (!result.success) throw new Error(pl.error.invalidResponse);
+  return result.data.analysis_id;
+}
+
+export async function getAnalysisStatus(analysisId: string, signal: AbortSignal) {
+  const raw = await request<unknown>(`/analyses/${encodeURIComponent(analysisId)}`, { signal });
+  const result = analysisStatus.safeParse(raw);
+  if (!result.success) throw new Error(pl.error.invalidResponse);
+  return result.data;
+}
+
+export function reportPdfUrl(analysisId: string): string {
+  return `${API_URL}/analyses/${encodeURIComponent(analysisId)}/report.pdf`;
 }

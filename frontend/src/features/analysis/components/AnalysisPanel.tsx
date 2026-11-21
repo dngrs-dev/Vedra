@@ -1,9 +1,10 @@
-import { Card } from '@/components/ui/Card';
 import { DropIcon } from '@/components/ui/Icons';
 import { pl } from '@/constants/pl';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useAnalysisStore } from '../store';
+import { AnalysisError, AnalysisJobState } from './AnalysisJobState';
 import { AnalysisProgress } from './AnalysisProgress';
+import { BackendReportCards } from './BackendReportCards';
 import { BasisCard } from './BasisCard';
 import { CropSelect } from './CropSelect';
 import { DateField } from './DateField';
@@ -21,7 +22,7 @@ export function AnalysisPanel() {
   const confirmed = useAnalysisStore((s) => s.confirmed);
   const confirm = useAnalysisStore((s) => s.confirm);
   const unconfirm = useAnalysisStore((s) => s.unconfirm);
-  const { data, isError, error, refetch, isPlaceholderData } = useAnalysis();
+  const { demo, demoMode, jobs, selectionError } = useAnalysis();
 
   return (
     <aside className="panel" aria-label="Wyniki analizy">
@@ -74,23 +75,28 @@ export function AnalysisPanel() {
         <button type="button" className="link-btn" onClick={unconfirm}>← {pl.confirm.change}</button>
       )}
 
-      {confirmed && isError && (
-        <Card title={pl.error.title} className="card--error">
-          <p>{error instanceof Error ? error.message : 'Nieznany błąd'}</p>
-          <button type="button" className="btn-secondary" onClick={() => void refetch()}>{pl.error.retry}</button>
-        </Card>
+      {selectionError && <AnalysisError message={selectionError} />}
+      {confirmed && demoMode && demo.isError && (
+        <AnalysisError message={demo.error.message} retry={() => void demo.refetch()} />
       )}
 
-      {confirmed && !isError && !data && <AnalysisProgress />}
+      {confirmed && demoMode && demo.isPending && <AnalysisProgress />}
 
-      {confirmed && data && (
-        <div className={`results${isPlaceholderData ? ' is-stale' : ''}`}>
-          {data.isDemo && <div className="demo-banner" role="note">{pl.demoBanner}</div>}
-          <MoistureCard data={data} />
-          <RecommendationsCard data={data} />
-          <BasisCard data={data} />
+      {confirmed && demo.data && (
+        <div className="results">
+          <div className="demo-banner" role="note">{pl.demoBanner}</div>
+          <MoistureCard data={demo.data} />
+          <RecommendationsCard data={demo.data} />
+          <BasisCard data={demo.data} />
         </div>
       )}
+
+      {jobs.map((job) => (
+        <section key={job.code} className="results">
+          <h2 className="analysis-crop">{job.report?.crop_name_pl ?? job.names.join(', ')}</h2>
+          {job.report ? <BackendReportCards report={job.report} /> : <AnalysisJobState job={job} />}
+        </section>
+      ))}
     </aside>
   );
 }

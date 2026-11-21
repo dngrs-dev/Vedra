@@ -11,11 +11,7 @@ import { clamp } from '@/utils/format';
 import { seededRng } from '@/utils/rng';
 import { sleep } from './http';
 
-/**
- * ДЕМО-расчёт. Детерминирован: один и тот же (участок + культуры + дата) → тот же результат.
- * Нужен только пока нет бэкенда; возвращает объект формата Analysis (см. types/analysis.ts).
- * Цифры НЕ отражают реальность — на экране показывается баннер «dane demonstracyjne».
- */
+// Existing demonstration values for unsupported selections and standalone demos.
 export async function mockAnalyze(req: AnalysisRequest, signal?: AbortSignal): Promise<Analysis> {
   const rnd = seededRng(`${req.parcelId}|${[...req.cropIds].sort().join(',')}|${req.date}`);
   await sleep(1800 + rnd() * 900, signal); // имитация долгого расчёта (ТЗ: цель ≤ 30 s)
@@ -143,7 +139,7 @@ export async function mockAnalyze(req: AnalysisRequest, signal?: AbortSignal): P
     sources,
     confidence,
     limitations: [
-      'Wynik ma charakter demonstracyjny — dane przykładowe, backend niepodłączony.',
+      'Wynik opiera się na danych przykładowych i nie stanowi oceny wybranego obszaru.',
       'Docelowo: rozdzielczość Sentinel-2 (10 m) może nie odzwierciedlać zróżnicowania wewnątrz małych działek.',
       'Nie uwzględniono: lokalnych zabiegów agrotechnicznych, odmiany, nawadniania wykonanego w przeszłości, wód gruntowych.',
       noMoistureData

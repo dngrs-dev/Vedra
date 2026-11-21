@@ -1,12 +1,17 @@
 import { Link, Navigate } from 'react-router-dom';
 import { HistoryChart } from '@/components/charts/HistoryChart';
 import { ArrowLeftIcon, PrinterIcon } from '@/components/ui/Icons';
+import { Card } from '@/components/ui/Card';
 import { CROPS } from '@/constants/crops';
 import { MONTHS_PL, pl } from '@/constants/pl';
+import { AnalysisError, AnalysisJobState } from '@/features/analysis/components/AnalysisJobState';
+import { BackendReportCards } from '@/features/analysis/components/BackendReportCards';
 import { ConfidenceBadge } from '@/features/analysis/components/Badges';
 import { useAnalysis } from '@/features/analysis/hooks/useAnalysis';
 import { useAnalysisStore } from '@/features/analysis/store';
-import type { Recommendation } from '@/types/analysis';
+import { reportPdfUrl } from '@/services/analysisApi';
+import type { Analysis, Recommendation } from '@/types/analysis';
+import type { Parcel } from '@/types/parcel';
 import { fmtDate, fmtDateTime } from '@/utils/format';
 
 function RecoBlock({ title, items }: { title: string; items: Recommendation[] }) {
@@ -25,19 +30,62 @@ function RecoBlock({ title, items }: { title: string; items: Recommendation[] })
   );
 }
 
-/**
- * Печатный отчёт (A4). Берёт результат из кеша React Query — без повторного расчёта.
- * «Zapisz jako PDF» = системный диалог печати (стили @media print в styles/app.css).
- * Когда бэкенд начнёт отдавать готовый PDF — заменить кнопку на скачивание файла.
- */
 export function ReportPage() {
   const parcel = useAnalysisStore((s) => s.confirmed);
   const cropIds = useAnalysisStore((s) => s.cropIds);
-  const { data, isPending } = useAnalysis();
+  const { demo, demoMode, jobs, selectionError } = useAnalysis();
 
   if (!parcel) return <Navigate to="/map" replace />;
-  if (isPending || !data) return <div className="report-wrap"><p>Przygotowuję raport…</p></div>;
+  if (demoMode && demo.data) return <DemoReport parcel={parcel} cropIds={cropIds} data={demo.data} />;
 
+  return (
+    <div className="report-wrap">
+      <div className="report-toolbar no-print">
+        <Link to="/map" className="btn-secondary"><ArrowLeftIcon /> {pl.report.back}</Link>
+      </div>
+      {selectionError && <AnalysisError message={selectionError} />}
+      {demoMode && (
+        demo.error
+          ? <AnalysisError message={demo.error.message} retry={() => void demo.refetch()} />
+          : <p role="status">{pl.backend.preparing}</p>
+      )}
+      {jobs.map((job) => {
+        const report = job.report;
+        if (!report || !job.analysisId) {
+          return (
+            <div className="backend-report results" key={job.code}>
+              <h2 className="analysis-crop">{job.names.join(', ')}</h2>
+              <AnalysisJobState job={job} />
+            </div>
+          );
+        }
+        const { parcel } = report;
+        return (
+          <article className="report backend-report results" key={job.code}>
+            <header className="report__head">
+              <div>
+                <h1>{pl.report.title}</h1>
+                <p className="muted">{report.crop_name_pl} · {fmtDate(report.analysis_date)}</p>
+              </div>
+              <a className="btn-primary no-print" href={reportPdfUrl(job.analysisId)}><PrinterIcon /> {pl.report.download}</a>
+            </header>
+            <Card title={pl.report.parcel}>
+              <dl className="factors">
+                <div><dt>Identyfikator działki</dt><dd>{parcel.parcel_id}</dd></div>
+                <div><dt>Powierzchnia</dt><dd>{parcel.area_ha.toLocaleString('pl-PL')} ha</dd></div>
+                <div><dt>Lokalizacja</dt><dd>{[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(', ') || '—'}</dd></div>
+              </dl>
+            </Card>
+            <BackendReportCards report={report} />
+            <p className="muted small">{pl.report.disclaimer}</p>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function DemoReport({ parcel, cropIds, data }: { parcel: Parcel; cropIds: string[]; data: Analysis }) {
   const crops = CROPS.filter((c) => cropIds.includes(c.id)).map((c) => c.name).join(', ');
   const months = data.criticalMonths.map((m) => MONTHS_PL[m - 1]).filter(Boolean).join(', ');
   const { retention, agrotechnical, irrigation } = data.recommendations;
@@ -60,7 +108,7 @@ export function ReportPage() {
           <ConfidenceBadge value={data.confidence} />
         </header>
 
-        {data.isDemo && <div className="demo-banner">{pl.demoBanner}</div>}
+        <div className="demo-banner">{pl.demoBanner}</div>
 
         <h2>{pl.report.parcel}</h2>
         <table>
