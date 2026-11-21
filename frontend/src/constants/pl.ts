@@ -1,7 +1,7 @@
 /** Все тексты интерфейса в одном месте (польский). Легко добавить EN позже. */
 export const pl = {
-  appTitle: 'KOWR HackNation 2026',
-  appSubtitle: 'Cyfrowy Asystent Gospodarowania Wodą',
+  appTitle: 'Vedra',
+  appSubtitle: 'Twój asystent gospodarowania wodą',
 
   search: {
     placeholder: 'Wyszukaj działkę (ID)',

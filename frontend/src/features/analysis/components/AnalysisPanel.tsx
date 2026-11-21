@@ -1,4 +1,4 @@
-import { DropIcon } from '@/components/ui/Icons';
+import { VedraMark } from '@/components/ui/Icons';
 import { pl } from '@/constants/pl';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useAnalysisStore } from '../store';
@@ -34,7 +34,7 @@ export function AnalysisPanel() {
 
       {!parcel && (
         <div className="empty">
-          <DropIcon />
+          <VedraMark size={56} />
           <p>{pl.empty}</p>
           <p className="empty__tip">{pl.confirm.ctrlTip}</p>
         </div>
