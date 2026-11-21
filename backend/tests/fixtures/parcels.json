@@ -1,0 +1,215 @@
+[
+  {
+    "parcel_id": "040704_2.0012.63/1",
+    "note": "Kujawy, okolice Inowrocławia; 1.50 ha; gleba: glp, gs (kompleks 1, mapa glebowo-rolnicza); deniwelacja 2 m (Copernicus DEM 30 m)",
+    "lat": 52.799801,
+    "lon": 18.298974,
+    "source": "ULDK GetParcelByXY (2026-11-21)",
+    "facts": {
+      "voivodeship": "kujawsko-pomorskie",
+      "county": "powiat inowrocławski",
+      "commune": "Inowrocław",
+      "region": "Jacewo",
+      "parcel_number": "63/1",
+      "area_ha": 1.504,
+      "worldcover_class_at_point": 40,
+      "soil_map_complex": "1",
+      "soil_map_texture_layers": [
+        "glp",
+        "gs"
+      ],
+      "soil_map_alluvial_texture": [],
+      "copernicus_dem_min_max_m": [
+        87.7,
+        89.8
+      ],
+      "has_ar_sheet": false
+    }
+  },
+  {
+    "parcel_id": "303005_5.0323.25/7",
+    "note": "Wielkopolska, okolice Wrześni; 9.08 ha; gleba: ps (kompleks 6, mapa glebowo-rolnicza); deniwelacja 3 m (Copernicus DEM 30 m)",
+    "lat": 52.301272,
+    "lon": 17.617586,
+    "source": "ULDK GetParcelByXY (2026-11-21)",
+    "facts": {
+      "voivodeship": "wielkopolskie",
+      "county": "powiat wrzesiński",
+      "commune": "Września",
+      "region": "Nadarzyce",
+      "parcel_number": "25/7",
+      "area_ha": 9.081,
+      "worldcover_class_at_point": 40,
+      "soil_map_complex": "6",
+      "soil_map_texture_layers": [
+        "ps"
+      ],
+      "soil_map_alluvial_texture": [],
+      "copernicus_dem_min_max_m": [
+        101.9,
+        105.1
+      ],
+      "has_ar_sheet": false
+    }
+  },
+  {
+    "parcel_id": "060406_2.0136.AR_5.1077/6",
+    "note": "Lubelszczyzna, okolice Hrubieszowa; 1.02 ha; gleba: li (kompleks 1, mapa glebowo-rolnicza); deniwelacja 9 m (Copernicus DEM 30 m)",
+    "lat": 50.820168,
+    "lon": 23.799527,
+    "source": "ULDK GetParcelByXY (2026-11-21)",
+    "facts": {
+      "voivodeship": "lubelskie",
+      "county": "powiat hrubieszowski",
+      "commune": "Trzeszczany",
+      "region": "Nieledew",
+      "parcel_number": "1077/6",
+      "area_ha": 1.022,
+      "worldcover_class_at_point": 40,
+      "soil_map_complex": "1",
+      "soil_map_texture_layers": [
+        "li"
+      ],
+      "soil_map_alluvial_texture": [],
+      "copernicus_dem_min_max_m": [
+        201.1,
+        209.8
+      ],
+      "has_ar_sheet": true
+    }
+  },
+  {
+    "parcel_id": "142513_2.0039.102",
+    "note": "Mazowsze, okolice Radomia; 0.30 ha; gleba: pgl, gl (kompleks 4, mapa glebowo-rolnicza); deniwelacja 2 m (Copernicus DEM 30 m)",
+    "lat": 51.450377,
+    "lon": 21.050372,
+    "source": "ULDK GetParcelByXY (2026-11-21)",
+    "facts": {
+      "voivodeship": "mazowieckie",
+      "county": "powiat radomski",
+      "commune": "Zakrzew",
+      "region": "Wola Taczewska",
+      "parcel_number": "102",
+      "area_ha": 0.297,
+      "worldcover_class_at_point": 40,
+      "soil_map_complex": "4",
+      "soil_map_texture_layers": [
+        "pgl",
+        "gl"
+      ],
+      "soil_map_alluvial_texture": [],
+      "copernicus_dem_min_max_m": [
+        177.4,
+        179.7
+      ],
+      "has_ar_sheet": false
+    }
+  },
+  {
+    "parcel_id": "121405_5.0016.480/3",
+    "note": "Małopolska, okolice Proszowic; 1.58 ha; gleba: l (kompleks 1, mapa glebowo-rolnicza); deniwelacja 13 m (Copernicus DEM 30 m)",
+    "lat": 50.200782,
+    "lon": 20.296244,
+    "source": "ULDK GetParcelByXY (2026-11-21)",
+    "facts": {
+      "voivodeship": "małopolskie",
+      "county": "powiat proszowicki",
+      "commune": "Proszowice",
+      "region": "Opatkowice",
+      "parcel_number": "480/3",
+      "area_ha": 1.579,
+      "worldcover_class_at_point": 40,
+      "soil_map_complex": "1",
+      "soil_map_texture_layers": [
+        "l"
+      ],
+      "soil_map_alluvial_texture": [],
+      "copernicus_dem_min_max_m": [
+        203.6,
+        216.2
+      ],
+      "has_ar_sheet": false
+    }
+  },
+  {
+    "parcel_id": "280803_2.0028.78/40",
+    "note": "Warmia i Mazury, okolice Kętrzyna; 150.23 ha; gleba: ip, i (kompleks 2, mapa glebowo-rolnicza); deniwelacja 32 m (Copernicus DEM 30 m)",
+    "lat": 54.051447,
+    "lon": 21.35671,
+    "source": "ULDK GetParcelByXY (2026-11-21)",
+    "facts": {
+      "voivodeship": "warmińsko-mazurskie",
+      "county": "powiat kętrzyński",
+      "commune": "Kętrzyn",
+      "region": "Muławki",
+      "parcel_number": "78/40",
+      "area_ha": 150.232,
+      "worldcover_class_at_point": 40,
+      "soil_map_complex": "2",
+      "soil_map_texture_layers": [
+        "ip",
+        "i"
+      ],
+      "soil_map_alluvial_texture": [],
+      "copernicus_dem_min_max_m": [
+        74.8,
+        106.6
+      ],
+      "has_ar_sheet": false
+    }
+  },
+  {
+    "parcel_id": "200605_5.0002.143",
+    "note": "Podlasie, okolice Grajewa; 2.42 ha; gleba: ps, pl (kompleks 6, mapa glebowo-rolnicza); deniwelacja 13 m (Copernicus DEM 30 m)",
+    "lat": 53.40034,
+    "lon": 22.099007,
+    "source": "ULDK GetParcelByXY (2026-11-21)",
+    "facts": {
+      "voivodeship": "podlaskie",
+      "county": "powiat kolneński",
+      "commune": "Stawiski",
+      "region": "Barzykowo",
+      "parcel_number": "143",
+      "area_ha": 2.42,
+      "worldcover_class_at_point": 40,
+      "soil_map_complex": "6",
+      "soil_map_texture_layers": [
+        "ps",
+        "pl"
+      ],
+      "soil_map_alluvial_texture": [],
+      "copernicus_dem_min_max_m": [
+        150.5,
+        163.4
+      ],
+      "has_ar_sheet": false
+    }
+  },
+  {
+    "parcel_id": "100206_2.0008.273/23",
+    "note": "Ziemia łódzka, okolice Kutna; 32.47 ha; gleba: pgm, gl (kompleks 2, mapa glebowo-rolnicza); deniwelacja 6 m (Copernicus DEM 30 m)",
+    "lat": 52.252648,
+    "lon": 19.357504,
+    "source": "ULDK GetParcelByXY (2026-11-21)",
+    "facts": {
+      "voivodeship": "łódzkie",
+      "county": "powiat kutnowski",
+      "commune": "Kutno",
+      "region": "Gołębiew",
+      "parcel_number": "273/23",
+      "area_ha": 32.473,
+      "worldcover_class_at_point": 40,
+      "soil_map_complex": "2",
+      "soil_map_texture_layers": [
+        "pgm",
+        "gl"
+      ],
+      "soil_map_alluvial_texture": [],
+      "copernicus_dem_min_max_m": [
+        118.2,
+        124.6
+      ],
+      "has_ar_sheet": false
+    }
+  }
+]
