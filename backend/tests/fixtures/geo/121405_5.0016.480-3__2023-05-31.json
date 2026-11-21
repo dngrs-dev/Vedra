@@ -339,7 +339,7 @@
      "source_id": "soil_map",
      "name": "Mapa glebowo-rolnicza (GUGiK, WMS)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer",
-     "fetched_at": "2026-11-21T15:12:15.948053Z",
+     "fetched_at": "2026-11-21T16:49:57.104543Z",
      "live": true,
      "data_period": null,
      "resolution": "1:5000",
@@ -362,17 +362,41 @@
     "Kategorię gleby wyznaczono z wody ogólnie dostępnej (WOD ≈ 143 mm w warstwie 0–100 cm, SoilGrids), ponieważ gatunek «l» z mapy nie występuje w tabeli rozporządzenia."
    ],
    "error": null,
-   "elapsed_s": 0.003
+   "elapsed_s": 0.028
   },
   "vegetation": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Analiza zdjęć satelitarnych Sentinel-2 nie jest jeszcze dostępna w tej wersji prototypu."
+   "status": "partial",
+   "data": {
+    "interior_pixels": 38,
+    "current": [],
+    "current_window": [
+     "2023-05-01",
+     "2023-05-31"
+    ],
+    "same_window_by_year": {},
+    "season_peaks": {},
+    "scenes_considered": 43,
+    "scenes_processed": 2
+   },
+   "provenance": [
+    {
+     "source_id": "earth_search",
+     "name": "Earth Search STAC (Element 84)",
+     "url": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a",
+     "fetched_at": "2026-11-21T16:50:18.092984Z",
+     "live": true,
+     "data_period": null,
+     "resolution": "10 m",
+     "licence": "Copernicus Sentinel data – free, full and open access",
+     "attribution_pl": "Contains modified Copernicus Sentinel data [year]"
+    }
    ],
-   "error": "vegetation: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Przeanalizowano 2 z 42 scen Sentinel-2 w dostępnym czasie; pozostałe sceny są przetwarzane w tle i zostaną uwzględnione przy kolejnej analizie.",
+    "Brak zdjęć Sentinel-2 L2A w archiwum dla lat: 2013, 2014, 2015, 2016; porównanie wieloletnie obejmuje krótszy okres."
+   ],
+   "error": null,
+   "elapsed_s": 21.016
   },
   "terrain": {
    "status": "missing",
@@ -405,23 +429,42 @@
    "elapsed_s": 0.0
   },
   "edo": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Wskaźniki Europejskiego Obserwatorium Suszy (EDO) nie są jeszcze dostępne w tej wersji prototypu."
+   "status": "ok",
+   "data": {
+    "date_used": "2023-05-21",
+    "cdi_class": "No drought",
+    "cdi_value": null,
+    "sma": null,
+    "fapar_anomaly": null,
+    "spi3": null
+   },
+   "provenance": [
+    {
+     "source_id": "edo",
+     "name": "European Drought Observatory (Copernicus EMS)",
+     "url": "https://drought.emergency.copernicus.eu/api/wcs",
+     "fetched_at": "2026-11-21T16:49:57.078821Z",
+     "live": true,
+     "data_period": "dekada od 2023-05-21",
+     "resolution": "0,04°",
+     "licence": "Fees: no fees; AccessConstraints: no constraints (WMS GetCapabilities)",
+     "attribution_pl": null
+    }
    ],
-   "error": "edo: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Europejskie Obserwatorium Suszy (EDO) udostępnia publicznie tylko klasy wskaźnika CDI; wartości liczbowe SMA, fAPAR i SPI nie są pobierane."
+   ],
+   "error": null,
+   "elapsed_s": 0.001
   },
   "imgw": {
    "status": "missing",
    "data": null,
    "provenance": [],
    "notes_pl": [
-    "Dane bieżące IMGW-PIB nie są jeszcze dostępne w tej wersji prototypu."
+    "Dane bieżące IMGW niedostępne dla daty historycznej."
    ],
-   "error": "imgw: not implemented yet",
+   "error": "imgw: historical analysis date",
    "elapsed_s": 0.0
   }
  }

@@ -112,3 +112,31 @@ async def test_too_small_parcel_is_missing(monkeypatch):
     res = await vegetation.vegetation_data(uldk.to_parcel(tiny), GeoRequest(parcel=uldk.to_parcel(tiny),
                                                                              analysis_date=DAY), budget_s=5)
     assert res.status == SourceStatus.MISSING and "zbyt mała" in res.notes_pl[0]
+
+
+@pytest.mark.asyncio
+async def test_leftover_background_work_does_not_starve_next_analysis(monkeypatch, parcel):
+    """Regression (2026-11-21): with one shared pool, every analysis after the first processed 0 scenes."""
+    slow_day = date(2023, 5, 31)
+    fast_day = date(2022, 5, 31)
+    slow = [ref(slow_day - timedelta(days=k)) for k in range(1, 29)]
+    fast = [ref(fast_day - timedelta(days=k)) for k in range(1, 6)]
+
+    async def search(bbox, start, end, *, not_after, limit=None, by_cloud=False):
+        out = [s for s in slow + fast if start <= s.acquired <= min(end, not_after)]
+        return out[:limit] if limit else out
+
+    def stats(s, interior):
+        if s.acquired.year == 2023:
+            time.sleep(1.0)      # first analysis: slow reads, most of them left to the background
+        return SceneStat(scene_id=s.scene_id, acquired=s.acquired, ndvi_median=0.5, ndmi_median=0.1,
+                         valid_pixels=99, valid_fraction=1.0), 99
+
+    monkeypatch.setattr(sentinel2, "search_scenes", search)
+    monkeypatch.setattr(sentinel2, "scene_stats", stats)
+    first = await vegetation.vegetation_data(parcel, GeoRequest(parcel=parcel, analysis_date=slow_day), budget_s=0.3)
+    assert first.status == SourceStatus.PARTIAL
+    second = await vegetation.vegetation_data(parcel, GeoRequest(parcel=parcel, analysis_date=fast_day, history_years=0),
+                                              budget_s=2.0)
+    assert second.data.scenes_processed == second.data.scenes_considered == len(fast)
+    vegetation.shutdown_background()

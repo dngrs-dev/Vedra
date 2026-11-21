@@ -351,7 +351,7 @@
      "source_id": "soil_map",
      "name": "Mapa glebowo-rolnicza (GUGiK, WMS)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer",
-     "fetched_at": "2026-11-21T15:12:14.241493Z",
+     "fetched_at": "2026-11-21T16:47:09.506512Z",
      "live": true,
      "data_period": null,
      "resolution": "1:5000",
@@ -374,17 +374,212 @@
     "Niepewność: woda ogólnie dostępna z modelu SoilGrids (≈ 230 mm, rozdzielczość 250 m) odpowiadałaby kategorii IV; przyjęto kategorię I z mapy glebowo-rolniczej (skala 1:5000)."
    ],
    "error": null,
-   "elapsed_s": 3.237
+   "elapsed_s": 0.531
   },
   "vegetation": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Analiza zdjęć satelitarnych Sentinel-2 nie jest jeszcze dostępna w tej wersji prototypu."
+   "status": "partial",
+   "data": {
+    "interior_pixels": 783,
+    "current": [
+     {
+      "scene_id": "S2C_33UXU_20261120_0_L2A",
+      "acquired": "2026-11-20",
+      "ndvi_median": 0.8522,
+      "ndmi_median": 0.352,
+      "valid_pixels": 783,
+      "valid_fraction": 1.0
+     },
+     {
+      "scene_id": "S2B_33UXU_20261115_0_L2A",
+      "acquired": "2026-11-15",
+      "ndvi_median": 0.8268,
+      "ndmi_median": 0.3272,
+      "valid_pixels": 783,
+      "valid_fraction": 1.0
+     },
+     {
+      "scene_id": "S2C_33UXU_20261107_0_L2A",
+      "acquired": "2026-11-07",
+      "ndvi_median": 0.7992,
+      "ndmi_median": 0.3104,
+      "valid_pixels": 783,
+      "valid_fraction": 1.0
+     },
+     {
+      "scene_id": "S2B_33UXU_20261105_0_L2A",
+      "acquired": "2026-11-05",
+      "ndvi_median": 0.3699,
+      "ndmi_median": 0.1734,
+      "valid_pixels": 783,
+      "valid_fraction": 1.0
+     },
+     {
+      "scene_id": "S2B_33UXU_20261026_1_L2A",
+      "acquired": "2026-10-26",
+      "ndvi_median": 0.6924,
+      "ndmi_median": 0.1941,
+      "valid_pixels": 783,
+      "valid_fraction": 1.0
+     },
+     {
+      "scene_id": "S2A_33UXU_20261023_1_L2A",
+      "acquired": "2026-10-23",
+      "ndvi_median": 0.7188,
+      "ndmi_median": 0.2022,
+      "valid_pixels": 783,
+      "valid_fraction": 1.0
+     },
+     {
+      "scene_id": "S2B_33UXU_20261023_0_L2A",
+      "acquired": "2026-10-23",
+      "ndvi_median": 0.7128,
+      "ndmi_median": 0.2,
+      "valid_pixels": 783,
+      "valid_fraction": 1.0
+     }
+    ],
+    "current_window": [
+     "2026-10-22",
+     "2026-11-21"
+    ],
+    "same_window_by_year": {
+     "2025": [
+      {
+       "scene_id": "S2A_33UXT_20251107_1_L2A",
+       "acquired": "2025-11-07",
+       "ndvi_median": 0.4126,
+       "ndmi_median": -0.0368,
+       "valid_pixels": 783,
+       "valid_fraction": 1.0
+      },
+      {
+       "scene_id": "S2B_33UXU_20251107_1_L2A",
+       "acquired": "2025-11-07",
+       "ndvi_median": 0.4264,
+       "ndmi_median": -0.0388,
+       "valid_pixels": 783,
+       "valid_fraction": 1.0
+      }
+     ],
+     "2024": [
+      {
+       "scene_id": "S2B_33UXU_20241125_0_L2A",
+       "acquired": "2024-11-25",
+       "ndvi_median": 0.4549,
+       "ndmi_median": 0.0413,
+       "valid_pixels": 736,
+       "valid_fraction": 0.94
+      }
+     ],
+     "2023": [
+      {
+       "scene_id": "S2A_33UXT_20231113_0_L2A",
+       "acquired": "2023-11-13",
+       "ndvi_median": 0.3962,
+       "ndmi_median": -0.0059,
+       "valid_pixels": 783,
+       "valid_fraction": 1.0
+      }
+     ],
+     "2022": [
+      {
+       "scene_id": "S2B_33UXU_20221106_0_L2A",
+       "acquired": "2022-11-06",
+       "ndvi_median": 0.6875,
+       "ndmi_median": 0.2526,
+       "valid_pixels": 783,
+       "valid_fraction": 1.0
+      },
+      {
+       "scene_id": "S2A_33UXU_20221108_0_L2A",
+       "acquired": "2022-11-08",
+       "ndvi_median": 0.6687,
+       "ndmi_median": 0.1752,
+       "valid_pixels": 783,
+       "valid_fraction": 1.0
+      }
+     ],
+     "2021": [],
+     "2020": [
+      {
+       "scene_id": "S2A_33UXU_20201128_1_L2A",
+       "acquired": "2020-11-28",
+       "ndvi_median": 0.6022,
+       "ndmi_median": 0.123,
+       "valid_pixels": 783,
+       "valid_fraction": 1.0
+      },
+      {
+       "scene_id": "S2B_33UXU_20201206_0_L2A",
+       "acquired": "2020-12-06",
+       "ndvi_median": 0.6367,
+       "ndmi_median": 0.1411,
+       "valid_pixels": 494,
+       "valid_fraction": 0.6309
+      }
+     ],
+     "2019": [],
+     "2018": [
+      {
+       "scene_id": "S2B_33UXU_20181107_0_L2A",
+       "acquired": "2018-11-07",
+       "ndvi_median": 0.1893,
+       "ndmi_median": -0.2492,
+       "valid_pixels": 783,
+       "valid_fraction": 1.0
+      }
+     ],
+     "2017": [
+      {
+       "scene_id": "S2B_33UXU_20171112_0_L2A",
+       "acquired": "2017-11-12",
+       "ndvi_median": 0.6774,
+       "ndmi_median": 0.2006,
+       "valid_pixels": 760,
+       "valid_fraction": 0.9706
+      }
+     ],
+     "2016": []
+    },
+    "season_peaks": {
+     "2026": {
+      "scene_id": "S2A_33UXT_20260526_1_L2A",
+      "acquired": "2026-05-26",
+      "ndvi_median": 0.8212,
+      "ndmi_median": 0.4815,
+      "valid_pixels": 783,
+      "valid_fraction": 1.0
+     },
+     "2025": {
+      "scene_id": "S2B_33UXT_20250404_0_L2A",
+      "acquired": "2025-04-04",
+      "ndvi_median": 0.8154,
+      "ndmi_median": 0.3323,
+      "valid_pixels": 783,
+      "valid_fraction": 1.0
+     }
+    },
+    "scenes_considered": 83,
+    "scenes_processed": 40
+   },
+   "provenance": [
+    {
+     "source_id": "earth_search",
+     "name": "Earth Search STAC (Element 84)",
+     "url": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a",
+     "fetched_at": "2026-11-21T16:47:29.984053Z",
+     "live": true,
+     "data_period": "2017-11-12..2026-11-20",
+     "resolution": "10 m",
+     "licence": "Copernicus Sentinel data – free, full and open access",
+     "attribution_pl": "Contains modified Copernicus Sentinel data [year]"
+    }
    ],
-   "error": "vegetation: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Przeanalizowano 40 z 70 scen Sentinel-2 w dostępnym czasie; pozostałe sceny są przetwarzane w tle i zostaną uwzględnione przy kolejnej analizie."
+   ],
+   "error": null,
+   "elapsed_s": 21.009
   },
   "terrain": {
    "status": "missing",
@@ -417,24 +612,126 @@
    "elapsed_s": 0.0
   },
   "edo": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Wskaźniki Europejskiego Obserwatorium Suszy (EDO) nie są jeszcze dostępne w tej wersji prototypu."
+   "status": "ok",
+   "data": {
+    "date_used": "2026-11-01",
+    "cdi_class": "No drought",
+    "cdi_value": null,
+    "sma": null,
+    "fapar_anomaly": null,
+    "spi3": null
+   },
+   "provenance": [
+    {
+     "source_id": "edo",
+     "name": "European Drought Observatory (Copernicus EMS)",
+     "url": "https://drought.emergency.copernicus.eu/api/wcs",
+     "fetched_at": "2026-11-21T16:47:08.978338Z",
+     "live": true,
+     "data_period": "dekada od 2026-11-01",
+     "resolution": "0,04°",
+     "licence": "Fees: no fees; AccessConstraints: no constraints (WMS GetCapabilities)",
+     "attribution_pl": null
+    }
    ],
-   "error": "edo: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Europejskie Obserwatorium Suszy (EDO) udostępnia publicznie tylko klasy wskaźnika CDI; wartości liczbowe SMA, fAPAR i SPI nie są pobierane."
+   ],
+   "error": null,
+   "elapsed_s": 0.002
   },
   "imgw": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Dane bieżące IMGW-PIB nie są jeszcze dostępne w tej wersji prototypu."
+   "status": "ok",
+   "data": {
+    "nearest_synop": {
+     "station_id": "12330",
+     "station_name": "Poznań",
+     "distance_km": 54.9,
+     "observed_at": "2026-11-21T16:00:00Z",
+     "temperature_c": 4.5,
+     "precipitation_mm": 0.0,
+     "relative_humidity_pct": 86.1
+    },
+    "drought_warnings": [
+     {
+      "number": "29",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "wielkopolskie, Warta środkowa od Zb. Jeziorsko do Wełny, susza hydrologiczna",
+      "valid_from": "2026-05-12T10:00:46",
+      "valid_to": null,
+      "level": "-1"
+     },
+     {
+      "number": "30",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "wielkopolskie, Warta środkowa od Wełny do Noteci, susza hydrologiczna",
+      "valid_from": "2026-05-12T10:00:21",
+      "valid_to": null,
+      "level": "-1"
+     },
+     {
+      "number": "28",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "wielkopolskie, Warta górna od Liswarty do Zb. Jeziorsko, susza hydrologiczna",
+      "valid_from": "2026-05-08T08:47:41",
+      "valid_to": null,
+      "level": "-1"
+     },
+     {
+      "number": "34",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "wielkopolskie, Drawa, susza hydrologiczna",
+      "valid_from": "2026-05-28T09:26:47",
+      "valid_to": null,
+      "level": "-1"
+     },
+     {
+      "number": "112",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "wielkopolskie, Gwda, susza hydrologiczna",
+      "valid_from": "2026-10-13T09:14:35",
+      "valid_to": null,
+      "level": "-1"
+     },
+     {
+      "number": "62",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "wielkopolskie, Odra od Głogowa do ujścia Bobru, susza hydrologiczna",
+      "valid_from": "2026-08-24T12:21:25",
+      "valid_to": null,
+      "level": "-1"
+     }
+    ]
+   },
+   "provenance": [
+    {
+     "source_id": "imgw",
+     "name": "IMGW-PIB dane publiczne",
+     "url": "https://danepubliczne.imgw.pl/api/data/synop",
+     "fetched_at": "2026-11-21T16:47:09.615436Z",
+     "live": true,
+     "data_period": null,
+     "resolution": null,
+     "licence": "unknown (see docs/DATA_SOURCES.md)",
+     "attribution_pl": "Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone."
+    },
+    {
+     "source_id": "imgw",
+     "name": "IMGW-PIB dane publiczne",
+     "url": "https://danepubliczne.imgw.pl/api/data/warningshydro",
+     "fetched_at": "2026-11-21T16:47:09.615537Z",
+     "live": true,
+     "data_period": null,
+     "resolution": null,
+     "licence": "unknown (see docs/DATA_SOURCES.md)",
+     "attribution_pl": "Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone."
+    }
    ],
-   "error": "imgw: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Ostrzeżenia przed suszą hydrologiczną IMGW-PIB dobrano według województwa działki (wielkopolskie); ostrzeżenie może dotyczyć innej zlewni w tym województwie."
+   ],
+   "error": null,
+   "elapsed_s": 0.637
   }
  }
 }

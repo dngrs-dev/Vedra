@@ -26,22 +26,26 @@ from app.geo import geometry, sentinel2
 from app.geo.sentinel2 import SceneRef
 from app.geo.sources import provenance, source
 
-_pool: ThreadPoolExecutor | None = None
+# Background warm-up pool, separate from the per-analysis pools so that work left over from one analysis can
+# never delay the scene reads of another (found 2026-11-21: with one shared pool, every analysis after the first
+# processed 0 scenes because the pool was busy with background reads).
+_bg_pool: ThreadPoolExecutor | None = None
 
 
-def _executor() -> ThreadPoolExecutor:
-    global _pool
-    if _pool is None:
-        _pool = ThreadPoolExecutor(max_workers=int(sentinel2.s2_params()["workers"]), thread_name_prefix="s2")
-    return _pool
+def _background_executor() -> ThreadPoolExecutor:
+    global _bg_pool
+    if _bg_pool is None:
+        _bg_pool = ThreadPoolExecutor(max_workers=int(sentinel2.s2_params()["background_workers"]),
+                                      thread_name_prefix="s2-bg")
+    return _bg_pool
 
 
 def shutdown_background() -> None:
-    """For scripts: drop queued background scene reads so the process can exit (running reads finish)."""
-    global _pool
-    if _pool is not None:
-        _pool.shutdown(wait=False, cancel_futures=True)
-        _pool = None
+    """For scripts and tests: drop queued background scene reads so the process can exit (running reads finish)."""
+    global _bg_pool
+    if _bg_pool is not None:
+        _bg_pool.shutdown(wait=False, cancel_futures=True)
+        _bg_pool = None
 
 
 def same_day(d: date, year: int) -> date:
@@ -128,6 +132,9 @@ async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> S
     results: dict[str, SceneStat | None] = {}
     interior_px = 0
     loop = asyncio.get_running_loop()
+    # One foreground pool per analysis: reads still running at the deadline finish in its threads (and fill the
+    # cache) without blocking the next analysis.
+    pool = ThreadPoolExecutor(max_workers=int(cfg["workers"]), thread_name_prefix="s2")
     running: dict[asyncio.Future, SceneRef] = {}
     workers = int(cfg["workers"])
     extended = False
@@ -136,7 +143,7 @@ async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> S
     while queue or running:
         while queue and len(running) < workers:
             s = queue.popleft()
-            running[loop.run_in_executor(_executor(), sentinel2.scene_stats, s, interior_geo)] = s
+            running[loop.run_in_executor(pool, sentinel2.scene_stats, s, interior_geo)] = s
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             break
@@ -156,8 +163,9 @@ async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> S
             extended = True
             enqueue(extension, front=True)
     # Unfinished work continues in the shared pool and fills the per-scene cache for the next analysis.
+    pool.shutdown(wait=False)
     for s in queue:
-        _executor().submit(_background_stats, s, interior_geo)
+        _background_executor().submit(_background_stats, s, interior_geo)
     queue.clear()
 
     def clear(scenes):

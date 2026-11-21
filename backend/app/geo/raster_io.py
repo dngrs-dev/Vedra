@@ -14,6 +14,7 @@ import numpy as np
 # PROJ/GDAL data directories are set in app/geo/__init__.py before rasterio is imported.
 
 import rasterio  # noqa: E402
+import rasterio.errors  # noqa: E402
 from rasterio.features import geometry_mask  # noqa: E402
 from rasterio.warp import transform_geom  # noqa: E402
 from rasterio.windows import Window, from_bounds  # noqa: E402
@@ -63,6 +64,15 @@ class WindowRead:
 
 
 def read_window(href: str, geom: dict, geom_crs: str, out_res: float | None = None) -> WindowRead:
+    """read_window_once with one retry: on a slow link a tile transfer can be cut short (seen 2026-11-21 with
+    32 parallel streams: "TIFFReadEncodedTile() failed"); GDAL's own HTTP retries do not cover that case."""
+    try:
+        return read_window_once(href, geom, geom_crs, out_res)
+    except rasterio.errors.RasterioIOError:
+        return read_window_once(href, geom, geom_crs, out_res)
+
+
+def read_window_once(href: str, geom: dict, geom_crs: str, out_res: float | None = None) -> WindowRead:
     """Reads band 1 of a COG over the bounding box of `geom` (GeoJSON-like dict in `geom_crs`).
 
     out_res: resample to this pixel size (dataset CRS units) - e.g. 20 m Sentinel-2 bands onto the 10 m grid

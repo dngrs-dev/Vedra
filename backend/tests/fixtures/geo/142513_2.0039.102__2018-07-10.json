@@ -295,7 +295,7 @@
      "source_id": "soil_map",
      "name": "Mapa glebowo-rolnicza (GUGiK, WMS)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer",
-     "fetched_at": "2026-11-21T15:12:15.049230Z",
+     "fetched_at": "2026-11-21T16:49:15.057838Z",
      "live": true,
      "data_period": "1973",
      "resolution": "1:5000",
@@ -319,16 +319,16 @@
     "Niepewność: woda ogólnie dostępna z modelu SoilGrids (≈ 204 mm, rozdzielczość 250 m) odpowiadałaby kategorii IV; przyjęto kategorię II z mapy glebowo-rolniczej (skala 1:5000)."
    ],
    "error": null,
-   "elapsed_s": 0.002
+   "elapsed_s": 0.003
   },
   "vegetation": {
    "status": "missing",
    "data": null,
    "provenance": [],
    "notes_pl": [
-    "Analiza zdjęć satelitarnych Sentinel-2 nie jest jeszcze dostępna w tej wersji prototypu."
+    "Działka jest zbyt mała lub zbyt wąska do analizy zdjęć satelitarnych Sentinel-2 (piksel 10 m)."
    ],
-   "error": "vegetation: not implemented yet",
+   "error": "interior empty after -10 m buffer",
    "elapsed_s": 0.0
   },
   "terrain": {
@@ -362,23 +362,42 @@
    "elapsed_s": 0.0
   },
   "edo": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Wskaźniki Europejskiego Obserwatorium Suszy (EDO) nie są jeszcze dostępne w tej wersji prototypu."
+   "status": "ok",
+   "data": {
+    "date_used": "2018-07-01",
+    "cdi_class": "Alert",
+    "cdi_value": null,
+    "sma": null,
+    "fapar_anomaly": null,
+    "spi3": null
+   },
+   "provenance": [
+    {
+     "source_id": "edo",
+     "name": "European Drought Observatory (Copernicus EMS)",
+     "url": "https://drought.emergency.copernicus.eu/api/wcs",
+     "fetched_at": "2026-11-21T16:49:15.056052Z",
+     "live": true,
+     "data_period": "dekada od 2018-07-01",
+     "resolution": "0,04°",
+     "licence": "Fees: no fees; AccessConstraints: no constraints (WMS GetCapabilities)",
+     "attribution_pl": null
+    }
    ],
-   "error": "edo: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Europejskie Obserwatorium Suszy (EDO) udostępnia publicznie tylko klasy wskaźnika CDI; wartości liczbowe SMA, fAPAR i SPI nie są pobierane."
+   ],
+   "error": null,
+   "elapsed_s": 0.001
   },
   "imgw": {
    "status": "missing",
    "data": null,
    "provenance": [],
    "notes_pl": [
-    "Dane bieżące IMGW-PIB nie są jeszcze dostępne w tej wersji prototypu."
+    "Dane bieżące IMGW niedostępne dla daty historycznej."
    ],
-   "error": "imgw: not implemented yet",
+   "error": "imgw: historical analysis date",
    "elapsed_s": 0.0
   }
  }

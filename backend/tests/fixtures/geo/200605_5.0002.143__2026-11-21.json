@@ -311,7 +311,7 @@
      "source_id": "soil_map",
      "name": "Mapa glebowo-rolnicza (GUGiK, WMS)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer",
-     "fetched_at": "2026-11-21T15:12:16.816381Z",
+     "fetched_at": "2026-11-21T16:51:21.204882Z",
      "live": true,
      "data_period": "1971",
      "resolution": "1:5000",
@@ -336,17 +336,46 @@
     "Niepewność: woda ogólnie dostępna z modelu SoilGrids (≈ 240 mm, rozdzielczość 250 m) odpowiadałaby kategorii IV; przyjęto kategorię I z mapy glebowo-rolniczej (skala 1:5000)."
    ],
    "error": null,
-   "elapsed_s": 0.216
+   "elapsed_s": 0.057
   },
   "vegetation": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Analiza zdjęć satelitarnych Sentinel-2 nie jest jeszcze dostępna w tej wersji prototypu."
+   "status": "partial",
+   "data": {
+    "interior_pixels": 182,
+    "current": [],
+    "current_window": [
+     "2026-10-22",
+     "2026-11-21"
+    ],
+    "same_window_by_year": {
+     "2025": [],
+     "2024": [],
+     "2023": [],
+     "2020": [],
+     "2016": []
+    },
+    "season_peaks": {},
+    "scenes_considered": 80,
+    "scenes_processed": 15
+   },
+   "provenance": [
+    {
+     "source_id": "earth_search",
+     "name": "Earth Search STAC (Element 84)",
+     "url": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a",
+     "fetched_at": "2026-11-21T16:51:42.160884Z",
+     "live": true,
+     "data_period": null,
+     "resolution": "10 m",
+     "licence": "Copernicus Sentinel data – free, full and open access",
+     "attribution_pl": "Contains modified Copernicus Sentinel data [year]"
+    }
    ],
-   "error": "vegetation: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Przeanalizowano 15 z 73 scen Sentinel-2 w dostępnym czasie; pozostałe sceny są przetwarzane w tle i zostaną uwzględnione przy kolejnej analizie."
+   ],
+   "error": null,
+   "elapsed_s": 21.012
   },
   "terrain": {
    "status": "missing",
@@ -379,24 +408,86 @@
    "elapsed_s": 0.0
   },
   "edo": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Wskaźniki Europejskiego Obserwatorium Suszy (EDO) nie są jeszcze dostępne w tej wersji prototypu."
+   "status": "ok",
+   "data": {
+    "date_used": "2026-11-01",
+    "cdi_class": "No drought",
+    "cdi_value": null,
+    "sma": null,
+    "fapar_anomaly": null,
+    "spi3": null
+   },
+   "provenance": [
+    {
+     "source_id": "edo",
+     "name": "European Drought Observatory (Copernicus EMS)",
+     "url": "https://drought.emergency.copernicus.eu/api/wcs",
+     "fetched_at": "2026-11-21T16:51:21.151238Z",
+     "live": true,
+     "data_period": "dekada od 2026-11-01",
+     "resolution": "0,04°",
+     "licence": "Fees: no fees; AccessConstraints: no constraints (WMS GetCapabilities)",
+     "attribution_pl": null
+    }
    ],
-   "error": "edo: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Europejskie Obserwatorium Suszy (EDO) udostępnia publicznie tylko klasy wskaźnika CDI; wartości liczbowe SMA, fAPAR i SPI nie są pobierane."
+   ],
+   "error": null,
+   "elapsed_s": 0.002
   },
   "imgw": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Dane bieżące IMGW-PIB nie są jeszcze dostępne w tej wersji prototypu."
+   "status": "ok",
+   "data": {
+    "nearest_synop": {
+     "station_id": "12285",
+     "station_name": "Ostrołęka",
+     "distance_km": 53.0,
+     "observed_at": "2026-11-21T16:00:00Z",
+     "temperature_c": 0.9,
+     "precipitation_mm": 0.0,
+     "relative_humidity_pct": 83.3
+    },
+    "drought_warnings": [
+     {
+      "number": "90",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "podlaskie, Bug, susza hydrologiczna",
+      "valid_from": "2026-05-29T09:50:00",
+      "valid_to": null,
+      "level": "-1"
+     }
+    ]
+   },
+   "provenance": [
+    {
+     "source_id": "imgw",
+     "name": "IMGW-PIB dane publiczne",
+     "url": "https://danepubliczne.imgw.pl/api/data/synop",
+     "fetched_at": "2026-11-21T16:51:21.204411Z",
+     "live": true,
+     "data_period": null,
+     "resolution": null,
+     "licence": "unknown (see docs/DATA_SOURCES.md)",
+     "attribution_pl": "Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone."
+    },
+    {
+     "source_id": "imgw",
+     "name": "IMGW-PIB dane publiczne",
+     "url": "https://danepubliczne.imgw.pl/api/data/warningshydro",
+     "fetched_at": "2026-11-21T16:51:21.204520Z",
+     "live": true,
+     "data_period": null,
+     "resolution": null,
+     "licence": "unknown (see docs/DATA_SOURCES.md)",
+     "attribution_pl": "Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone."
+    }
    ],
-   "error": "imgw: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Ostrzeżenia przed suszą hydrologiczną IMGW-PIB dobrano według województwa działki (podlaskie); ostrzeżenie może dotyczyć innej zlewni w tym województwie."
+   ],
+   "error": null,
+   "elapsed_s": 0.053
   }
  }
 }

@@ -299,7 +299,7 @@
      "source_id": "soil_map",
      "name": "Mapa glebowo-rolnicza (GUGiK, WMS)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer",
-     "fetched_at": "2026-11-21T15:12:14.665466Z",
+     "fetched_at": "2026-11-21T16:48:12.047427Z",
      "live": true,
      "data_period": null,
      "resolution": "1:5000",
@@ -322,17 +322,43 @@
     "Kategorię gleby wyznaczono z wody ogólnie dostępnej (WOD ≈ 185 mm w warstwie 0–100 cm, SoilGrids), ponieważ gatunek «li» z mapy nie występuje w tabeli rozporządzenia."
    ],
    "error": null,
-   "elapsed_s": 0.24
+   "elapsed_s": 0.034
   },
   "vegetation": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Analiza zdjęć satelitarnych Sentinel-2 nie jest jeszcze dostępna w tej wersji prototypu."
+   "status": "partial",
+   "data": {
+    "interior_pixels": 64,
+    "current": [],
+    "current_window": [
+     "2026-10-22",
+     "2026-11-21"
+    ],
+    "same_window_by_year": {
+     "2019": [],
+     "2016": []
+    },
+    "season_peaks": {},
+    "scenes_considered": 74,
+    "scenes_processed": 6
+   },
+   "provenance": [
+    {
+     "source_id": "earth_search",
+     "name": "Earth Search STAC (Element 84)",
+     "url": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a",
+     "fetched_at": "2026-11-21T16:48:33.017944Z",
+     "live": true,
+     "data_period": null,
+     "resolution": "10 m",
+     "licence": "Copernicus Sentinel data – free, full and open access",
+     "attribution_pl": "Contains modified Copernicus Sentinel data [year]"
+    }
    ],
-   "error": "vegetation: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Przeanalizowano 6 z 68 scen Sentinel-2 w dostępnym czasie; pozostałe sceny są przetwarzane w tle i zostaną uwzględnione przy kolejnej analizie."
+   ],
+   "error": null,
+   "elapsed_s": 21.004
   },
   "terrain": {
    "status": "missing",
@@ -365,24 +391,118 @@
    "elapsed_s": 0.0
   },
   "edo": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Wskaźniki Europejskiego Obserwatorium Suszy (EDO) nie są jeszcze dostępne w tej wersji prototypu."
+   "status": "ok",
+   "data": {
+    "date_used": "2026-11-01",
+    "cdi_class": "Warning",
+    "cdi_value": null,
+    "sma": null,
+    "fapar_anomaly": null,
+    "spi3": null
+   },
+   "provenance": [
+    {
+     "source_id": "edo",
+     "name": "European Drought Observatory (Copernicus EMS)",
+     "url": "https://drought.emergency.copernicus.eu/api/wcs",
+     "fetched_at": "2026-11-21T16:48:12.018184Z",
+     "live": true,
+     "data_period": "dekada od 2026-11-01",
+     "resolution": "0,04°",
+     "licence": "Fees: no fees; AccessConstraints: no constraints (WMS GetCapabilities)",
+     "attribution_pl": null
+    }
    ],
-   "error": "edo: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Europejskie Obserwatorium Suszy (EDO) udostępnia publicznie tylko klasy wskaźnika CDI; wartości liczbowe SMA, fAPAR i SPI nie są pobierane."
+   ],
+   "error": null,
+   "elapsed_s": 0.001
   },
   "imgw": {
-   "status": "missing",
-   "data": null,
-   "provenance": [],
-   "notes_pl": [
-    "Dane bieżące IMGW-PIB nie są jeszcze dostępne w tej wersji prototypu."
+   "status": "ok",
+   "data": {
+    "nearest_synop": {
+     "station_id": "12595",
+     "station_name": "Zamość",
+     "distance_km": 44.0,
+     "observed_at": "2026-11-21T16:00:00Z",
+     "temperature_c": 1.6,
+     "precipitation_mm": 7.0,
+     "relative_humidity_pct": 82.7
+    },
+    "drought_warnings": [
+     {
+      "number": "70",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "lubelskie, zlewnia Wieprza wraz ze zb. Nielisz, susza hydrologiczna",
+      "valid_from": "2026-05-20T08:31:45",
+      "valid_to": null,
+      "level": "-1"
+     },
+     {
+      "number": "72",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "lubelskie, Zlewnia Bugu do ujścia Uherki (wraz ze zlewnią Uherki), susza hydrologiczna",
+      "valid_from": "2026-05-29T14:00:00",
+      "valid_to": null,
+      "level": "-1"
+     },
+     {
+      "number": "91",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "lubelskie, zlewnia Bugu od ujścia Uherki do Krzyczewa, susza hydrologiczna",
+      "valid_from": "2026-06-03T09:52:08",
+      "valid_to": null,
+      "level": "-1"
+     },
+     {
+      "number": "156",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "lubelskie, Wisła od ujścia Kamiennej do Dęblina, susza hydrologiczna",
+      "valid_from": "2026-07-09T08:48:28",
+      "valid_to": null,
+      "level": "-1"
+     },
+     {
+      "number": "210",
+      "phenomenon": "Susza hydrologiczna",
+      "area_pl": "lubelskie, Wisła od ujścia Sanu do ujścia Kamiennej, susza hydrologiczna",
+      "valid_from": "2026-08-07T10:17:19",
+      "valid_to": null,
+      "level": "-1"
+     }
+    ]
+   },
+   "provenance": [
+    {
+     "source_id": "imgw",
+     "name": "IMGW-PIB dane publiczne",
+     "url": "https://danepubliczne.imgw.pl/api/data/synop",
+     "fetched_at": "2026-11-21T16:48:12.047125Z",
+     "live": true,
+     "data_period": null,
+     "resolution": null,
+     "licence": "unknown (see docs/DATA_SOURCES.md)",
+     "attribution_pl": "Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone."
+    },
+    {
+     "source_id": "imgw",
+     "name": "IMGW-PIB dane publiczne",
+     "url": "https://danepubliczne.imgw.pl/api/data/warningshydro",
+     "fetched_at": "2026-11-21T16:48:12.047189Z",
+     "live": true,
+     "data_period": null,
+     "resolution": null,
+     "licence": "unknown (see docs/DATA_SOURCES.md)",
+     "attribution_pl": "Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone."
+    }
    ],
-   "error": "imgw: not implemented yet",
-   "elapsed_s": 0.0
+   "notes_pl": [
+    "Ostrzeżenia przed suszą hydrologiczną IMGW-PIB dobrano według województwa działki (lubelskie); ostrzeżenie może dotyczyć innej zlewni w tym województwie."
+   ],
+   "error": null,
+   "elapsed_s": 0.029
   }
  }
 }

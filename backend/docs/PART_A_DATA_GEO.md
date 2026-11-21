@@ -151,7 +151,7 @@ Cache: `geo.uldk`, no expiry.
 ### CP2 — satellite, EDO, IMGW (→ 23:00)
 - [x] `raster_io.py`, `sentinel2.py`, `vegetation.py` (+ test that no scene is after `analysis_date`; test of the offset handling on one pre-2022 and one post-2022 scene).
 - [x] `edo.py`, `imgw.py`.
-- [ ] Re-record fixtures; push.
+- [x] Re-record fixtures; push.
 
 ### CP3 — terrain, hydrology, land cover, static map (→ 03:00)
 - [ ] `hydro.py` (MPHP + OSM fallback), `landcover.py`.

@@ -177,6 +177,7 @@ sentinel2_processing:
   season_max_scenes: 6           # PART_A_DATA_GEO.md: "sample <= 6 least-cloudy scenes per season"
   workers: 16                    # PART_A_DATA_GEO.md: "ThreadPool 16-32"; lower bound because reads are bandwidth-bound
                                  # (24 parallel streams truncated tile reads on the dev link, 2026-11-21)
+  background_workers: 4          # OUR CHOICE: separate pool for scenes left over after a deadline (warm-up only)
   same_window_max_scenes: 3      # OUR CHOICE (CP2): least-cloudy scenes per previous-year window. Reason: every clear
                                  # scene costs ~4 MB of COG tiles (10 m bands: 1024x1024 deflate tiles ~1.4 MB,
                                  # blocks checked 2026-11-21 in both collections); all ~10 scenes x 10 years cannot be
@@ -228,11 +229,65 @@ mphp:
     "20": "Cieki Szerokie (skala od 75k)"
     "21": "Jeziora (skala 350k - 2.5m)"
     "22": "Jeziora (skala do 350k)"
+  used: false                   # CP3: replaced by bdot10k_water (same watercourses + ditches)
   vector_access: none           # spike: .../MapServer?f=json and .../MapServer/WFSServer -> HTTP 401;
                                 # https://wody.isok.gov.pl/wss/INSPIRE/ -> 401. Only WMS (PNG) + GetFeatureInfo.
   capabilities_note: answered after one failed connection (curl 000) -> needs retries
   licence_declared: "Fees / AccessConstraints empty in GetCapabilities"
   licence_verified: false
+
+terrain_processing:
+  name: Terrain analysis (Vedra processing parameters)
+  source: docs/PART_A_DATA_GEO.md (dem.py / terrain.py specs); values marked OUR CHOICE are ours
+  dem_buffer_m: 200              # PART_A_DATA_GEO.md: fetch_dem(parcel, buffer_m=200)
+  nmt_resolutions_m: [2, 5, 10]  # PART_A_DATA_GEO.md: "resample to 2-5 m by area"; 10 m only for very large parcels
+  max_cells: 250000              # OUR CHOICE (compute budget): priority-flood + epsilon fill + D8 took ~6 s for
+                                 # 490k cells on the dev machine (2026-11-21), so grids are capped at ~250k cells
+  nmt_timeout_s: 120             # OUR CHOICE: background NMT request limit (observed 52-56 s per request)
+  copernicus_res_m: 30           # Copernicus GLO-30 native ~30 m (1 arc-second); reprojected to EPSG:2180 at 30 m
+  copernicus_reserve_s: 8        # OUR CHOICE: time kept for the Copernicus read when NMT is late (observed 0.5-31 s)
+  depression_min_area_m2: 100    # OUR CHOICE: smaller pits are below a practical retention measure
+  depression_min_depth_m: 0.1    # OUR CHOICE: ignore fill depths at the level of DEM rounding/noise
+  flow_min_upstream_ha: 1.0      # OUR CHOICE: flow lines drawn where >= 1 ha drains through a cell
+  max_retention_spots: 15        # OUR CHOICE: report size
+  max_flow_lines: 20             # OUR CHOICE: report size
+  volume_uncertainty: none       # PART_A_DATA_GEO.md: volume ranges only if DEM vertical accuracy is documented;
+                                 # not yet sourced -> volume_m3 low/high = None
+
+bdot10k_water:
+  name: BDOT10k (GUGiK) – sieć wodna, usługa WMS
+  url: https://mapy.geoportal.gov.pl/wss/service/pub/guest/kompozycja_BDOT10k_WMS/MapServer/WMSServer
+  source: >-
+    URL from the geoportal WMS/WMTS list (https://www.geoportal.gov.pl/pl/usluga/uslugi-przegladania-wms-i-wmts/);
+    layers and attributes from GetCapabilities / GetFeatureInfo, CP3 probe 2026-11-21 (near 52.80N 18.30E:
+    "row" 1297 drawn px at 2 m, "WPow" 187 px; others 0). Vector access (ArcGIS REST ?f=json, /query) -> HTTP 401,
+    so features are derived from rendered layers (see method).
+  wms_version: "1.3.0"
+  crs: EPSG:2180                  # WMS 1.3.0 BBOX axis order (northing, easting)
+  layers:                         # WMS layer -> contract WaterFeature.kind (mapping: OUR CHOICE, titles from GetCapabilities)
+    row: ditch                    # "Rów melioracyjny" (GFI x_kod SWRM..)
+    kan: canal                    # "Kanał"
+    kanOkr: canal                 # "Kanał okresowy"
+    rz: stream                    # "Rzeka lub strumień" - BDOT10k does not split river/stream in this layer
+    rzOk: stream                  # "Rzeka lub strumień okresowy"
+    WPow: by_rodzaj               # "Woda powierzchniowa" (polygons, x_kod PTWP..), kind from attribute `rodzaj`
+  wpow_rodzaj_kind:               # GFI attribute `rodzaj` -> kind (OUR CHOICE)
+    wody stojące: pond
+    wody płynące: river
+  ditch_layers: [row]             # for HydroData.ditches_crossing_boundary
+  method: >-
+    GetMap PNG (TRANSPARENT=TRUE) per layer over the parcel bbox + buffer; drawn (alpha > 0) pixels, 8-connected,
+    form one feature each (a connected ditch network counts as one); outlines via rasterio.features.shapes;
+    distances in EPSG:2180. Distances are to the drawn symbol, so they can be short by up to the symbol half-width.
+  pixel_m: 2                      # OUR CHOICE: distance resolution 2 m; increased when the image would exceed max_px
+  max_px: 4000                    # OUR CHOICE: request size cap (typical ArcGIS WMS limit 4096 px)
+  max_feature_info: 20            # OUR CHOICE: GetFeatureInfo calls per parcel (names / rodzaj / x_kod)
+  name_attribute: nazwa
+  observed_latency_s: 0.4-2.3
+  licence_declared: "Fees: Brak opłat (WMS GetCapabilities)"
+  resolution: "1:10 000"
+  licence_verified: false
+  licence_source: https://www.geoportal.gov.pl/
 
 overpass:
   name: OpenStreetMap via Overpass API
@@ -246,6 +301,8 @@ overpass:
   spike_result: >-
     2026-11-21 ~15:30: overpass-api.de connect timeout (42 s), overpass.kumi.systems and
     overpass.private.coffee timed out at 60 s, maps.mail.ru answered 504. Re-test before CP3.
+    CP3 re-test 2026-11-21 ~17:45: overpass-api.de no TCP connect (IPv4 and IPv6) from the dev network;
+    overpass.kumi.systems connects but gives no response within 120 s. Used only as fallback after BDOT10k.
   licence: ODbL 1.0
   licence_verified: false
   licence_source: https://www.openstreetmap.org/copyright

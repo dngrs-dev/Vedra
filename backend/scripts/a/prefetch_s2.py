@@ -27,6 +27,20 @@ from app.geo.sources import BACKEND, DATA_DIR, source
 MANIFEST = DATA_DIR / "manifest.json"
 
 
+def write_manifest() -> None:
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {}
+    manifest["s2_scene_stats.json"] = {
+        "url": f"{source('earth_search')['url']} (collections {source('earth_search')['collections']['primary']}, "
+               f"{source('earth_search')['collections']['fallback']})",
+        "downloaded": datetime.now(timezone.utc).date().isoformat(),
+        "licence": source("earth_search")["licence"],
+        "content": "per scene x parcel-interior NDVI/NDMI medians computed by app.geo.sentinel2.scene_stats "
+                   "for the test parcels and fixture dates; key = scene_id|sha1(interior geometry)[:16]",
+        "script": "scripts/a/prefetch_s2.py",
+    }
+    MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 async def main(n_parcels: int | None, dates: list[date], budget: float) -> int:
     parcels = json.loads((BACKEND / "tests" / "fixtures" / "parcels.json").read_text(encoding="utf-8"))
     if n_parcels is not None:
@@ -45,17 +59,7 @@ async def main(n_parcels: int | None, dates: list[date], budget: float) -> int:
             stored.update(sentinel2.computed)
             DATA_DIR.mkdir(parents=True, exist_ok=True)
             out.write_text(json.dumps(stored, sort_keys=True) + "\n", encoding="utf-8")
-    manifest = json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {}
-    manifest["s2_scene_stats.json"] = {
-        "url": f"{source('earth_search')['url']} (collections {source('earth_search')['collections']['primary']}, "
-               f"{source('earth_search')['collections']['fallback']})",
-        "downloaded": datetime.now(timezone.utc).date().isoformat(),
-        "licence": source("earth_search")["licence"],
-        "content": "per scene x parcel-interior NDVI/NDMI medians computed by app.geo.sentinel2.scene_stats "
-                   "for the test parcels and fixture dates; key = scene_id|sha1(interior geometry)[:16]",
-        "script": "scripts/a/prefetch_s2.py",
-    }
-    MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            write_manifest()  # keep the manifest valid if the run is stopped early
     await http.close()
     vegetation.shutdown_background()
     print(f"{len(stored)} scene results stored in {out.relative_to(BACKEND)}")
