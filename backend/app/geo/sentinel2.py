@@ -46,6 +46,7 @@ class SceneRef:
     baseline: str | None
     collection: str
     bands: dict[str, BandInfo]
+    datatake: str | None = None   # s2:datatake_id without the "_Nxx.xx" baseline suffix
 
 
 def band_info(asset: dict, collection: str) -> BandInfo:
@@ -73,14 +74,20 @@ def scene_from_item(item: dict, collection: str) -> SceneRef | None:
         baseline=p.get("s2:processing_baseline"),
         collection=collection,
         bands={b: band_info(assets[keys[b]], collection) for b in BANDS},
+        datatake=(p.get("s2:datatake_id") or "").split("_N")[0] or None,
     )
 
 
 def dedupe(scenes: list[SceneRef]) -> list[SceneRef]:
-    """One scene per acquisition (platform + sensing minute); keeps the higher processing baseline / id."""
+    """One scene per acquisition; keeps the higher processing baseline / id.
+
+    Acquisition = s2:datatake_id without its baseline suffix: overlapping MGRS tiles of one datatake differ in
+    `datetime` by up to ~1 s (2026-11-05: 33UYU 10:06:00.323 vs 34UCD 10:05:59.384, both
+    GS2B_20261105T100209_050484), so a time-based key is not reliable. Fallback: platform + sensing minute.
+    """
     best: dict[tuple[str, str], SceneRef] = {}
     for s in scenes:
-        k = (s.platform, s.sensing[:16])
+        k = ("dt", s.datatake) if s.datatake else (s.platform, s.sensing[:16])
         cur = best.get(k)
         if cur is None or ((s.baseline or ""), s.scene_id) > ((cur.baseline or ""), cur.scene_id):
             best[k] = s

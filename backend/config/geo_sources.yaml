@@ -134,7 +134,8 @@ earth_search:
   duplicates_note: >-
     sentinel-2-l2a lists some acquisitions twice (reprocessed "_1_" next to "_0_" ids, and the same
     acquisition on two overlapping MGRS tiles, e.g. 33UYU and 34UCD). Scenes are de-duplicated by
-    platform + sensing time; the item with the higher processing baseline is kept.
+    s2:datatake_id without its "_Nxx.xx" baseline suffix (same for both tiles and both collections, checked
+    2026-11-21; tile datetimes of one datatake differ by up to ~1 s); the higher processing baseline is kept.
   offset_note: >-
     raster:bands declares the PB 04.00 BOA offset per item (probe 2026-11-21: S2A_34UCD_20180715_0_L2A PB 02.08 ->
     offset 0; S2A_33UYU_20220714_0_L2A PB 04.00 and S2B_33UYU_20210714_1_L2A PB 05.00 -> offset -0.1), but the

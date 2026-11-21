@@ -103,6 +103,21 @@ def test_dedupe_keeps_one_per_acquisition():
     assert [s.scene_id for s in out] == ["S2A_33UYU_20210716_0_L2A", "S2B_34UCD_20210714_1_L2A"]
 
 
+def test_dedupe_by_datatake_across_tiles_with_different_seconds():
+    """Real case 2026-11-05: same datatake on two tiles, datetimes 10:06:00.323 and 10:05:59.384."""
+    a = scene(0, sid="S2B_33UYU_20261105_0_L2A", sensing="2026-11-05T10:06:00.323000Z", baseline="05.13")
+    b = scene(0, sid="S2B_34UCD_20261105_0_L2A", sensing="2026-11-05T10:05:59.384000Z", baseline="05.13")
+    a = SceneRef(**{**a.__dict__, "datatake": "GS2B_20261105T100209_050484"})
+    b = SceneRef(**{**b.__dict__, "datatake": "GS2B_20261105T100209_050484"})
+    assert len(sentinel2.dedupe([a, b])) == 1
+
+
+def test_scene_from_item_reads_datatake_without_baseline():
+    item = _item("S2B_33UYU_20261105_0_L2A", "2026-11-05T10:06:00.323000Z")
+    item["properties"]["s2:datatake_id"] = "GS2B_20261105T100209_050484_N05.13"
+    assert sentinel2.scene_from_item(item, "sentinel-2-l2a").datatake == "GS2B_20261105T100209_050484"
+
+
 def _item(sid: str, dt: str) -> dict:
     keys = source("earth_search")["assets"]
     return {"id": sid, "properties": {"datetime": dt, "platform": "sentinel-2a", "eo:cloud_cover": 5.0,
