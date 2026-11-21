@@ -59,6 +59,13 @@ export function KowrLogo() {
   );
 }
 
+/** Знак Vedra — три полоски из логотипа, без подписи; цвет берёт из currentColor */
+export const VedraMark = ({ size = 48 }: IconProps) => (
+  <svg viewBox="0 0 64 28" width={size} height={(size * 28) / 64} fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+    <path d="M2 14c12-12 36-12 60-2M2 19c12-10 34-10 56-2M2 24c10-8 30-8 48-2" />
+  </svg>
+);
+
 export const PinIcon = ({ size = 24 }: IconProps) => (
   <svg {...base(size)}><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
 );
