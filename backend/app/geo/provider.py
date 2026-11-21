@@ -10,7 +10,7 @@ from app.contracts.common import SourceResult, SourceStatus
 from app.contracts.errors import InvalidParcelQuery, ParcelNotFound
 from app.contracts.geo import GeoBundle, GeoRequest
 from app.contracts.parcel import Parcel
-from app.geo import soil, uldk
+from app.geo import edo, imgw, soil, uldk, vegetation
 
 log = logging.getLogger(__name__)
 
@@ -23,8 +23,6 @@ _NOT_YET_PL = {
     "terrain": "Analiza ukształtowania terenu (NMT) nie jest jeszcze dostępna w tej wersji prototypu.",
     "hydro": "Dane o ciekach i rowach w otoczeniu działki nie są jeszcze dostępne w tej wersji prototypu.",
     "landcover": "Dane o pokryciu terenu (ESA WorldCover) nie są jeszcze dostępne w tej wersji prototypu.",
-    "edo": "Wskaźniki Europejskiego Obserwatorium Suszy (EDO) nie są jeszcze dostępne w tej wersji prototypu.",
-    "imgw": "Dane bieżące IMGW-PIB nie są jeszcze dostępne w tej wersji prototypu.",
 }
 _FAILED_PL = "Źródło danych nie odpowiedziało poprawnie; wynik analizy nie uwzględnia tych danych."
 _TIMEOUT_PL = "Źródło danych nie odpowiedziało w wyznaczonym czasie; wynik analizy nie uwzględnia tych danych."
@@ -78,12 +76,12 @@ class RealGeoProvider:
         parcel = req.parcel
         sources: dict[str, Callable[[float], Awaitable[SourceResult]]] = {
             "soil": lambda budget: soil.soil_info(parcel, budget),
-            "vegetation": _not_yet("vegetation"),
+            "vegetation": lambda budget: vegetation.vegetation_data(parcel, req, budget),
             "terrain": _not_yet("terrain"),
             "hydro": _not_yet("hydro"),
             "landcover": _not_yet("landcover"),
-            "edo": _not_yet("edo"),
-            "imgw": _not_yet("imgw"),
+            "edo": lambda budget: edo.edo_signal(parcel.centroid_lat, parcel.centroid_lon, req.analysis_date),
+            "imgw": lambda budget: imgw.imgw_context(parcel, req.analysis_date),
         }
         results = await asyncio.gather(*(_guard(n, f, deadline) for n, f in sources.items()))
         return GeoBundle.model_validate({n: r.model_dump() for n, r in zip(sources, results)})

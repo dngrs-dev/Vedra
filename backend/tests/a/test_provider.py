@@ -23,6 +23,27 @@ def parcel():
     return uldk.to_parcel(REC)
 
 
+@pytest.fixture(autouse=True)
+def _offline_sources(monkeypatch):
+    """collect() must not touch the network in these tests: stub every implemented non-soil source."""
+    from app.geo import vegetation
+
+    async def veg(p, req, budget):
+        return SourceResult(status=SourceStatus.MISSING, notes_pl=["stub"])
+
+    monkeypatch.setattr(vegetation, "vegetation_data", veg)
+    from app.geo import edo, imgw
+
+    async def edo_stub(lat, lon, d):
+        return SourceResult(status=SourceStatus.MISSING, notes_pl=["stub"])
+
+    async def imgw_stub(p, d):
+        return SourceResult(status=SourceStatus.MISSING, notes_pl=["stub"])
+
+    monkeypatch.setattr(edo, "edo_signal", edo_stub)
+    monkeypatch.setattr(imgw, "imgw_context", imgw_stub)
+
+
 @pytest.mark.asyncio
 async def test_find_parcels_routes_query_types(monkeypatch, parcel):
     seen = []

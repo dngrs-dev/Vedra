@@ -108,6 +108,49 @@ be filled from public EDO services. Example: `"spi3_class": "Moderately dry"`. I
 
 ---
 
+## 4a. Added after CP2 (Sentinel-2, EDO, IMGW are now real)
+
+### Vegetation (`bundle.vegetation`)
+- **Cold analyses are usually `partial`.** Each clear Sentinel-2 scene costs about 4 MB of COG tiles (10 m
+  bands are stored as 1024×1024 deflate tiles of about 1.4 MB). On the dev link (about 140 KB/s per stream to
+  us-west-2) only about 3–10 of the 40–70 scenes fit into 22 s. The current window is processed first, so `current` is
+  the most likely field to be filled. History (`same_window_by_year`, `season_peaks`) fills up on later runs:
+  unfinished scenes keep being read in the background into a permanent cache. The test parcels get
+  preprocessed scene statistics in `data/a/s2_scene_stats.json`, so they are complete in any deployment once
+  `data/` is copied (§1.2).
+- **Read the keys, not only the values.** A year **missing** from `same_window_by_year` / `season_peaks` means
+  «not processed in time» or «no Sentinel-2 L2A archive that year» (before 2016; a Polish note lists those
+  years). A year **present with `[]` / `None`** means scenes were checked and none was clear. Compute
+  percentiles / VCI only over present years, and state the number of years used.
+- `same_window_by_year` holds at most the **3 least-cloudy** scenes per previous year (our choice, for the time
+  budget; `config/geo_sources.yaml` `sentinel2_processing.same_window_max_scenes`).
+- `scenes_considered` vs `scenes_processed` tells you how complete the history is. `notes_pl` says it in Polish
+  («Przeanalizowano N z M scen…»).
+- NDVI/NDMI are medians over clear interior pixels (SCL 4/5, parcel buffered −10 m). Earth Search's
+  `sentinel-2-l2a` metadata declares a −0.1 BOA offset, but its pixels are harmonized. A verified this against
+  `sentinel-2-c1-l2a` on the same acquisitions (`config/geo_sources.yaml` `earth_search.offset_note`), so values
+  are consistent across 2017–2026. Nothing for B to change; mention it in METHODOLOGY.md if you describe NDVI.
+
+### EDO (`bundle.edo`)
+- `cdi_class` uses the CDI factsheet v4.1.1 Table 1 labels (English): `No drought`, `Watch`, `Warning`,
+  `Alert`, `Recovery`, `Temporary Soil Moisture recovery`, `Temporary vegetation recovery`. **B should
+  translate them for the report** (Part A returns the provider's labels). Note that `No drought` and the three
+  recovery classes are also possible, not only Watch/Warning/Alert.
+- `date_used` is the latest dekad that has **ended** on or before the analysis date (the CDI may therefore be up
+  to about 20 days older than the analysis date, and the newest published dekad lags real time).
+- The numeric fields stay `None`; the EDO proposal above is still open.
+
+### IMGW (`bundle.imgw`, only when analysis date = today)
+- `nearest_synop` comes from the nearest of 56 synop stations with known coordinates. Six stations
+  (Gdańsk, Katowice, Kraków, Tarnów, Warszawa, Platforma) are excluded because their coordinates could not be
+  matched unambiguously; distances can be 40–60 km. `observed_at` is UTC.
+- `drought_warnings` are filtered by the parcel's **voivodeship** (IMGW gives catchment codes but no catchment
+  geometry). A Polish note says that a warning may concern another catchment in the same voivodeship.
+  `valid_to = None` means «until further notice». Warning times are given exactly as IMGW publishes them
+  (naive, no time zone stated by the API).
+
+---
+
 ## 5. Environment notes
 
 - Dockerfile uses Python 3.11; A develops on 3.14. A's code uses no 3.12+ features, but please run the

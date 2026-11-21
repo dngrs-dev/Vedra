@@ -5,5 +5,12 @@
     "licence": "CC BY 4.0",
     "content": "raw SoilGrids 2.0 /properties/query responses for query_point() of each test parcel",
     "script": "scripts/a/prefetch_soilgrids.py"
+  },
+  "imgw_synop_stations.json": {
+    "url": "https://danepubliczne.imgw.pl/api/data/synop + https://danepubliczne.imgw.pl/api/data/meteo",
+    "downloaded": "2026-11-21",
+    "licence": "IMGW-PIB dane publiczne (attribution required, see config/geo_sources.yaml imgw)",
+    "content": "synop station id/name joined by name to meteo station coordinates",
+    "script": "scripts/a/build_imgw_stations.py"
   }
 }
