@@ -6,6 +6,8 @@ import { fmtDate, fmtDateTime } from '@/utils/format';
 import { ConfidenceBadge } from './Badges';
 
 const number = new Intl.NumberFormat('pl-PL', { maximumSignificantDigits: 21 });
+// Match the two-decimal display used for the same estimates in the backend PDF.
+const balance = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 2 });
 
 function formatRange({ low, mid, high }: BackendRange): string {
   return low !== null && high !== null && low !== high
@@ -13,9 +15,9 @@ function formatRange({ low, mid, high }: BackendRange): string {
     : number.format(mid);
 }
 
-function formatMetric({ value, unit }: BackendMetric): string {
+function formatMetric({ code, value, unit }: BackendMetric): string {
   if (value === null) return pl.moisture.noData;
-  const display = typeof value === 'number' ? number.format(value)
+  const display = typeof value === 'number' ? (code === 'kbw_last_balance' ? balance : number).format(value)
     : typeof value === 'string' ? value : formatRange(value);
   return unit ? `${display} ${unit}` : display;
 }
@@ -39,19 +41,22 @@ export function BackendReportCards({ report }: { report: BackendReport }) {
   const { assessment, causes, recommendations, irrigation, data_sources, limitations_pl, references } = report;
   const { kbw, confidence, signals, vulnerability } = assessment;
   const { backend: copy } = pl;
+  const waitingForPeriod = kbw.verdict === 'unavailable' && kbw.period === null;
+  const showBalance = kbw.kbw_mm !== null || (kbw.period !== null && kbw.verdict === 'unavailable');
 
   return (
     <>
       <Card title={copy.kbw}>
-        <p><strong>{copy.verdict[kbw.verdict]}</strong></p>
+        <p><strong>{waitingForPeriod ? copy.firstKbwPeriod : copy.verdict[kbw.verdict]}</strong></p>
         <p>{report.summary}</p>
+        <p className="muted small">{copy.kbwDefinition}</p>
         <dl className="factors">
           {kbw.period && <div><dt>{copy.period}</dt><dd>{fmtDate(kbw.period.start)} – {fmtDate(kbw.period.end)}</dd></div>}
           {kbw.soil_category && <div><dt>{copy.soilCategory}</dt><dd>{kbw.soil_category}</dd></div>}
-          <div><dt>KBW</dt><dd>{kbw.kbw_mm === null ? pl.moisture.noData : `${number.format(kbw.kbw_mm)} mm`}</dd></div>
-          {typeof kbw.threshold_mm === 'number' && <div><dt>{copy.threshold}</dt><dd>{number.format(kbw.threshold_mm)} mm</dd></div>}
+          {showBalance && <div><dt>KBW</dt><dd>{kbw.kbw_mm === null ? pl.moisture.noData : `${balance.format(kbw.kbw_mm)} mm`}</dd></div>}
+          {typeof kbw.threshold_mm === 'number' && <div><dt>{copy.threshold}</dt><dd>{balance.format(kbw.threshold_mm)} mm</dd></div>}
           {kbw.distance_to_threshold_mm !== null && (
-            <div><dt>{copy.distanceToThreshold}</dt><dd>{number.format(kbw.distance_to_threshold_mm)} mm</dd></div>
+            <div><dt>{copy.distanceToThreshold}</dt><dd>{balance.format(kbw.distance_to_threshold_mm)} mm</dd></div>
           )}
         </dl>
         {confidence && <ConfidenceBadge value={confidence} />}

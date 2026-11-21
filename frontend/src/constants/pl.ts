@@ -51,7 +51,7 @@ export const pl = {
     crop: 'Wybierz Uprawę',
     cropPlaceholder: 'Wybierz uprawę…',
     date: 'Data analizy',
-    dateHint: 'Dziś lub dowolna data z ostatnich 10 lat'
+    dateHint: 'Dziś lub data z ostatnich 10 lat. KBW dotyczy zakończonych okresów monitoringu.'
   },
 
   moisture: {
@@ -110,6 +110,8 @@ export const pl = {
   backend: {
     preparing: 'Uruchamiam analizę…',
     kbw: 'Klimatyczny bilans wodny (KBW)',
+    kbwDefinition: 'Bilans to różnica między opadem a szacowanym parowaniem gleby i roślin przy dostatecznej ilości wody.',
+    firstKbwPeriod: 'Przed pierwszą oceną KBW w sezonie',
     verdict: {
       drought: 'Susza rolnicza według KBW',
       no_drought: 'Brak suszy rolniczej według KBW',

@@ -2,9 +2,9 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.analytics import kbw, periods
+from app.analytics import kbw, periods, vulnerability
 from app.analytics.evapotranspiration import daylight_hours, etp_monthly, etp_period
-from app.analytics.models import WeatherData, WeatherDay
+from app.analytics.models import KbwHistory, KbwResult, WeatherData, WeatherDay
 from app.fakes.fake_geo import EXAMPLE_POINT
 
 # Example historical year/date from docs/TEAM_SPLIT.md §7.
@@ -49,7 +49,10 @@ def test_etp_prorates_a_month_without_using_later_values():
 
 def test_kbw_keeps_the_statute_markers_and_rejects_incomplete_periods():
     assert kbw.assess(None, "I", "winter_cereals", date(YEAR, 11, 21)).verdict == "off_season"
-    assert kbw.assess(None, "I", "winter_cereals", date(YEAR, 5, 19)).period is None
+    waiting = kbw.assess(None, "I", "winter_cereals", date(YEAR, 5, 19))
+    assert waiting.period is None
+    assert waiting.kbw_mm is None
+    assert "20.05.2023" in waiting.explanation_pl
     assert kbw.assess(None, "I", "winter_cereals", date(YEAR, 8, 20)).threshold_mm == "x"
     assert kbw.assess(None, "I", "sugar_beet", date(YEAR, 5, 20)).threshold_mm == "-"
     assert kbw.assess(None, None, "winter_cereals", date(YEAR, 5, 20)).verdict == "unavailable"
@@ -82,3 +85,24 @@ def test_history_and_threshold_comparison_use_the_completed_window(monkeypatch):
     at_threshold = kbw.assess(weather, "I", "winter_cereals", first.end)
     assert at_threshold.verdict == "no_drought"
     assert at_threshold.near_threshold is True
+
+
+def test_report_keeps_the_latest_assessed_kbw_separate_from_the_selected_date():
+    earlier, latest, later, future, *_ = periods.for_year(YEAR)
+    # Synthetic results exercise a later skipped period, a future value and a valid zero.
+    history = KbwHistory((
+        KbwResult("drought", "", earlier, "II", kbw_mm=-150),
+        KbwResult("no_drought", "", latest, "II", kbw_mm=0),
+        KbwResult("not_applicable", "", later, "II", threshold_mm="x"),
+        KbwResult("no_drought", "", future, "II", kbw_mm=-20),
+    ), (YEAR,), (YEAR,), {5: 0.5})
+    source_ids = ["imgw_daily_synop"]
+    result = vulnerability.assess(
+        history, None, later.end, weather_sources=source_ids, vegetation_sources=[], show_latest_period=True,
+    )
+    metrics = {metric.code: metric for metric in result.metrics}
+    assert metrics["kbw_last_period"].value == "01.04.2023 – 31.05.2023"
+    assert metrics["kbw_last_balance"].value == 0
+    assert metrics["kbw_last_balance"].source_ids == source_ids
+    assert len(vulnerability.assess(history, None, later.end, weather_sources=source_ids,
+                                     vegetation_sources=[]).metrics) == 1

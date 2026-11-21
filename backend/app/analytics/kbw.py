@@ -75,7 +75,9 @@ def assess(
         return KbwResult("off_season", text.KBW_OFF_SEASON, soil_category=soil_category)
     period = periods.latest_completed(analysis_date)
     if period is None:
-        return KbwResult("unavailable", text.KBW_NO_COMPLETED_PERIOD, soil_category=soil_category)
+        first_end = periods.for_year(analysis_date.year)[0].end.strftime("%d.%m.%Y")
+        explanation = text.KBW_NO_COMPLETED_PERIOD.format(first_period_end=first_end)
+        return KbwResult("unavailable", explanation, soil_category=soil_category)
     return _period_balance(weather, soil_category, crop, period)
 
 

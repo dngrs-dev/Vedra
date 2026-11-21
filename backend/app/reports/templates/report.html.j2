@@ -29,12 +29,15 @@
     <h2>Sytuacja wodna działki</h2>
     <p>{{ report.summary }}</p>
     {% set kbw = report.assessment.kbw %}
+    {% set show_balance = kbw.kbw_mm is not none or (kbw.period and kbw.verdict == "unavailable") %}
     {% if kbw.period %}<p>Okres oceny: {{ kbw.period.start }} – {{ kbw.period.end }}</p>{% endif %}
+    {% if show_balance or kbw.threshold_mm is number or report.assessment.confidence %}
     <dl class="metrics">
-      <div><dt>Klimatyczny bilans wodny</dt><dd>{{ kbw.kbw_mm | display_value }}{% if kbw.kbw_mm is not none %} mm{% endif %}</dd></div>
+      {% if show_balance %}<div><dt>Klimatyczny bilans wodny</dt><dd>{{ kbw.kbw_mm | display_value }}{% if kbw.kbw_mm is not none %} mm{% endif %}</dd></div>{% endif %}
       {% if kbw.threshold_mm is number %}<div><dt>Próg dla uprawy i gleby</dt><dd>{{ kbw.threshold_mm | display_value }} mm</dd></div>{% endif %}
       {% if report.assessment.confidence %}<div><dt>Pewność oceny</dt><dd>{{ confidence_labels[report.assessment.confidence] }}</dd></div>{% endif %}
     </dl>
+    {% endif %}
   </section>
   <section>
     <h2>Położenie działki</h2>

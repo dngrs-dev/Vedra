@@ -115,6 +115,7 @@ async def run_analysis(
         req.analysis_date,
         weather_sources=[item.source_id for item in weather.provenance],
         vegetation_sources=[item.source_id for item in bundle.vegetation.provenance],
+        show_latest_period=assessment.kbw_mm is None,
     )
     context = AnalysisContext(req, parcel, crop, weather, bundle, assessment, history, metrics, signals, historical_risk)
 
