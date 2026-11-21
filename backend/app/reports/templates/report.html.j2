@@ -84,7 +84,7 @@
   </section>
   {% endif %}
   {% if report.limitations_pl %}
-  <section><h2>Ograniczenia oceny</h2><ul>{% for note in report.limitations_pl %}<li>{{ note }}</li>{% endfor %}</ul></section>
+  <section class="limitations"><h2>Ograniczenia oceny</h2><ul>{% for note in report.limitations_pl %}<li>{{ note }}</li>{% endfor %}</ul></section>
   {% endif %}
   <section class="small">
     <h2>Źródła danych</h2>

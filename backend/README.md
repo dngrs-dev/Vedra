@@ -176,3 +176,16 @@ W katalogu `backend` uruchom `python -m pytest tests/b`. W zintegrowanym drzewie
   obliczenie błędów liczbowych. [Walidacja KBW](docs/VALIDATION.md).
 - Testy sprawdzają między innymi progi, brak danych, zapis raportu, odczyt po restarcie i PDF.
   Scenariusze porównawcze oraz kolejne kroki dokumentuje [lista kontrolna części B](docs/PART_B_ANALYTICS_PRODUCT.md).
+
+### Przykładowe raporty PDF
+
+Przykłady wykorzystują zapisane dane geo części A. Archiwum pogodowe było niedostępne
+podczas przygotowania przykładów. Raporty wskazują ten brak obok dostępnych danych.
+
+- [Września, 10.07.2018](data/b/samples/reports/wrzesnia-2018-07-10.pdf)
+- [Inowrocław, 31.05.2023](data/b/samples/reports/inowroclaw-2023-05-31.pdf)
+- [Kętrzyn, 21.11.2026](data/b/samples/reports/ketrzyn-2026-11-21.pdf)
+
+W zintegrowanym drzewie i w katalogu `backend` odtwórz przykłady poleceniem
+`python -m scripts.b.generate_sample_reports --offline`. Pominięcie `--offline` pozwala
+wykorzystać pogodę, gdy archiwum odpowiada.

@@ -24,5 +24,7 @@ a { color: #175d57; overflow-wrap: anywhere; }
 .identity { margin-bottom: 2mm; }
 .item { break-inside: avoid; margin-bottom: 3mm; }
 .visual { display: block; max-width: 100%; width: 100%; }
-.map { max-height: 74mm; object-fit: contain; }
+/* Reserve space below the parcel outline for assessment and source notes on A4. */
+.map { max-height: 56mm; object-fit: contain; }
+.limitations li { margin-bottom: .25mm; }
 .small { font-size: 8.5pt; }

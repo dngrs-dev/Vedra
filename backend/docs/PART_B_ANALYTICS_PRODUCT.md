@@ -182,7 +182,8 @@ def get_geo_provider() -> GeoProvider:
 
 ### CP5 — docs and release (→ 10:00)
 - [x] `README.md` (9 mandatory points of the task §4.2), `METHODOLOGY.md`, `SCALABILITY.md`, `SECURITY.md`, `AI_USAGE.md`.
-- [ ] `scripts/b/generate_sample_reports.py` → `samples/reports/*.pdf`.
+- [x] `scripts/b/generate_sample_reports.py` → `data/b/samples/reports/*.pdf`.
+  Three sample PDFs use recorded Part A geo inputs and show the Open-Meteo archive gap explicitly.
 - [ ] Deploy the validated backend with `GEO_PROVIDER=real` over HTTPS and smoke-test it from a clean browser.
   This is the final task. Earlier checkpoints run locally with `fake`, `fixtures`, or `real` as available.
 
