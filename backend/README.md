@@ -123,15 +123,16 @@ T0 = written once, before the split, by either person (≈ 20 min, code in `docs
 | `GET /api/parcels/by-point?lat=&lon=` | parcel under a map click |
 | `POST /api/analyses` | start an analysis: `parcel_id`, `crop_code`, `analysis_date`, `include_irrigation` → `analysis_id` |
 | `GET /api/analyses/{id}` | status, progress (Polish messages), `report` when done |
-| `GET /api/analyses/{id}/report.pdf` (planned) | PDF |
-| `GET /api/reports/{id}` (planned) | saved report (permanent link) |
+| `GET /api/analyses/{id}/report.pdf` | PDF |
+| `GET /api/reports/{id}` | saved report (permanent link) |
 
 Interactive docs: `/docs` (FastAPI OpenAPI). Report schema: `app/contracts/report.py`;
 example for the frontend: `tests/fixtures/sample_report.json`.
 
-The CP1 JSON API accepts a request with HTTP 202. Poll the analysis URL until its status is `done`
-or `error`. Reports and progress are held in memory during CP1. Run one API process so every poll
-reaches the same job registry. Use `GEO_PROVIDER=fake` to exercise the flow with synthetic geo data.
+The API accepts a request with HTTP 202. Poll the analysis URL until its status is `done` or `error`.
+Completed reports and their progress are saved in SQLite. The PDF is generated on the first request
+and saved beside the database. Run one API process so polls for active jobs reach the same registry.
+Use `GEO_PROVIDER=fake` to exercise the flow with synthetic geo data.
 
 ---
 
@@ -146,6 +147,7 @@ docker run --rm -e GEO_PROVIDER=fake -p 127.0.0.1:8000:8000 vedra-backend
 
 The local API is available at `http://localhost:8000`. Build the `test` target with
 `docker build --target test backend` to run Part B's tests in the same container environment.
+For reports that survive container replacement, use a named volume mounted at `/app/data`.
 
 Local (Linux / WSL2):
 
@@ -156,6 +158,9 @@ pip install -r requirements/base.txt -r requirements/a-geo.txt -r requirements/b
 GEO_PROVIDER=fake uvicorn app.main:app --reload
 pytest
 ```
+
+The Docker image provides Pango and fonts for PDF rendering. For native Python, install the
+[WeasyPrint system libraries](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html).
 
 Environment variables:
 

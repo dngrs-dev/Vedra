@@ -75,7 +75,10 @@ def _signals(
     ]
 
 
-async def run_analysis(req: AnalysisRequest, geo: GeoProvider, progress: Callable[[str], None]) -> Report:
+async def run_analysis(
+    req: AnalysisRequest, geo: GeoProvider, progress: Callable[[str], None],
+    *, on_geo: Callable[[GeoBundle], None] | None = None,
+) -> Report:
     crop = crops.load()[req.crop_code]
     progress(text.PROGRESS_PARCEL)
     parcels = await geo.find_parcels(req.parcel_id)
@@ -88,6 +91,8 @@ async def run_analysis(req: AnalysisRequest, geo: GeoProvider, progress: Callabl
         open_meteo.fetch_weather(parcel.centroid_lat, parcel.centroid_lon, req.analysis_date),
         geo.collect(GeoRequest(parcel=parcel, analysis_date=req.analysis_date)),
     )
+    if on_geo is not None:
+        on_geo(bundle)
     soil_category = bundle.soil.data.kbw_category if bundle.soil.data is not None else None
 
     progress(text.PROGRESS_ASSESSMENT)

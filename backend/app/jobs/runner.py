@@ -11,9 +11,10 @@ from pydantic import BaseModel, Field
 from app.analytics.models import AnalysisRequest
 from app.analytics.pipeline import run_analysis
 from app.contracts.errors import InvalidParcelQuery, ParcelNotFound, UpstreamUnavailable
-from app.contracts.geo import GeoProvider
+from app.contracts.geo import GeoBundle, GeoProvider
 from app.contracts.report import Report
 from app.recommendations import texts_pl as text
+from app.storage.db import ReportStore
 
 logger = logging.getLogger(__name__)
 # README.md §1 sets a 30-second cold run target for an analysis.
@@ -29,7 +30,8 @@ class AnalysisStatus(BaseModel):
 
 
 class AnalysisRunner:
-    def __init__(self, timeout_s: float = ANALYSIS_TIMEOUT_S) -> None:
+    def __init__(self, store: ReportStore, timeout_s: float = ANALYSIS_TIMEOUT_S) -> None:
+        self.store = store
         self.timeout_s = timeout_s
         self._jobs: dict[str, AnalysisStatus] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
@@ -48,9 +50,17 @@ class AnalysisRunner:
 
     async def _run(self, req: AnalysisRequest, geo: GeoProvider, job: AnalysisStatus) -> None:
         job.status = "running"
+        bundle = None
+
+        def remember_geo(value: GeoBundle) -> None:
+            nonlocal bundle
+            bundle = value
+
         try:
             async with asyncio.timeout(self.timeout_s):
-                job.report = await run_analysis(req, geo, job.progress.append)
+                report = await run_analysis(req, geo, job.progress.append, on_geo=remember_geo)
+            await asyncio.to_thread(self.store.save_report, report, job.analysis_id, [*job.progress, text.PROGRESS_DONE], bundle)
+            job.report = report
         except InvalidParcelQuery:
             job.error = text.PARCEL_QUERY_INVALID
         except ParcelNotFound:

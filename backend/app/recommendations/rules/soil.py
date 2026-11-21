@@ -19,7 +19,9 @@ def evaluate(ctx: AnalysisContext, risk: list[Metric]) -> list[Recommendation]:
     if ctx.assessment.soil_category in {"I", "II"}:
         category = Metric(code="soil_category", label_pl=text.SOIL_CATEGORY, value=ctx.assessment.soil_category,
                           source_ids=[item.source_id for item in ctx.geo.soil.provenance])
-        evidence = [*risk, category]
+        evidence = list(risk)
+        if all(item.code != category.code for item in evidence):
+            evidence.append(category)
         references = ["fao_organic_matter"]
         data = ctx.geo.soil.data
         if data is not None:

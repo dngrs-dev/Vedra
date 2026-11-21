@@ -1,0 +1,28 @@
+/* A4 print format according to ISO 216, with room for the page footer. */
+@page {
+  size: A4;
+  margin: 16mm 17mm 18mm;
+  @bottom-left { content: "Vedra · Raport gospodarowania wodą"; color: #43605c; font-size: 8pt; }
+  @bottom-right { content: counter(page) " / " counter(pages); color: #43605c; font-size: 8pt; }
+}
+body { color: #172b29; font-family: "DejaVu Sans", sans-serif; font-size: 10pt; line-height: 1.45; }
+h1, h2, h3 { break-after: avoid; color: #154c43; line-height: 1.2; }
+h1 { font-size: 23pt; margin: 1mm 0 5mm; }
+h2 { border-bottom: 1px solid #c5d9d4; font-size: 14pt; margin: 6mm 0 2mm; padding-bottom: 1mm; }
+h3 { font-size: 11pt; margin: 1mm 0; }
+p { margin: 0 0 2mm; }
+ul { margin: 0 0 3mm; padding-left: 5mm; }
+li { margin-bottom: 1mm; }
+a { color: #175d57; overflow-wrap: anywhere; }
+.wordmark, .category { color: #28776d; font-size: 8pt; font-weight: bold; letter-spacing: .06em; }
+.summary { background: #eef7f3; border-left: 3px solid #28776d; margin-top: 4mm; padding: 1mm 4mm 3mm; }
+.summary h2 { margin-top: 2mm; }
+.metrics { margin: 1mm 0 2mm; }
+.metrics div { display: flex; justify-content: space-between; gap: 3mm; border-bottom: 1px solid #e4eeeb; padding: .5mm 0; }
+.metrics dt { color: #334f4b; }
+.metrics dd { font-weight: bold; margin: 0; text-align: right; overflow-wrap: anywhere; }
+.identity { margin-bottom: 2mm; }
+.item { break-inside: avoid; margin-bottom: 3mm; }
+.visual { display: block; max-width: 100%; width: 100%; }
+.map { max-height: 74mm; object-fit: contain; }
+.small { font-size: 8.5pt; }

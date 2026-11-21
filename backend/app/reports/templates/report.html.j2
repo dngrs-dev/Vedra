@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <title>Vedra | Raport gospodarowania wodą</title>
+</head>
+<body>
+{% macro metrics(items) -%}
+  {% if items %}
+  <dl class="metrics">
+    {% for metric in items %}
+      <div><dt>{{ metric.label_pl }}</dt><dd>{{ metric.value | display_value }}{% if metric.unit %} {{ metric.unit }}{% endif %}</dd></div>
+    {% endfor %}
+  </dl>
+  {% endif %}
+{%- endmacro %}
+<header>
+  <p class="wordmark">VEDRA</p>
+  <h1>Raport gospodarowania wodą</h1>
+  <dl class="metrics identity">
+    <div><dt>Działka ewidencyjna</dt><dd>{{ report.parcel.parcel_id }}</dd></div>
+    <div><dt>Obręb</dt><dd>{{ report.parcel.region }}</dd></div>
+    <div><dt>Uprawa</dt><dd>{{ report.crop_name_pl }}</dd></div>
+    <div><dt>Data analizy</dt><dd>{{ report.analysis_date }}</dd></div>
+  </dl>
+</header>
+<main>
+  <section class="summary">
+    <h2>Sytuacja wodna działki</h2>
+    <p>{{ report.summary }}</p>
+    {% set kbw = report.assessment.kbw %}
+    {% if kbw.period %}<p>Okres oceny: {{ kbw.period.start }} – {{ kbw.period.end }}</p>{% endif %}
+    <dl class="metrics">
+      <div><dt>Klimatyczny bilans wodny</dt><dd>{{ kbw.kbw_mm | display_value }}{% if kbw.kbw_mm is not none %} mm{% endif %}</dd></div>
+      {% if kbw.threshold_mm is number %}<div><dt>Próg dla uprawy i gleby</dt><dd>{{ kbw.threshold_mm | display_value }} mm</dd></div>{% endif %}
+      {% if report.assessment.confidence %}<div><dt>Pewność oceny</dt><dd>{{ confidence_labels[report.assessment.confidence] }}</dd></div>{% endif %}
+    </dl>
+  </section>
+  <section>
+    <h2>Położenie działki</h2>
+    {% if map_url %}<img class="visual map" src="{{ map_url }}" alt="Mapa położenia działki">{% else %}<p>Mapa była niedostępna podczas tworzenia raportu.</p>{% endif %}
+  </section>
+  <section>
+    <h2>Wskaźniki</h2>
+    {% for signal in report.assessment.signals %}
+      <div class="item"><p><strong>{{ status_labels[signal.status.value] }}.</strong> {{ signal.summary_pl }}</p>{{ metrics(signal.metrics) }}</div>
+    {% endfor %}
+  </section>
+  {% if report.assessment.vulnerability %}
+  <section>
+    <h2>Podatność w poprzednich latach</h2>
+    <p>{{ report.assessment.vulnerability.summary_pl }}</p>
+    {% if chart_url %}<img class="visual" src="{{ chart_url }}" alt="Udział okresów z niedoborem wody według miesiąca">{% endif %}
+    {{ metrics(report.assessment.vulnerability.metrics) }}
+  </section>
+  {% endif %}
+  {% if report.causes %}
+  <section>
+    <h2>Przyczyny niedoboru wody</h2>
+    {% for cause in report.causes %}
+      <div class="item"><h3>{{ cause.title_pl }}</h3><p>{{ cause.explanation_pl }}</p>{{ metrics(cause.evidence) }}</div>
+    {% endfor %}
+  </section>
+  {% endif %}
+  <section>
+    <h2>Zalecane działania</h2>
+    {% for recommendation in report.recommendations %}
+      <div class="item">
+        <p class="category">{{ category_labels[recommendation.category] }}</p>
+        <h3>{{ recommendation.title_pl }}</h3>
+        <p>{{ recommendation.action_pl }}</p>
+        <p>{{ recommendation.why_pl }}</p>
+        {{ metrics(recommendation.evidence) }}
+        <p class="small">{% for ref in report.references if ref.id in recommendation.reference_ids %}<a href="{{ ref.url }}">{{ ref.title_pl }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+      </div>
+    {% else %}<p>Dostępne dane nie pozwalają wskazać działań dla działki.</p>{% endfor %}
+  </section>
+  {% if report.irrigation %}
+  <section>
+    <h2>Ocena nawadniania</h2>
+    <p>{{ report.irrigation.why_pl }}</p>
+    {% if report.irrigation.suggested_date %}<p>Szacowany termin: {{ report.irrigation.suggested_date }}</p>{% endif %}
+    {% if report.irrigation.net_dose_mm %}<p>Dawka netto: {{ report.irrigation.net_dose_mm | display_value }} mm</p>{% endif %}
+  </section>
+  {% endif %}
+  {% if report.limitations_pl %}
+  <section><h2>Ograniczenia oceny</h2><ul>{% for note in report.limitations_pl %}<li>{{ note }}</li>{% endfor %}</ul></section>
+  {% endif %}
+  <section class="small">
+    <h2>Źródła danych</h2>
+    {% for source in report.data_sources %}
+    <p class="item"><strong><a href="{{ source.url }}">{{ source.name }}</a></strong>{% if source.data_period %} · Okres danych: {{ source.data_period }}{% endif %}<br>
+      Pobranie: {{ source.fetched_at | source_time }}{% if source.resolution %} · Rozdzielczość: {{ source.resolution }}{% endif %}<br>
+      Licencja: {{ source.licence }}{% if source.attribution_pl %} · {{ source.attribution_pl }}{% endif %}
+    </p>
+    {% else %}<p>Źródła danych przestrzennych i pogodowych były niedostępne.</p>{% endfor %}
+    <h2>Odniesienia</h2>
+    <ul>{% for ref in report.references %}<li><a href="{{ ref.url }}">{{ ref.title_pl }}</a></li>{% endfor %}</ul>
+  </section>
+</main>
+</body>
+</html>

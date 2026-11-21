@@ -14,18 +14,21 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import RequestResponseEndpoint
 
-from app.api import routes_analyses, routes_meta, routes_parcels
+from app.api import routes_analyses, routes_meta, routes_parcels, routes_reports
 from app.config import settings
 from app.contracts.errors import InvalidParcelQuery, ParcelNotFound, UpstreamUnavailable
 from app.core import http
 from app.jobs.runner import AnalysisRunner
 from app.recommendations import texts_pl as text
+from app.storage.db import ReportStore
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logging.getLogger("app").setLevel(settings.log_level)
-    runner = AnalysisRunner()
+    store = ReportStore(settings.db_path)
+    runner = AnalysisRunner(store)
+    app.state.report_store = store
     app.state.analysis_runner = runner
     try:
         yield
@@ -38,6 +41,7 @@ app = FastAPI(title="Vedra", description=text.API_DESCRIPTION, lifespan=lifespan
 app.include_router(routes_meta.router)
 app.include_router(routes_parcels.router)
 app.include_router(routes_analyses.router)
+app.include_router(routes_reports.router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,

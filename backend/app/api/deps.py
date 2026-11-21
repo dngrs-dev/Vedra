@@ -8,6 +8,7 @@ from fastapi import Depends, Request
 from app.config import settings
 from app.contracts.geo import GeoProvider
 from app.jobs.runner import AnalysisRunner
+from app.storage.db import ReportStore
 
 
 def get_geo_provider() -> GeoProvider:
@@ -29,5 +30,10 @@ def get_analysis_runner(request: Request) -> AnalysisRunner:
     return request.app.state.analysis_runner
 
 
+def get_report_store(request: Request) -> ReportStore:
+    return request.app.state.report_store
+
+
 GeoDependency = Annotated[GeoProvider, Depends(get_geo_provider)]
 RunnerDependency = Annotated[AnalysisRunner, Depends(get_analysis_runner)]
+StoreDependency = Annotated[ReportStore, Depends(get_report_store)]

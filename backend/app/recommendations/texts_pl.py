@@ -215,3 +215,19 @@ SOURCE_IRRIGATION_FORECAST = "prognoza pogody dla nawadniania"
 SOM_SCENARIO_INCREMENT = "Przykładowy wzrost zawartości materii organicznej"
 SOM_SCENARIO_CHANGE = "Modelowana zmiana ilości wody dostępnej w strefie korzeniowej"
 PERCENTAGE_POINTS = "p.p."
+REPORT_SAVED_SUMMARY = "Zapisany raport"
+REPORT_PDF_SUMMARY = "Pobranie raportu w formacie PDF"
+REPORT_NOT_FOUND = "Nie znaleziono raportu."
+REPORT_PENDING = "Raport jest jeszcze przygotowywany."
+REPORT_PDF_UNAVAILABLE = "Tworzenie pliku PDF jest chwilowo niedostępne. Raport można otworzyć w aplikacji."
+PDF_MISSING = "Brak danych"
+PDF_MONTH_LABEL = "Miesiąc zakończenia okresu"
+PDF_RISK_LABEL = "Udział okresów (%)"
+PDF_CATEGORY_LABELS = {
+    "landscape_retention": "Retencja krajobrazowa",
+    "soil_retention": "Retencja glebowa",
+    "agrotechnics": "Agrotechnika",
+    "irrigation": "Nawadnianie opcjonalne",
+}
+PDF_CONFIDENCE_LABELS = {"low": "niska", "medium": "umiarkowana", "high": "wysoka"}
+PDF_STATUS_LABELS = {"ok": "Dostępny", "partial": "Dostępny częściowo", "missing": "Brak danych"}
