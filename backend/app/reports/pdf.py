@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from base64 import b64encode
+from collections.abc import Sequence
 from datetime import datetime
 from functools import cache
 from pathlib import Path
@@ -48,20 +49,40 @@ def _data_url(data: bytes, media_type: str) -> str:
     return f"data:{media_type};base64,{b64encode(data).decode('ascii')}"
 
 
-def render_html(report: Report, map_png: bytes | None = None) -> str:
+def _entry(report: Report, map_png: bytes | None) -> dict:
     chart = monthly_risk_svg(report)
+    return {
+        "report": report,
+        "map_url": _data_url(map_png, "image/png") if map_png else None,
+        "chart_url": _data_url(chart.encode(), "image/svg+xml") if chart else None,
+    }
+
+
+def render_many_html(items: Sequence[tuple[Report, bytes | None]]) -> str:
+    """Render one HTML document with a section for each report, in the given order."""
     return _environment().get_template("report.html.j2").render(
-        report=report,
-        map_url=_data_url(map_png, "image/png") if map_png else None,
-        chart_url=_data_url(chart.encode(), "image/svg+xml") if chart else None,
+        entries=[_entry(report, map_png) for report, map_png in items],
         category_labels=text.PDF_CATEGORY_LABELS,
         status_labels=text.PDF_STATUS_LABELS,
         confidence_labels=text.PDF_CONFIDENCE_LABELS,
     )
 
 
-def render(report: Report, map_png: bytes | None = None) -> bytes:
+def render_html(report: Report, map_png: bytes | None = None) -> str:
+    return render_many_html([(report, map_png)])
+
+
+def _write_pdf(html: str) -> bytes:
     # WeasyPrint's Pango libraries are supplied by the Docker image or local platform.
     from weasyprint import CSS, HTML
 
-    return HTML(string=render_html(report, map_png)).write_pdf(stylesheets=[CSS(filename=TEMPLATES / "report.css")])
+    return HTML(string=html).write_pdf(stylesheets=[CSS(filename=TEMPLATES / "report.css")])
+
+
+def render(report: Report, map_png: bytes | None = None) -> bytes:
+    return _write_pdf(render_html(report, map_png))
+
+
+def render_many(items: Sequence[tuple[Report, bytes | None]]) -> bytes:
+    """Render several reports, for example one per selected crop, as a single PDF."""
+    return _write_pdf(render_many_html(items))

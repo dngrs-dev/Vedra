@@ -28,3 +28,5 @@ a { color: #175d57; overflow-wrap: anywhere; }
 .map { max-height: 56mm; object-fit: contain; }
 .limitations li { margin-bottom: .25mm; }
 .small { font-size: 8.5pt; }
+/* A combined report starts each crop on a new page. */
+.next-report { break-before: page; }

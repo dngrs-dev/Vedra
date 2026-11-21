@@ -9,7 +9,7 @@ import { BackendReportCards } from '@/features/analysis/components/BackendReport
 import { ConfidenceBadge } from '@/features/analysis/components/Badges';
 import { useAnalysis } from '@/features/analysis/hooks/useAnalysis';
 import { useAnalysisStore } from '@/features/analysis/store';
-import { reportPdfUrl } from '@/services/analysisApi';
+import { combinedReportPdfUrl, reportPdfUrl } from '@/services/analysisApi';
 import type { Analysis, Recommendation } from '@/types/analysis';
 import type { Parcel } from '@/types/parcel';
 import { fmtDate, fmtDateTime } from '@/utils/format';
@@ -38,10 +38,17 @@ export function ReportPage() {
   if (!parcel) return <Navigate to="/map" replace />;
   if (demoMode && demo.data) return <DemoReport parcel={parcel} cropIds={cropIds} data={demo.data} />;
 
+  // Several crops give one analysis each; offer them together as one PDF once every analysis is ready.
+  const readyIds = jobs.flatMap((job) => (job.report && job.analysisId ? [job.analysisId] : []));
+  const allReady = jobs.length > 1 && readyIds.length === jobs.length;
+
   return (
     <div className="report-wrap">
       <div className="report-toolbar no-print">
         <Link to="/map" className="btn-secondary"><ArrowLeftIcon /> {pl.report.back}</Link>
+        {jobs.length > 1 && (allReady
+          ? <a className="btn-primary" href={combinedReportPdfUrl(readyIds)}><PrinterIcon /> {pl.report.downloadAll}</a>
+          : <button type="button" className="btn-primary" disabled><PrinterIcon /> {pl.report.downloadAllPending}</button>)}
       </div>
       {selectionError && <AnalysisError message={selectionError} />}
       {demoMode && (

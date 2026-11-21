@@ -239,6 +239,7 @@ SOM_SCENARIO_CHANGE = "Modelowana zmiana ilości wody dostępnej w strefie korze
 PERCENTAGE_POINTS = "p.p."
 REPORT_SAVED_SUMMARY = "Zapisany raport"
 REPORT_PDF_SUMMARY = "Pobranie raportu w formacie PDF"
+REPORT_COMBINED_PDF_SUMMARY = "Pobranie kilku raportów, np. dla wszystkich wybranych upraw, w jednym pliku PDF"
 REPORT_NOT_FOUND = "Nie znaleziono raportu."
 REPORT_PENDING = "Raport jest jeszcze przygotowywany."
 REPORT_PDF_UNAVAILABLE = "Tworzenie pliku PDF jest chwilowo niedostępne. Raport można otworzyć w aplikacji."

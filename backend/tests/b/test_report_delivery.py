@@ -72,3 +72,60 @@ def test_saved_report_survives_restart_and_pdf_is_cached_without_map(monkeypatch
     assert first.content == second.content == b"%PDF-test"
     assert pdf_calls == [(report["report_id"], None)]
     map_builder.assert_awaited_once()
+
+
+def test_several_crops_share_one_combined_pdf(monkeypatch):
+    # Several crops selected for one parcel yield one analysis each and a single combined PDF.
+    analysis_date = date(2026, 11, 21)
+    monkeypatch.setattr(routes_analyses, "analysis_today", lambda: analysis_date)
+    monkeypatch.setattr(settings, "geo_provider", "fake")
+    monkeypatch.setattr(open_meteo, "fetch_weather", AsyncMock(return_value=SourceResult[WeatherData](
+        status=SourceStatus.MISSING
+    )))
+    map_builder = AsyncMock(return_value=b"\x89PNG-map")
+    monkeypatch.setattr(FakeGeoProvider, "render_static_map", map_builder)
+    combined_calls = []
+
+    def render_many(items):
+        combined_calls.append([report.crop_code for report, _ in items])
+        html = pdf.render_many_html(items)
+        assert html.count('<article class="report') == len(items)
+        assert html.count("next-report") == len(items) - 1
+        for report, map_png in items:
+            assert report.crop_name_pl in html
+            assert map_png == b"\x89PNG-map"
+        return b"%PDF-combined"
+
+    monkeypatch.setattr(pdf, "render_many", render_many)
+    crops = ["winter_cereals", "grain_maize", "potatoes"]
+    with TestClient(app) as client:
+        ids = []
+        for crop in crops:
+            submitted = client.post("/api/analyses", json={"parcel_id": EXAMPLE_PARCEL_ID, "crop_code": crop,
+                                                           "analysis_date": analysis_date.isoformat()})
+            assert submitted.status_code == HTTPStatus.ACCEPTED
+            ids.append(submitted.json()["analysis_id"])
+        deadline = monotonic() + ANALYSIS_TIMEOUT_S
+        pending = set(ids)
+        while pending and monotonic() < deadline:
+            pending = {item for item in pending
+                       if client.get(f"/api/analyses/{item}").json()["status"] not in {"done", "error"}}
+            sleep(0.01)  # Schedule the background tasks between test polls.
+        assert not pending
+
+        query = "&".join(f"analysis_id={item}" for item in ids)
+        first = client.get(f"/api/analyses/report.pdf?{query}")
+        second = client.get(f"/api/analyses/report.pdf?{query}&analysis_id={ids[0]}")
+        unknown = client.get(f"/api/analyses/report.pdf?{query}&analysis_id=missing")
+        empty = client.get("/api/analyses/report.pdf")
+        single = client.get(f"/api/analyses/{ids[0]}")
+
+    assert first.status_code == second.status_code == HTTPStatus.OK
+    assert first.headers["content-type"] == "application/pdf"
+    assert first.content == second.content == b"%PDF-combined"
+    assert combined_calls == [crops]
+    # One parcel, so its map is rendered once for all crops.
+    map_builder.assert_awaited_once()
+    assert unknown.status_code == HTTPStatus.NOT_FOUND
+    assert empty.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert single.json()["status"] == "done"

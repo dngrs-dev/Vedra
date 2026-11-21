@@ -14,6 +14,12 @@
   </dl>
   {% endif %}
 {%- endmacro %}
+{# One section per report. Several crops for one request share a single PDF, each from a new page. #}
+{% for entry in entries %}
+{% set report = entry.report %}
+{% set map_url = entry.map_url %}
+{% set chart_url = entry.chart_url %}
+<article class="report{% if not loop.first %} next-report{% endif %}">
 <header>
   <p class="wordmark">VEDRA</p>
   <h1>Raport gospodarowania wodą</h1>
@@ -115,5 +121,7 @@
     <ul>{% for ref in report.references %}<li><a href="{{ ref.url }}">{{ ref.title_pl }}</a></li>{% endfor %}</ul>
   </section>
 </main>
+</article>
+{% endfor %}
 </body>
 </html>
