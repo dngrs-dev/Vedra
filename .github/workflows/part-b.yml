@@ -1,0 +1,21 @@
+name: Testy backendu części B
+
+# Triggers and path filters follow the GitHub Actions workflow syntax reference.
+on:
+  push:
+    paths: ["backend/**", ".github/workflows/part-b.yml"]
+  pull_request:
+    paths: ["backend/**", ".github/workflows/part-b.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      # The actions/checkout README documents this release and the credential input.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: docker build --target test backend
