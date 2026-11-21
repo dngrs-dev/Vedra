@@ -20,20 +20,23 @@ app/geo/
 ├─ hosts.py             GEO_HOSTS allowlist
 ├─ provider.py          RealGeoProvider (bodies; signatures frozen)
 ├─ uldk.py              parcel lookup
+├─ egib_parquet.py      ULDK fallback: national EGiB GeoParquet export via HTTP range reads (CP4)
 ├─ soil_map.py          mapa glebowo-rolnicza WMS GetFeatureInfo (+ IUNG WMS fallback)
-├─ soilgrids.py         SoilGrids layers with quantiles
+├─ soilgrids.py         SoilGrids layers with quantiles; Saxton & Rawls water retention (CP4)
+├─ soilgrids_files.py   SoilGrids pixels straight from the 250 m tiles (CP4)
 ├─ soil.py              SoilInfo assembly + KBW soil category
 ├─ raster_io.py         GDAL env, COG window reads, host check for /vsicurl/
-├─ sentinel2.py         STAC search + per-scene statistics
+├─ sentinel2.py         STAC search (Planetary Computer, Earth Search) + per-scene statistics
 ├─ vegetation.py        VegetationData assembly
 ├─ dem.py               NMT GUGiK WCS / Copernicus DEM
 ├─ terrain.py           pure numpy terrain analysis
-├─ hydro.py             MPHP WFS / OSM Overpass
+├─ hydro.py             BDOT10k WMS (MPHP had no vector access) / OSM Overpass
 ├─ landcover.py         ESA WorldCover shares
 ├─ edo.py               EDO WMS GetFeatureInfo
 ├─ imgw.py              IMGW synop + hydro warnings (current only)
 ├─ static_map.py        PNG for the PDF
-└─ geometry.py          CRS transforms, buffers, sampling points (private helpers)
+├─ geometry.py          CRS transforms, buffers, sampling points (private helpers)
+└─ aio.py               waiting on shared background tasks
 config/geo_sources.yaml           endpoints, layer names, licences, attribution texts (with `source:` urls)
 config/soil_categories.yaml       soil type code -> KBW category I-IV, WOD thresholds (Dz.U. 2019 poz. 739)
 requirements/a-geo.txt            rasterio, pystac-client (+ anything else you add)
@@ -135,38 +138,47 @@ Cache: `geo.uldk`, no expiry.
 ## 3. Tasks by checkpoint (tick as you go)
 
 ### T0 (with B, ≈ 20 min)
-- [ ] One of you commits the T0 files from `CONTRACTS.md` §5; both pull.
+- [x] One of you commits the T0 files from `CONTRACTS.md` §5; both pull.
 
 ### CP0 — spikes (→ 15:30)
-- [ ] `scripts/a/spike_sources.py`: one call to ULDK, soil map WMS (GetCapabilities + GetFeatureInfo), SoilGrids REST, Earth Search STAC, one COG window read, NMT WCS GetCapabilities + small GetCoverage, MPHP WFS GetCapabilities, Overpass, WorldCover, EDO GetCapabilities, IMGW synop + warningshydro. Write exact URLs, layer names, attribute names into `config/geo_sources.yaml`.
-- [ ] `scripts/a/pick_test_parcels.py` → `tests/fixtures/parcels.json`: 6–8 real agricultural parcels via `GetParcelByXY` (different voivodeships; light and heavy soils; flat and sloped; < 1 ha and > 20 ha; at least one id with `AR_`). Push immediately — B and the frontend use it.
-- [ ] Fill `app/geo/hosts.py`.
+- [x] `scripts/a/spike_sources.py`: one call to ULDK, soil map WMS (GetCapabilities + GetFeatureInfo), SoilGrids REST, Earth Search STAC, one COG window read, NMT WCS GetCapabilities + small GetCoverage, MPHP WFS GetCapabilities, Overpass, WorldCover, EDO GetCapabilities, IMGW synop + warningshydro. Write exact URLs, layer names, attribute names into `config/geo_sources.yaml`.
+- [x] `scripts/a/pick_test_parcels.py` → `tests/fixtures/parcels.json`: 6–8 real agricultural parcels via `GetParcelByXY` (different voivodeships; light and heavy soils; flat and sloped; < 1 ha and > 20 ha; at least one id with `AR_`). Push immediately — B and the frontend use it.
+- [x] Fill `app/geo/hosts.py`.
 
 ### CP1 — parcel + soil (→ 19:00)
-- [ ] `uldk.py` + tests (all three query types, ambiguous «obręb nr», invalid input, not found).
-- [ ] `soil_map.py`, `soilgrids.py`, `soil.py`, `config/soil_categories.yaml` + tests.
-- [ ] `provider.find_parcels`, `parcel_at_point`; `collect` returning real `soil` and `MISSING` placeholders for the rest.
-- [ ] `scripts/a/run_geo.py`, `scripts/a/record_geo_fixtures.py`; record fixtures for 3 parcels × 3 dates (today, 2018-07-10, 2023-05-31); push.
+- [x] `uldk.py` + tests (all three query types, ambiguous «obręb nr», invalid input, not found).
+- [x] `soil_map.py`, `soilgrids.py`, `soil.py`, `config/soil_categories.yaml` + tests.
+- [x] `provider.find_parcels`, `parcel_at_point`; `collect` returning real `soil` and `MISSING` placeholders for the rest.
+- [x] `scripts/a/run_geo.py`, `scripts/a/record_geo_fixtures.py`; record fixtures for 3 parcels × 3 dates (today, 2018-07-10, 2023-05-31); push.
 
 ### CP2 — satellite, EDO, IMGW (→ 23:00)
-- [ ] `raster_io.py`, `sentinel2.py`, `vegetation.py` (+ test that no scene is after `analysis_date`; test of the offset handling on one pre-2022 and one post-2022 scene).
-- [ ] `edo.py`, `imgw.py`.
-- [ ] Re-record fixtures; push.
+- [x] `raster_io.py`, `sentinel2.py`, `vegetation.py` (+ test that no scene is after `analysis_date`; test of the offset handling on one pre-2022 and one post-2022 scene).
+- [x] `edo.py`, `imgw.py`.
+- [x] Re-record fixtures; push.
 
 ### CP3 — terrain, hydrology, land cover, static map (→ 03:00)
-- [ ] `hydro.py` (MPHP + OSM fallback), `landcover.py`.
-- [ ] `dem.py`, `terrain.py` (+ unit test: artificial bowl with known volume; flat plane → no depressions).
-- [ ] `static_map.py` + `render_static_map`.
-- [ ] Re-record fixtures for all test parcels; push.
+- [x] `hydro.py` (MPHP + OSM fallback), `landcover.py`.
+- [x] `dem.py`, `terrain.py` (+ unit test: artificial bowl with known volume; flat plane → no depressions).
+- [x] `static_map.py` + `render_static_map`.
+- [x] Re-record fixtures for all test parcels; push.
 
 ### CP4 — performance and robustness (→ 07:00)
-- [ ] Profile `collect` per source; p95 ≤ 22 s cold, ≤ 3 s warm (cache).
-- [ ] Edge cases: multipolygon, parcel < 0.2 ha, forest/water/built-up parcel, date in 2016 (fewer S2 years), zero clear scenes, every source down (mock) → still a valid bundle.
-- [ ] `tests/contract/test_geo_provider_contract.py` green on 2 parcels.
+- [x] Profile `collect` per source; p95 ≤ 22 s cold, ≤ 3 s warm (cache).
+  Live two-parcel, three-date profile with the prepared dataset and a new disk cache on 2026-11-21.
+  Before changes the cold/warm p95 was 21.77/21.04 s. With bounded Sentinel-2 searches and dated
+  vegetation snapshots it was 21.05/0.06 s. Cold vegetation remained partial when reads exceeded the budget.
+  Measured using `python -m scripts.a.profile_collect --parcels 2`.
+- [x] Edge cases: multipolygon, parcel < 0.2 ha, forest/water/built-up parcel, date in 2016 (fewer S2 years), zero clear scenes, every source down (mock) → still a valid bundle.
+  The live edge snapshots cover a forest parcel, Lake Śniardwy, two built-up parcels and the 2016 date.
+- [x] `tests/contract/test_geo_provider_contract.py` green on 2 parcels.
+  Live lookup and collection passed on both parcels for the historical and current dates.
 
 ### CP5 — docs (→ 10:00)
-- [ ] `docs/DATA_SOURCES.md`: per source — what, URL, scope, live vs preprocessed + download date, resolution, licence, exact attribution text, known limits.
-- [ ] Final fixtures for all parcels; push.
+- [x] `docs/DATA_SOURCES.md`: per source — what, URL, scope, live vs preprocessed + download date, resolution, licence, exact attribution text, known limits.
+- [x] Final fixtures for all parcels; push.
+  Recorded eight parcels for all three release dates using previously verified boundaries and the live geo collector.
+  The 24 snapshots validate against the contract. Current IMGW timed out during recording, and the 2018 cases
+  report WorldCover as unavailable for that historical date.
 
 ---
 

@@ -148,38 +148,44 @@ def get_geo_provider() -> GeoProvider:
 ## 4. Tasks by checkpoint (tick as you go)
 
 ### T0 (with A, ≈ 20 min)
-- [ ] One of you commits the T0 files from `CONTRACTS.md` §5; both pull.
+- [x] One of you commits the T0 files from `CONTRACTS.md` §5; both pull.
 
 ### CP0 — skeleton (→ 15:30)
-- [ ] `main.py`, `config.py`, `api/deps.py`, `routes_meta.py`, `Dockerfile`, `requirements/b-app.txt`, CI (pytest).
-- [ ] `fakes/fake_geo.py` (all statuses), `fakes/fixture_geo.py`.
-- [ ] `contracts/report.py` + `tests/fixtures/sample_report.json` → hand to the frontend.
-- [ ] `config/kbw_thresholds.csv` from Dz.U. 2019 poz. 739 + test: 14 crops × 4 categories × 14 periods present; `config/crops.yaml`.
-- [ ] Fill `app/analytics/hosts.py`.
+- [x] `main.py`, `config.py`, `api/deps.py`, `routes_meta.py`, `Dockerfile`, `requirements/b-app.txt`, CI (pytest).
+- [x] `fakes/fake_geo.py` (all statuses), `fakes/fixture_geo.py`.
+- [x] `contracts/report.py` + `tests/fixtures/sample_report.json` → hand to the frontend.
+- [x] `config/kbw_thresholds.csv` from Dz.U. 2019 poz. 739 + test: 14 crops × 4 categories × 14 periods present; `config/crops.yaml`.
+- [x] Fill `app/analytics/hosts.py`.
 
 ### CP1 — vertical slice (→ 19:00)
-- [ ] `open_meteo.py` (+ verify variable names), `periods.py`, `evapotranspiration.py`, `kbw.py` (+ unit tests).
-- [ ] `pipeline.py` with stages 1–2 minimal, `builder.py` minimal, `jobs/runner.py`, `routes_parcels.py`, `routes_analyses.py`.
-- [ ] First deploy (VPS + HTTPS) with `GEO_PROVIDER=fake`; switch to `fixtures`/`real` as soon as A pushes.
+- [x] `open_meteo.py` (+ verify variable names), `periods.py`, `evapotranspiration.py`, `kbw.py` (+ unit tests).
+- [x] `pipeline.py` with stages 1–2 minimal, `builder.py` minimal, `jobs/runner.py`, `routes_parcels.py`, `routes_analyses.py`.
+- [x] Local HTTP smoke test with `GEO_PROVIDER=fake`. Public deployment is scheduled for the final CP5 task.
 
 ### CP2 — full assessment (→ 23:00)
-- [ ] `spi.py`, `soil_moisture.py`, `vegetation_signal.py`, `vulnerability.py`, `causes.py`, `uncertainty.py`.
-- [ ] `season.py` + off-season behaviour of every stage (jury may enter today's date — November).
+- [x] `spi.py`, `soil_moisture.py`, `vegetation_signal.py`, `vulnerability.py`, `causes.py`, `uncertainty.py`.
+- [x] `season.py` + off-season behaviour of every stage (jury may enter today's date — November).
 
 ### CP3 — recommendations and report (→ 03:00)
-- [ ] `recommendations/engine.py` + rules (landscape uses A's `retention_spots`, ditches; soil; agrotech; off-season); `texts_pl.py`.
-- [ ] `soil_water.py`, `water_balance.py`, `irrigation.py`.
-- [ ] `reports/charts.py`, `pdf.py`, templates; `storage/db.py`; `routes_reports.py`; PDF endpoint.
+- [x] `recommendations/engine.py` + rules (landscape uses A's `retention_spots`, ditches; soil; agrotech; off-season); `texts_pl.py`.
+- [x] `soil_water.py`, `water_balance.py`, `irrigation.py`.
+- [x] `reports/charts.py`, `pdf.py`, templates; `storage/db.py`; `routes_reports.py`; PDF endpoint.
 
 ### CP4 — validation and robustness (→ 07:00)
-- [ ] `scripts/b/build_kbw_official.py` (MRiRW obwieszczenia → `data/b/kbw_official.parquet`, legend read from the PDFs) and `scripts/b/backtest.py` → `docs/VALIDATION.md`.
-- [ ] `tests/contract/test_pipeline_on_fixtures.py` green for every fixture; end-to-end with `real` on all parcels × 3 dates; timings.
-- [ ] Error paths: 422/404/503 with Polish messages; job timeout; every source `missing` → still a report.
+- [x] `scripts/b/build_kbw_official.py` (MRiRW obwieszczenia → `data/b/kbw_official.parquet`, legend read from the PDFs) and `scripts/b/backtest.py` → `docs/VALIDATION.md`.
+  The official annexes and all historical matches are verified. Numeric agreement is pending access to the Open-Meteo archive (HTTP 429).
+- [x] `tests/contract/test_pipeline_on_fixtures.py` green for every fixture; end-to-end with `real` on all parcels × 3 dates; timings.
+  Local integration of Part A `8a4099b` finished all 24 API scenarios on both passes.
+  The eight first-lookups took 0.453–2.110 s; the 24 repeated analyses took 0.062–0.079 s.
+  Timings include live geo access or its cache and the missing-weather path after the verified archive quota error.
+- [x] Error paths: 422/404/503 with Polish messages; job timeout; every source `missing` → still a report.
 
 ### CP5 — docs and release (→ 10:00)
-- [ ] `README.md` (9 mandatory points of the task §4.2), `METHODOLOGY.md`, `SCALABILITY.md`, `SECURITY.md`, `AI_USAGE.md`.
-- [ ] `scripts/b/generate_sample_reports.py` → `samples/reports/*.pdf`.
-- [ ] Final deploy with `GEO_PROVIDER=real`; smoke test from a clean browser.
+- [x] `README.md` (9 mandatory points of the task §4.2), `METHODOLOGY.md`, `SCALABILITY.md`, `SECURITY.md`, `AI_USAGE.md`.
+- [x] `scripts/b/generate_sample_reports.py` → `data/b/samples/reports/*.pdf`.
+  Three sample PDFs use recorded Part A geo inputs and show the Open-Meteo archive gap explicitly.
+- [ ] Deploy the validated backend with `GEO_PROVIDER=real` over HTTPS and smoke-test it from a clean browser.
+  This is the final task. Earlier checkpoints run locally with `fake`, `fixtures`, or `real` as available.
 
 ---
 

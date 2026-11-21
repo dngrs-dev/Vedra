@@ -1,0 +1,23 @@
+{
+  "kbw_official": {
+    "file": "kbw_official.parquet",
+    "rows": 208124,
+    "sources": [
+      {
+        "source": "https://edziennik.minrol.gov.pl/DUM_MRIRW/2018/13/akt.pdf",
+        "period_start": "2018-05-11",
+        "period_end": "2018-07-10",
+        "source_sha256": "07a95a3a7cdd100d6e9f8e6c620bcba426d852c48baf6cd1d22f5fce1d25ecbe",
+        "communes": 2478
+      },
+      {
+        "source": "https://edziennik.minrol.gov.pl/DUM_MRIRW/2023/25/oryginal/akt.pdf",
+        "period_start": "2023-04-01",
+        "period_end": "2023-05-31",
+        "source_sha256": "1b90a52daee434d38ed45ac7dc5359ff296140eab19535e58563aba5c42fd2d4",
+        "communes": 2477
+      }
+    ],
+    "licence_pl": "Obwieszczenia urzędowe MRiRW (art. 4 pkt 2 ustawy o prawie autorskim)."
+  }
+}

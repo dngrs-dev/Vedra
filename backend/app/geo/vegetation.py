@@ -1,0 +1,304 @@
+"""VegetationData assembly: which Sentinel-2 scenes to process, in what order, within the deadline.
+
+Work queue (PART_A_DATA_GEO.md, vegetation.py):
+  1. current window [date - current_window_days, date], newest first; if it has no clear scene, the window is
+     extended to current_window_max_days (those scenes jump to the front of the queue),
+  2. the same ± same_window_half_days window in each of history_years previous years (newest year first),
+  3. Apr-Aug of each year <= date: at most season_max_scenes least-cloudy scenes, for season_peaks.
+Scenes are shared between groups (computed once). At the deadline the remaining work is dropped from the
+result; reads already running finish in their threads and fill the per-scene cache for the next run.
+No interpretation here (Part B decides what the numbers mean).
+"""
+from __future__ import annotations
+
+import asyncio
+import time
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, timedelta
+
+from shapely.geometry import mapping
+
+from app.contracts.common import SourceResult, SourceStatus
+from app.contracts.geo import GeoRequest, SceneStat, VegetationData
+from app.contracts.parcel import Parcel
+from app.core import cache
+from app.geo import geometry, sentinel2
+from app.geo.sentinel2 import SceneRef
+from app.geo.sources import provenance, source
+
+# Background warm-up pool, separate from the per-analysis pools so that work left over from one analysis can
+# never delay the scene reads of another (found 2026-11-21: with one shared pool, every analysis after the first
+# processed 0 scenes because the pool was busy with background reads).
+_bg_pool: ThreadPoolExecutor | None = None
+
+
+def _background_executor() -> ThreadPoolExecutor:
+    global _bg_pool
+    if _bg_pool is None:
+        _bg_pool = ThreadPoolExecutor(max_workers=int(sentinel2.s2_params()["background_workers"]),
+                                      thread_name_prefix="s2-bg")
+    return _bg_pool
+
+
+def shutdown_background() -> None:
+    """For scripts and tests: drop queued background scene reads so the process can exit (running reads finish)."""
+    global _bg_pool
+    if _bg_pool is not None:
+        _bg_pool.shutdown(wait=False, cancel_futures=True)
+        _bg_pool = None
+
+
+def same_day(d: date, year: int) -> date:
+    """Same month/day in another year; 29 Feb -> 28 Feb in non-leap years."""
+    try:
+        return d.replace(year=year)
+    except ValueError:
+        return d.replace(year=year, day=28)
+
+
+def _background_stats(scene: SceneRef, interior_geo: dict) -> None:
+    try:
+        sentinel2.scene_stats(scene, interior_geo)
+    except Exception:  # noqa: BLE001 - background warm-up only
+        pass
+
+
+async def _gather_searches(bbox, req: GeoRequest, budget_s: float):
+    cfg = sentinel2.s2_params()
+    d = req.analysis_date
+    cur_start = d - timedelta(days=req.current_window_days)
+    ext_start = d - timedelta(days=max(cfg["current_window_max_days"], req.current_window_days))
+    hist_years = [d.year - k for k in range(1, req.history_years + 1)]
+    season_years = [d.year - k for k in range(0, req.history_years + 1)]
+    m0, m1 = cfg["season_months"]
+
+    async def search(start, end, **kw):
+        return await sentinel2.search_scenes(bbox, start, end, not_after=d, **kw)
+
+    current_all = search(ext_start, d)
+    same = [search(same_day(d, y) - timedelta(days=req.same_window_half_days),
+                   same_day(d, y) + timedelta(days=req.same_window_half_days),
+                   limit=cfg["same_window_max_scenes"], by_cloud=True) for y in hist_years]
+    seasons = [search(date(y, m0, 1), date(y, m1 + 1, 1) - timedelta(days=1),
+                      limit=cfg["season_max_scenes"], by_cloud=True) for y in season_years]
+    tasks = [asyncio.create_task(search) for search in (current_all, *same, *seasons)]
+    try:
+        done, _ = await asyncio.wait(tasks, timeout=budget_s)
+    finally:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+    results = [
+        task.result() if task in done and not task.cancelled() and task.exception() is None else None
+        for task in tasks
+    ]
+    same_by_year = {y: scenes for y, scenes in zip(hist_years, results[1:1 + len(hist_years)]) if scenes is not None}
+    season_by_year = {
+        y: scenes for y, scenes in zip(season_years, results[1 + len(hist_years):])
+        if scenes is not None and date(y, m0, 1) <= d
+    }
+    return cur_start, ext_start, results[0], same_by_year, season_by_year, results.count(None)
+
+
+async def vegetation_data(parcel: Parcel, req: GeoRequest, budget_s: float) -> SourceResult[VegetationData]:
+    started = time.monotonic()
+    key = cache.make_key(
+        "geo.s2.assessment.v1",
+        geometry=parcel.geometry_2180_wkt,
+        day=req.analysis_date,
+        current=req.current_window_days,
+        same_window=req.same_window_half_days,
+        years=req.history_years,
+    )
+    hit = cache.get(key)
+    if hit is not None:
+        result = SourceResult[VegetationData].model_validate(hit)
+        result.provenance = [entry.model_copy(update={"live": False}) for entry in result.provenance]
+        result.elapsed_s = round(time.monotonic() - started, 3)
+        return result
+
+    result = await _collect(parcel, req, budget_s)
+    if result.data is not None:
+        cache.set(key, result.model_dump(mode="json"), expire_s=sentinel2.s2_params()["snapshot_cache_s"])
+    return result
+
+
+async def _collect(parcel: Parcel, req: GeoRequest, budget_s: float) -> SourceResult[VegetationData]:
+    t0 = time.monotonic()
+    deadline = t0 + budget_s
+    cfg = sentinel2.s2_params()
+    notes: list[str] = []
+    d = req.analysis_date
+
+    interior = geometry.parcel_geom_2180(parcel).buffer(cfg["interior_buffer_m"])
+    if interior.is_empty:
+        return SourceResult[VegetationData](
+            status=SourceStatus.MISSING, error="interior empty after -10 m buffer",
+            notes_pl=["Działka jest zbyt mała lub zbyt wąska do analizy zdjęć satelitarnych Sentinel-2 "
+                      "(piksel 10 m)."], elapsed_s=round(time.monotonic() - t0, 3))
+    interior_geo = mapping(interior)
+    minx, miny, maxx, maxy = geometry.to_4326(geometry.parcel_geom_2180(parcel)).bounds
+    bbox = (minx, miny, maxx, maxy)
+
+    search_budget = max(deadline - time.monotonic(), 0.0) * cfg["search_budget_share"]
+    cur_start, ext_start, current_found, same_by_year, season_by_year, search_errors = await _gather_searches(
+        bbox, req, search_budget,
+    )
+    if current_found is None and not same_by_year and not season_by_year:
+        return SourceResult[VegetationData](
+            status=SourceStatus.MISSING,
+            error="sentinel-2: no completed catalog search",
+            notes_pl=["W dostępnym czasie nie udało się wyszukać zdjęć Sentinel-2 dla działki."],
+            elapsed_s=round(time.monotonic() - t0, 3),
+        )
+    current_all = current_found or []
+    current_30 = [s for s in current_all if s.acquired >= cur_start]
+    extension = [s for s in current_all if s.acquired < cur_start]
+
+    # ---- priority queue of unique scenes
+    queue: deque[SceneRef] = deque()
+    seen: set[str] = set()
+
+    def enqueue(scenes, front=False):
+        new = [s for s in scenes if s.scene_id not in seen]
+        seen.update(s.scene_id for s in new)
+        if front:
+            queue.extendleft(reversed(new))
+        else:
+            queue.extend(new)
+
+    enqueue(current_30)
+    for y in sorted(same_by_year, reverse=True):
+        enqueue(same_by_year[y])
+    for y in sorted(season_by_year, reverse=True):
+        enqueue(season_by_year[y])
+
+    results: dict[str, SceneStat | None] = {}
+    interior_px = 0
+    loop = asyncio.get_running_loop()
+    # One foreground pool per analysis: reads still running at the deadline finish in its threads (and fill the
+    # cache) without blocking the next analysis.
+    pool = ThreadPoolExecutor(max_workers=int(cfg["workers"]), thread_name_prefix="s2")
+    running: dict[asyncio.Future, SceneRef] = {}
+    workers = int(cfg["workers"])
+    extended = False
+    failed_reads: set[str] = set()
+
+    while queue or running:
+        while queue and len(running) < workers:
+            s = queue.popleft()
+            running[loop.run_in_executor(pool, sentinel2.scene_stats, s, interior_geo)] = s
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        done, _ = await asyncio.wait(running, timeout=remaining, return_when=asyncio.FIRST_COMPLETED)
+        for fut in done:
+            s = running.pop(fut)
+            try:
+                stat, n = fut.result()
+            except Exception:  # noqa: BLE001 - one unreadable scene must not stop the analysis
+                failed_reads.add(s.scene_id)
+                continue
+            results[s.scene_id] = stat
+            interior_px = max(interior_px, n)
+        if not extended and extension and all(s.scene_id in results or s.scene_id in failed_reads for s in current_30) \
+                and not any(results.get(s.scene_id) for s in current_30):
+            extended = True
+            enqueue(extension, front=True)
+    # Reads still running finish in this pool and fill the cache; their late errors are consumed here (otherwise
+    # asyncio logs "Future exception was never retrieved" for each failed read).
+    for fut in running:
+        fut.add_done_callback(lambda f: f.cancelled() or f.exception())
+    # Unfinished work continues in the shared pool and fills the per-scene cache for the next analysis.
+    pool.shutdown(wait=False)
+    for s in queue:
+        _background_executor().submit(_background_stats, s, interior_geo)
+    queue.clear()
+
+    def clear(scenes):
+        return [results[s.scene_id] for s in scenes if results.get(s.scene_id) is not None]
+
+    def complete(scenes):
+        return all(s.scene_id in results for s in scenes)
+
+    window_scenes = current_30 + (extension if extended else [])
+    current = sorted(clear(window_scenes), key=lambda x: x.acquired, reverse=True)
+    window = (ext_start if extended else cur_start, d)
+    # Years in which the archive has no scene at all for the window are left out (not "no clear scene").
+    no_archive = sorted({y for y, sc in same_by_year.items() if not sc} & {y for y, sc in season_by_year.items() if not sc})
+    same_window = {y: sorted(clear(sc), key=lambda x: x.acquired)
+                   for y, sc in same_by_year.items() if sc and complete(sc)}
+    peaks: dict[int, SceneStat | None] = {}
+    for y, sc in season_by_year.items():
+        if sc and complete(sc):
+            c = clear(sc)
+            peaks[y] = max(c, key=lambda x: x.ndvi_median) if c else None
+
+    processed = len(results)
+    total = len(seen)
+    status = SourceStatus.OK
+    if processed + len(failed_reads) < total:
+        status = SourceStatus.PARTIAL
+        notes.append(f"Przeanalizowano {processed} z {total} scen Sentinel-2 w dostępnym czasie; "
+                     "pozostałe sceny są przetwarzane w tle i mogą uzupełnić wynik po odświeżeniu danych.")
+    if interior_px and interior_px < cfg["min_interior_pixels"]:
+        status = SourceStatus.PARTIAL
+        notes.append(f"Mała działka: tylko {interior_px} pikseli Sentinel-2 (10 m) we wnętrzu działki; "
+                     "wskaźniki roślinności są mniej wiarygodne.")
+    if search_errors:
+        status = SourceStatus.PARTIAL
+        notes.append(f"Nie udało się wyszukać zdjęć Sentinel-2 dla {search_errors} okien czasowych. "
+                     "Raport uwzględnia dostępne okresy.")
+    if current_found is not None and complete(window_scenes) and not current:
+        status = SourceStatus.PARTIAL
+        # SCL keeps vegetation / bare soil only (config scl_keep_classes): water, snow and cloud shadow also
+        # exclude pixels, so the note does not blame clouds alone.
+        notes.append(f"Brak bezchmurnych zdjęć Sentinel-2 działki od {window[0].isoformat()} "
+                     f"do {window[1].isoformat()} (na zdjęciach z tego okresu za mało pikseli z roślinnością lub "
+                     "odsłoniętą glebą – przesłaniały je chmury, cienie, śnieg lub woda).")
+    elif extended and current:
+        notes.append(f"W ostatnich {req.current_window_days} dniach brak bezchmurnych zdjęć; okno bieżące "
+                     f"rozszerzono do {(window[1] - window[0]).days} dni.")
+    if failed_reads:
+        status = SourceStatus.PARTIAL
+        notes.append(f"Liczba scen Sentinel-2, których nie udało się odczytać: {len(failed_reads)}.")
+    if no_archive:
+        notes.append("Brak zdjęć Sentinel-2 L2A w archiwum dla lat: " + ", ".join(map(str, no_archive))
+                     + "; porównanie wieloletnie obejmuje krótszy okres.")
+
+    data = VegetationData(
+        interior_pixels=interior_px,
+        current=current,
+        current_window=window,
+        same_window_by_year=same_window,
+        season_peaks=peaks,
+        scenes_considered=total,
+        scenes_processed=processed,
+    )
+    all_scenes = current_all + [s for v in same_by_year.values() for s in v] + \
+        [s for v in season_by_year.values() for s in v]
+    used = sorted({(s.provider, s.collection) for s in all_scenes}) or \
+        [(p["source"], p["collection"]) for p in cfg["providers"][:1]]
+    prov = []
+    for name, collection in used:
+        dates = sorted({
+            s.acquired for s in all_scenes
+            if s.scene_id in results and s.provider == name and s.collection == collection
+        })
+        entry = provenance(
+            name, f"{source(name)['url']}/collections/{collection}",
+            data_period=f"{dates[0].isoformat()}..{dates[-1].isoformat()}" if dates else None,
+            resolution=f"{cfg['grid_m']:g} m",
+        )
+        if entry.attribution_pl and "[year]" in entry.attribution_pl:
+            # Copernicus Sentinel Data Legal Notice requires the observation year in derived products.
+            entry.attribution_pl = " · ".join(
+                entry.attribution_pl.replace("[year]", str(year)) for year in sorted({d.year for d in dates})
+            ) or None
+        prov.append(entry)
+    return SourceResult[VegetationData](status=status, data=data, provenance=prov, notes_pl=notes,
+                                        error=f"{len(failed_reads)} scene reads failed" if failed_reads else None,
+                                        elapsed_s=round(time.monotonic() - t0, 3))
