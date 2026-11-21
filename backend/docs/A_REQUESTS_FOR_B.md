@@ -30,7 +30,7 @@ with a Polish note until CP2/CP3. 24 recorded fixtures exist: 8 parcels × {2026
   Without the file, the 8 test parcels lose their soil profiles in the deployed image. `FixtureGeoProvider`
   reads `tests/fixtures/geo/`, which the runtime stage does not contain today.
 
-### 1.3 PDF step: tolerate `render_static_map` raising `NotImplementedError` until CP3
+### 1.3 PDF step: tolerate `render_static_map` failures (implemented since CP3)
 - **What:** wherever `pdf.py` / the job calls `geo.render_static_map(...)`, catch `NotImplementedError`
   (and, defensively, any exception) and render the PDF without the map. Your parcel routes already do this
   for lookups.
@@ -151,6 +151,48 @@ categorical cross-check (`cdi_class`, `date_used`) and never wait for those nume
   geometry). A Polish note says that a warning may concern another catchment in the same voivodeship.
   `valid_to = None` means «until further notice». Warning times are given exactly as IMGW publishes them
   (naive, no time zone stated by the API).
+
+---
+
+## 4b. Added after CP3 (hydro, land cover, terrain, static map are now real)
+
+### Hydro (`bundle.hydro`), changed source
+- Primary source is **BDOT10k** (GUGiK topographic database, 1:10 000), not MPHP. BDOT10k includes drainage
+  ditches; MPHP has no vector access. `WaterFeature.source_id` is therefore **`"bdot10k"`** (or `"osm"` for the
+  fallback), not `"mphp"`. The contract comment lists `"mphp" | "osm"`, but the field is a plain `str`, so no
+  contract change is needed; please do not match on `"mphp"`.
+- BDOT10k has no open vector API, so features are outlines of the drawn map symbols on a 2 m grid. Distances can
+  be short by up to half a symbol width (a Polish note says so). One connected ditch network = one feature.
+- `kind` mapping (our choice, documented in `config/geo_sources.yaml`): ditch, canal, `stream` (BDOT10k has one
+  class for «rzeka lub strumień»), standing water → `pond`, flowing-water areas → `river`. `name` is filled
+  only for named features.
+- `status`: `ok` with an empty `features` list means **nothing within 500 m**; `missing` means sources were down
+  (the Polish note says «nie oznacza to braku wód»). `partial` = OSM fallback was used.
+
+### Land cover (`bundle.landcover`)
+- `shares_buffer` is the **ring** around the parcel (500 m buffer minus the parcel), not buffer + parcel.
+- Class names are WorldCover's own English legend labels (e.g. `Cropland`, `Tree cover`, `Built-up`,
+  `Bare/sparse vegetation`); **B should translate them** for the report.
+
+### Terrain (`bundle.terrain`)
+- `dem_source="gugik_nmt_1m"`: test parcels (preprocessed NMT in `data/a/nmt/`) and parcels analysed before
+  (cache), at 2–10 m (`resolution_m`, at most 250k cells). `status=ok`.
+- `dem_source="copernicus_dem_30m"`: first analysis of a new parcel, because NMT needs 50–100 s per request.
+  `status=partial`, with a Polish note. **Copernicus DEM is a surface model (DSM): tree lines and buildings can
+  look like terrain**, and depressions found on it are coarse (30 m). B should word recommendations based on
+  them cautiously. NMT keeps downloading in the background, so a re-analysis later uses it.
+- `missing` with the note «…pobieranie trwa w tle…» means that no DEM arrived in time.
+- Fixtures (CP3): 7 of 8 test parcels have preprocessed NMT (`terrain=ok`). Kętrzyn `280803_2.0028.78/40` (150 ha) is recorded on Copernicus (`terrain=partial`), so the fixtures cover both paths.
+- Retention spot ids: `Z<n>` = depression (with `volume_m3.mid`, `area_m2`, `max_depth_m`), `S<n>` = flow
+  concentration where a flow line leaves the parcel, `R<n>` = ditch crossing the parcel boundary, lowest first.
+  **The static map labels spots with these ids**, so use the same ids in the report text.
+  `volume_m3.low/high` are `None` (DEM vertical accuracy not yet sourced).
+- Thresholds (min depression 100 m² / 0.1 m deep, flow lines from 1 ha upslope) are our choices, listed in
+  `config/geo_sources.yaml` `terrain_processing`. Mention them in METHODOLOGY.md if you describe retention spots.
+
+### Static map
+- `render_static_map` is implemented (PNG, Polish legend, caption with parcel id and sources). Typical time is
+  1–1.5 s. The §1.3 try/except is still worth keeping for robustness.
 
 ---
 

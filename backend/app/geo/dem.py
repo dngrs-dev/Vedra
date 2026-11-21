@@ -20,6 +20,7 @@ import numpy as np
 
 from app.contracts.parcel import Parcel
 from app.core import cache, http
+from app.geo.aio import wait_shared
 from app.geo import geometry
 from app.geo.sources import DATA_DIR, source
 
@@ -88,7 +89,7 @@ def _write_tiff(z: np.ndarray, origin: tuple[float, float], res: float) -> bytes
         return mf.read()
 
 
-async def _fetch_nmt(parcel: Parcel) -> bytes:
+async def _fetch_nmt(parcel: Parcel, timeout_s: float | None = None) -> bytes:
     cfg = source("gugik_nmt_wcs")
     (minx, miny, maxx, maxy), res = grid_for(parcel)
     params = [("SERVICE", "WCS"), ("VERSION", cfg["wcs_version"]), ("REQUEST", "GetCoverage"),
@@ -96,7 +97,8 @@ async def _fetch_nmt(parcel: Parcel) -> bytes:
               ("SUBSET", f"x({minx:.0f},{maxx:.0f})"), ("SUBSET", f"y({miny:.0f},{maxy:.0f})")]
     if res > 1:
         params.append(("SCALEFACTOR", f"{1 / res:g}"))
-    resp = await http.get(cfg["url"], params=params, timeout=float(tp()["nmt_timeout_s"]), retries=0)  # type: ignore[arg-type]
+    resp = await http.get(cfg["url"], params=params, timeout=timeout_s or float(tp()["nmt_timeout_s"]),  # type: ignore[arg-type]
+                          retries=0)
     if "tiff" not in (resp.headers.get("content-type") or ""):
         raise ValueError(f"nmt: {resp.text[:200]}")
     z, origin, got_res = _read_tiff(resp.content)
@@ -208,13 +210,12 @@ async def fetch_dem(parcel: Parcel, budget_s: float) -> tuple[Dem, list[str]]:
     cop_hit = cache.get(_cop_key(parcel))
     cop = None if cop_hit is not None else _start_copernicus(parcel)
     try:
-        blob = await asyncio.wait_for(asyncio.shield(nmt),
-                                      timeout=max(budget_s - float(tp()["copernicus_reserve_s"]), 0.1))
+        blob = await wait_shared(nmt, timeout=max(budget_s - float(tp()["copernicus_reserve_s"]), 0.1))
         return _from_blob(blob, datetime.now(timezone.utc), live=True), notes
     except Exception:  # noqa: BLE001 - timeout or NMT error: use Copernicus
         pass
     try:
-        rec = cop_hit or await asyncio.wait_for(asyncio.shield(cop), timeout=max(budget_s - (time.monotonic() - t0), 0.1))
+        rec = cop_hit or await wait_shared(cop, timeout=max(budget_s - (time.monotonic() - t0), 0.1))
     except asyncio.TimeoutError as exc:
         raise DemNotReady("no DEM within the budget") from exc
     notes.append("Ukształtowanie terenu oceniono na modelu Copernicus DEM (30 m), bo numeryczny model terenu GUGiK "
@@ -225,7 +226,8 @@ async def fetch_dem(parcel: Parcel, budget_s: float) -> tuple[Dem, list[str]]:
     return _cop_dem(rec, live=cop_hit is None), notes
 
 
-async def prefetch_nmt(parcel: Parcel) -> bytes:
-    """For scripts/a/prefetch_nmt.py: wait for the NMT answer (no deadline)."""
-    return await _fetch_nmt(parcel)
+async def prefetch_nmt(parcel: Parcel, timeout_s: float = 400.0) -> bytes:
+    """For scripts/a/prefetch_nmt.py: wait for the NMT answer. 400 s (our choice) - a 9 ha parcel + 200 m
+    exceeded the 120 s runtime limit on the dev link (2026-11-21)."""
+    return await _fetch_nmt(parcel, timeout_s)
 

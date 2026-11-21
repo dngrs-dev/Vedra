@@ -19,5 +19,12 @@
     "licence": "Copernicus Sentinel data – free, full and open access",
     "content": "per scene x parcel-interior NDVI/NDMI medians computed by app.geo.sentinel2.scene_stats for the test parcels and fixture dates; key = scene_id|sha1(interior geometry)[:16]",
     "script": "scripts/a/prefetch_s2.py"
+  },
+  "nmt/": {
+    "url": "https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WCS/DigitalTerrainModelFormatTIFF (coverage DTM_PL-KRON86-NH_TIFF)",
+    "downloaded": "2026-11-21",
+    "licence": "Fees: none; AccessConstraints: none (WCS GetCapabilities)",
+    "content": "NMT (EPSG:2180, PL-KRON86-NH) for each test parcel + 200 m, resampled by the WCS (SCALEFACTOR) to the grid chosen by app.geo.dem.grid_for; files: 040704_2.0012.63-1.tif, 060406_2.0136.AR_5.1077-6.tif, 100206_2.0008.273-23.tif, 121405_5.0016.480-3.tif, 142513_2.0039.102.tif, 200605_5.0002.143.tif, 303005_5.0323.25-7.tif",
+    "script": "scripts/a/prefetch_nmt.py"
   }
 }

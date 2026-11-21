@@ -35,29 +35,36 @@ def write_manifest(done: list[str]) -> None:
     MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-async def main(n: int | None) -> int:
+async def main(n: int | None, parallel: int) -> int:
     parcels = json.loads((BACKEND / "tests" / "fixtures" / "parcels.json").read_text(encoding="utf-8"))[:n]
     dem.NMT_DIR.mkdir(parents=True, exist_ok=True)
-    done = sorted(p.name for p in dem.NMT_DIR.glob("*.tif"))
+    done = set(p.name for p in dem.NMT_DIR.glob("*.tif"))
+    sem = asyncio.Semaphore(parallel)   # the WCS latency is per request, so a few requests can overlap
     failed = 0
-    for p in parcels:
-        parcel = await uldk.get_by_id(p["parcel_id"])
+
+    async def one(pid: str) -> None:
+        nonlocal failed
+        parcel = await uldk.get_by_id(pid)
         path = dem.preprocessed_path(parcel)
         if path.exists():
             print(f"  have  {path.name}")
-            continue
-        t = time.monotonic()
-        try:
-            blob = await dem.prefetch_nmt(parcel)
-        except Exception as exc:  # noqa: BLE001 - report and continue
-            failed += 1
-            print(f"  fail  {parcel.parcel_id}: {type(exc).__name__}: {str(exc)[:150]}")
-            continue
+            return
+        async with sem:
+            t = time.monotonic()
+            try:
+                blob = await dem.prefetch_nmt(parcel)
+            except Exception as exc:  # noqa: BLE001 - report and continue
+                failed += 1
+                print(f"  fail  {parcel.parcel_id} after {time.monotonic() - t:.0f} s: {type(exc).__name__}: "
+                      f"{str(exc)[:150]}")
+                return
         path.write_bytes(blob)
-        done = sorted(set(done) | {path.name})
-        write_manifest(done)
+        done.add(path.name)
+        write_manifest(sorted(done))
         _, res = dem.grid_for(parcel)
         print(f"  ok    {path.name} ({res:g} m, {len(blob) // 1024} KB) in {time.monotonic() - t:.0f} s")
+
+    await asyncio.gather(*(one(p["parcel_id"]) for p in parcels))
     await http.close()
     return 1 if failed else 0
 
@@ -65,4 +72,6 @@ async def main(n: int | None) -> int:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--parcels", type=int, default=None)
-    sys.exit(asyncio.run(main(ap.parse_args().parcels)))
+    ap.add_argument("--parallel", type=int, default=4)   # our choice: polite to the GUGiK service
+    a = ap.parse_args()
+    sys.exit(asyncio.run(main(a.parcels, a.parallel)))

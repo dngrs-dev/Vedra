@@ -17,6 +17,7 @@ from typing import Any
 from app.contracts.common import Range
 from app.contracts.geo import SoilLayer
 from app.core import cache, http
+from app.geo.aio import wait_shared
 from app.geo.sources import DATA_DIR, source
 
 PREPROCESSED_FILE = DATA_DIR / "soilgrids_points.json"
@@ -114,7 +115,7 @@ async def soil_layers(lat: float, lon: float, budget_s: float) -> SoilGridsResul
     if rec is None:
         task = _start(lat, lon)
         try:
-            rec = await asyncio.wait_for(asyncio.shield(task), timeout=max(budget_s, 0.0))
+            rec = await wait_shared(task, timeout=budget_s)
         except asyncio.TimeoutError:
             return None
         live = True

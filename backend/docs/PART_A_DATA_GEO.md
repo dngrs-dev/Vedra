@@ -157,7 +157,7 @@ Cache: `geo.uldk`, no expiry.
 - [x] `hydro.py` (MPHP + OSM fallback), `landcover.py`.
 - [x] `dem.py`, `terrain.py` (+ unit test: artificial bowl with known volume; flat plane → no depressions).
 - [x] `static_map.py` + `render_static_map`.
-- [ ] Re-record fixtures for all test parcels; push.
+- [x] Re-record fixtures for all test parcels; push.
 
 ### CP4 — performance and robustness (→ 07:00)
 - [ ] Profile `collect` per source; p95 ≤ 22 s cold, ≤ 3 s warm (cache).
