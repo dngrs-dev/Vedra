@@ -1,9 +1,8 @@
 # Requests from Part A to Part B
 
 Written by Part A (person A's agent) on 2026-11-21 after CP0–CP1. Each item says **what to change in
-Part B's files**, **why** (with the evidence), and how urgent it is. Part A did not edit any B file;
-nothing here changes the frozen contract, except the one proposal in §4, which needs your «yes» first
-(TEAM_SPLIT.md §5).
+Part B's files**, **why** (with the evidence), and how urgent it is. Part A did not edit any B file, and
+nothing here changes the frozen contract. The EDO contract proposal made after CP1 is **withdrawn** (§4).
 
 State of Part A on branch `part_A` (commit `2538d48`): ULDK lookup, soil (soil map + SoilGrids + KBW
 category) and `collect()` are real. Vegetation, terrain, hydro, land cover, EDO and IMGW return `missing`
@@ -100,11 +99,15 @@ with a Polish note until CP2/CP3. 24 recorded fixtures exist: 8 parcels × {2026
 | Hydro | Often `partial` or `missing`. | MPHP is exposed only as an image WMS (vector endpoints answer 401). OSM Overpass was unreachable from all 4 endpoints on 2026-11-21. | Treat «no water feature found» (`ok`, empty list) differently from «hydro unavailable» (`missing`). Never conclude «no ditches» from `missing`. |
 | IMGW | `missing` for any historical date (contract). | — | Already planned. |
 
-**Proposed additive contract change (needs B's «yes», not done):** add to `EdoData` optional fields
-`sma_class: str | None = None`, `fapar_class: str | None = None` and `spi3_class: str | None = None` (EDO
-legend labels). Reason: EDO only gives classes for these indicators, and the current float fields can never
-be filled from public EDO services. Example: `"spi3_class": "Moderately dry"`. If you agree, A makes the
-`CONTRACT:` commit per TEAM_SPLIT.md §5. If not, those indicators stay `None`.
+**EDO contract proposal: withdrawn (decided by person A, 2026-11-21). No contract change.** The CP1
+proposal to add `sma_class` / `fapar_class` / `spi3_class` to `EdoData` is dropped:
+- `cdi_class` already carries that information. By the CDI definition (factsheet v4.1.1, Table 1), *Watch*
+  is triggered by SPI, *Warning* by soil moisture (SMA ≤ −1) and *Alert* by fAPAR (anomaly ≤ −1).
+- B already has the underlying signals from better-resolved sources: SPI and the soil-moisture anomaly from
+  Open-Meteo (B's own pipeline), vegetation anomalies from Sentinel-2 (`bundle.vegetation`).
+- The extra class labels could only be mapped from legend images, with the same partial verification as CDI.
+So `cdi_value`, `sma`, `fapar_anomaly` and `spi3` stay `None` permanently. **B should treat EDO as a
+categorical cross-check (`cdi_class`, `date_used`) and never wait for those numeric fields.**
 
 ---
 
@@ -138,7 +141,7 @@ be filled from public EDO services. Example: `"spi3_class": "Moderately dry"`. I
   recovery classes are also possible, not only Watch/Warning/Alert.
 - `date_used` is the latest dekad that has **ended** on or before the analysis date (the CDI may therefore be up
   to about 20 days older than the analysis date, and the newest published dekad lags real time).
-- The numeric fields stay `None`; the EDO proposal above is still open.
+- The numeric fields stay `None` permanently (the proposal in §4 is withdrawn).
 
 ### IMGW (`bundle.imgw`, only when analysis date = today)
 - `nearest_synop` comes from the nearest of 56 synop stations with known coordinates. Six stations
