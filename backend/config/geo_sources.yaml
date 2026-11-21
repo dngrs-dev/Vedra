@@ -122,6 +122,9 @@ earth_search:
     primary: sentinel-2-c1-l2a   # assets on e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com
     fallback: sentinel-2-l2a     # assets on sentinel-cogs.s3.us-west-2.amazonaws.com
     dem: cop-dem-glo-30          # asset `data` href is s3://copernicus-dem-30m/... ; https equivalent below
+  asset_hosts:                   # hosts of the asset hrefs in STAC items (spike 2026-11-21), read via /vsicurl/
+    - https://e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com/
+    - https://sentinel-cogs.s3.us-west-2.amazonaws.com/
   assets:                        # asset keys (both collections), spike 2026-11-21
     B04: red
     B08: nir
