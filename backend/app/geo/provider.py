@@ -10,7 +10,7 @@ from app.contracts.common import SourceResult, SourceStatus
 from app.contracts.errors import InvalidParcelQuery, ParcelNotFound
 from app.contracts.geo import GeoBundle, GeoRequest
 from app.contracts.parcel import Parcel
-from app.geo import edo, hydro, imgw, landcover, soil, terrain, uldk, vegetation
+from app.geo import edo, hydro, imgw, landcover, soil, static_map, terrain, uldk, vegetation
 
 log = logging.getLogger(__name__)
 
@@ -81,4 +81,4 @@ class RealGeoProvider:
         return GeoBundle.model_validate({n: r.model_dump() for n, r in zip(sources, results)})
 
     async def render_static_map(self, parcel: Parcel, bundle: GeoBundle, width_px: int = 1200) -> bytes:
-        raise NotImplementedError  # CP3 (static_map.py)
+        return await static_map.render(parcel, bundle, width_px)
