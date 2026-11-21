@@ -1,0 +1,126 @@
+/** Все тексты интерфейса в одном месте (польский). Легко добавить EN позже. */
+export const pl = {
+  appTitle: 'KOWR HackNation 2026',
+  appSubtitle: 'Cyfrowy Asystent Gospodarowania Wodą',
+
+  search: {
+    placeholder: 'Wyszukaj działkę (ID)',
+    hint: 'Kliknij na mapie lub wpisz ID działki',
+    badFormat: 'Nieprawidłowy format ID. Przykład: 141201_1.0001.6509',
+    notFound: 'Nie znaleziono działki o podanym ID',
+    demoFallback: 'Usługa ULDK niedostępna — pokazano przykładowy kształt działki (tryb demo)',
+    outsidePoland: 'Wybierz lokalizację na terenie Polski'
+  },
+
+  map: {
+    satellite: 'Satellite',
+    terrain: 'Terrain',
+    layers: 'Pokaż / ukryj działki',
+    locate: 'Moja lokalizacja',
+    fullscreen: 'Pełny ekran',
+    zoomIn: 'Przybliż',
+    zoomOut: 'Oddal',
+    backToPoland: '← Cała Polska',
+    hintRegion: 'Kliknij województwo, aby je przybliżyć',
+    hintParcel: 'Kliknij działkę lub przytrzymaj Ctrl i przeciągnij, aby zaznaczyć własny obszar',
+    hintSelected: 'Zaznaczono. Potwierdź działkę w panelu po prawej',
+    regionsFailed: 'granice województw niedostępne'
+  },
+
+  confirm: {
+    button: 'Potwierdź działkę',
+    change: 'Zmień działkę',
+    selected: 'Wybrana działka',
+    custom: 'Własny obszar',
+    tip: 'Obliczenia ruszą dopiero po potwierdzeniu. Możesz jeszcze zmienić uprawę i datę.',
+    ctrlTip: 'Własny obszar: przytrzymaj Ctrl (⌘ na Macu) i przeciągnij myszą po mapie.'
+  },
+
+  form: {
+    crop: 'Wybierz Uprawę',
+    cropPlaceholder: 'Wybierz uprawę…',
+    date: 'Data analizy',
+    dateHint: 'Dziś lub dowolna data z ostatnich 10 lat'
+  },
+
+  moisture: {
+    title: 'Ocena Wilgotności i Ryzyka Suszy (10 lat)',
+    current: 'Bieżący Stan:',
+    avgRisk: 'Średnie Ryzyko Suszy (10 lat):',
+    soil: 'Aktualna Wilgotność Gleby:',
+    noData: 'Brak danych',
+    legendMoisture: 'Wilgotność gleby',
+    legendRisk: 'Ryzyko suszy',
+    critical: 'Największe ryzyko niedoboru wody:'
+  },
+
+  reco: {
+    title: 'Zalecenia Retencyjne i Nawodnieniowe',
+    retention: 'Zalecenia Retencyjne',
+    agro: 'Zalecenia Agrotechniczne',
+    irrigation: 'Zalecenia Nawodnieniowe',
+    date: 'Optymalny Termin Nawadniania (Prognoza):',
+    none: 'Brak',
+    why: 'Dlaczego?'
+  },
+
+  basis: {
+    title: 'Podstawa analizy i źródła danych',
+    factors: 'Czynniki uwzględnione w analizie',
+    sources: 'Źródła danych'
+  },
+
+  status: {
+    optimal: 'Optymalny',
+    attention: 'Wymaga uwagi',
+    critical: 'Krytyczny'
+  },
+  risk: { low: 'Niskie', moderate: 'Umiarkowane', high: 'Wysokie' },
+  confidence: {
+    label: 'Wiarygodność wyniku',
+    high: 'Wysoka',
+    medium: 'Średnia',
+    low: 'Niska'
+  },
+  priority: { high: 'Wysoki priorytet', medium: 'Średni priorytet', low: 'Niski priorytet' },
+  sourceStatus: { live: 'na żywo', cached: 'z pamięci podręcznej', unavailable: 'niedostępne' },
+
+  empty: 'Wskaż działkę na mapie lub wpisz jej identyfikator, aby zobaczyć ocenę sytuacji wodnej.',
+  error: {
+    title: 'Nie udało się wykonać analizy',
+    retry: 'Spróbuj ponownie'
+  },
+  demoBanner: 'Dane demonstracyjne — backend nie jest jeszcze podłączony. Wyniki nie odzwierciedlają rzeczywistości.',
+
+  footer: {
+    lastUpdate: 'Ostatnia Aktualizacja Danych:',
+    report: 'Generuj Raport PDF',
+    region: 'Region'
+  },
+
+  report: {
+    title: 'Raport — ocena sytuacji wodnej działki',
+    parcel: 'Dane działki',
+    assessment: 'Ocena wilgotności i ryzyka suszy',
+    recommendations: 'Zalecenia',
+    sources: 'Źródła danych',
+    limitations: 'Ograniczenia raportu',
+    print: 'Drukuj / Zapisz jako PDF',
+    back: 'Wróć do mapy',
+    disclaimer:
+      'Raport ma charakter pomocniczy i nie zastępuje oceny agronomicznej. Wynik obarczony jest niepewnością wynikającą z jakości i aktualności danych źródłowych.'
+  },
+
+  steps: [
+    'Dane satelitarne (Sentinel-2)',
+    'Dane meteorologiczne (IMGW / Open-Meteo)',
+    'Gleba (IUNG-PIB, SoilGrids)',
+    'Hydrologia i ukształtowanie terenu',
+    'Obliczanie rekomendacji'
+  ]
+} as const;
+
+export const MONTHS_PL = [
+  'styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec',
+  'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'
+] as const;
