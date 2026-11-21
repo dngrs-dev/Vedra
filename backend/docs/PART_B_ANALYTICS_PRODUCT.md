@@ -155,7 +155,7 @@ def get_geo_provider() -> GeoProvider:
 - [x] `fakes/fake_geo.py` (all statuses), `fakes/fixture_geo.py`.
 - [x] `contracts/report.py` + `tests/fixtures/sample_report.json` → hand to the frontend.
 - [x] `config/kbw_thresholds.csv` from Dz.U. 2019 poz. 739 + test: 14 crops × 4 categories × 14 periods present; `config/crops.yaml`.
-- [ ] Fill `app/analytics/hosts.py`.
+- [x] Fill `app/analytics/hosts.py`.
 
 ### CP1 — vertical slice (→ 19:00)
 - [ ] `open_meteo.py` (+ verify variable names), `periods.py`, `evapotranspiration.py`, `kbw.py` (+ unit tests).
