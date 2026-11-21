@@ -172,7 +172,8 @@ def get_geo_provider() -> GeoProvider:
 - [x] `reports/charts.py`, `pdf.py`, templates; `storage/db.py`; `routes_reports.py`; PDF endpoint.
 
 ### CP4 — validation and robustness (→ 07:00)
-- [ ] `scripts/b/build_kbw_official.py` (MRiRW obwieszczenia → `data/b/kbw_official.parquet`, legend read from the PDFs) and `scripts/b/backtest.py` → `docs/VALIDATION.md`.
+- [x] `scripts/b/build_kbw_official.py` (MRiRW obwieszczenia → `data/b/kbw_official.parquet`, legend read from the PDFs) and `scripts/b/backtest.py` → `docs/VALIDATION.md`.
+  The official annexes and all historical matches are verified. Numeric agreement is pending access to the Open-Meteo archive (HTTP 429).
 - [ ] `tests/contract/test_pipeline_on_fixtures.py` green for every fixture; end-to-end with `real` on all parcels × 3 dates; timings.
 - [ ] Error paths: 422/404/503 with Polish messages; job timeout; every source `missing` → still a report.
 

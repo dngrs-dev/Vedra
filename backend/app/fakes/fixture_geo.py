@@ -41,7 +41,7 @@ class FixtureGeoProvider:
     def __init__(self, directory: Path = FIXTURES_DIR):
         self.directory = directory
 
-    def _parcels(self) -> list[Parcel]:
+    def recorded_parcels(self) -> list[Parcel]:
         parcels: dict[str, Parcel] = {}
         for path in sorted(self.directory.glob("*.json"), reverse=True):
             try:
@@ -57,7 +57,7 @@ class FixtureGeoProvider:
             parcel = await self.parcel_at_point(*parsed)
             matches = [parcel] if parcel is not None else []
         else:
-            parcels = await to_thread(self._parcels)
+            parcels = await to_thread(self.recorded_parcels)
             if PARCEL_ID.fullmatch(parsed):
                 matches = [parcel for parcel in parcels if parcel.parcel_id.casefold() == parsed.casefold()]
             else:
@@ -75,7 +75,7 @@ class FixtureGeoProvider:
     async def parcel_at_point(self, lat: float, lon: float) -> Parcel | None:
         validate_point(lat, lon)
         point = Point(lon, lat)
-        parcels = await to_thread(self._parcels)
+        parcels = await to_thread(self.recorded_parcels)
         return next((parcel for parcel in parcels if shape(parcel.geometry_wgs84).covers(point)), None)
 
     async def collect(self, req: GeoRequest) -> GeoBundle:
