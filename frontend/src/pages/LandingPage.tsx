@@ -1,9 +1,14 @@
+import { useRef, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { HeroArt } from '@/components/landing/HeroArt';
 import {
   ArrowRightIcon, CalendarIcon, DropIcon, FileIcon, KowrLogo, PinIcon, ShieldIcon, SproutIcon
 } from '@/components/ui/Icons';
 import { pl } from '@/constants/pl';
+import { useReveal } from '@/components/landing/useReveal';
+
+/** Задержка анимации для «лесенки» элементов */
+const delay = (i: number) => ({ '--d': `${i * 90}ms` }) as CSSProperties;
 
 const STEPS = [
   { icon: <PinIcon />, title: 'Wskaż działkę', text: 'Wybierz województwo na mapie, a potem kliknij działkę albo zaznacz własny obszar.' },
@@ -22,8 +27,11 @@ const SOURCES = ['Sentinel-2', 'IMGW-PIB', 'Open-Meteo', 'IUNG-PIB', 'GUGiK / Ge
 
 /** Главная «/» — короткий лендинг: hero, 3 шага, польза, источники, CTA → /map. */
 export function LandingPage() {
+  const rootRef = useRef<HTMLDivElement>(null);
+  useReveal(rootRef);
+
   return (
-    <div className="landing">
+    <div className="landing" ref={rootRef}>
       <header className="l-nav">
         <Link to="/" className="brand brand--dark" aria-label="Strona główna">
           <KowrLogo />
@@ -42,31 +50,31 @@ export function LandingPage() {
 
       <section className="l-hero">
         <div className="l-hero__text">
-          <span className="l-pill">Zadanie KOWR · HackNation 2026</span>
-          <h2 className="l-hero__title">Zatrzymaj wodę,<br />chroń swoje plony</h2>
-          <p className="l-hero__lead">
+          <span className="l-pill anim-in" style={delay(0)}>Zadanie KOWR · HackNation 2026</span>
+          <h2 className="l-hero__title anim-in" style={delay(1)}>Zatrzymaj wodę,<br />chroń swoje plony</h2>
+          <p className="l-hero__lead anim-in" style={delay(2)}>
             Wskaż działkę, a my zamienimy dane satelitarne i pogodowe w jasne decyzje:
             czy grozi susza, jak zatrzymać wodę na polu i kiedy warto nawadniać.
           </p>
-          <div className="l-hero__cta">
+          <div className="l-hero__cta anim-in" style={delay(3)}>
             <Link to="/map" className="btn-primary btn-lg">Zobacz mapę <ArrowRightIcon /></Link>
             <a href="#how" className="btn-ghost btn-lg">Jak to działa</a>
           </div>
-          <ul className="l-stats">
+          <ul className="l-stats anim-in" style={delay(4)}>
             <li><b>10 lat</b><span>danych historycznych</span></li>
             <li><b>Cała Polska</b><span>dowolna działka</span></li>
             <li><b>PDF</b><span>raport do wydruku</span></li>
           </ul>
         </div>
-        <div className="l-hero__art"><HeroArt /></div>
+        <div className="l-hero__art anim-art"><HeroArt /></div>
       </section>
 
       <section className="l-section" id="how">
-        <h2 className="l-h2">Trzy kroki do decyzji o wodzie</h2>
-        <p className="l-sub">Bez map GIS, bez tabel i specjalistycznej wiedzy.</p>
+        <h2 className="l-h2" data-reveal>Trzy kroki do decyzji o wodzie</h2>
+        <p className="l-sub" data-reveal>Bez map GIS, bez tabel i specjalistycznej wiedzy.</p>
         <ol className="l-steps">
           {STEPS.map((s, i) => (
-            <li key={s.title} className="l-step">
+            <li key={s.title} className="l-step" data-reveal style={delay(i + 1)}>
               <span className="l-step__num">{i + 1}</span>
               <span className="l-step__icon">{s.icon}</span>
               <h3>{s.title}</h3>
@@ -77,10 +85,10 @@ export function LandingPage() {
       </section>
 
       <section className="l-section l-section--tint" id="benefits">
-        <h2 className="l-h2">Co dostajesz</h2>
+        <h2 className="l-h2" data-reveal>Co dostajesz</h2>
         <div className="l-benefits">
-          {BENEFITS.map((b) => (
-            <article key={b.title} className="l-benefit">
+          {BENEFITS.map((b, i) => (
+            <article key={b.title} className="l-benefit" data-reveal style={delay(i)}>
               <span className="l-benefit__icon">{b.icon}</span>
               <div>
                 <h3>{b.title}</h3>
@@ -92,14 +100,14 @@ export function LandingPage() {
       </section>
 
       <section className="l-section" id="data">
-        <h2 className="l-h2">Oparte na otwartych danych</h2>
-        <p className="l-sub">Łączymy dane z oficjalnych, publicznych źródeł.</p>
+        <h2 className="l-h2" data-reveal>Oparte na otwartych danych</h2>
+        <p className="l-sub" data-reveal>Łączymy dane z oficjalnych, publicznych źródeł.</p>
         <ul className="l-sources">
-          {SOURCES.map((s) => <li key={s}>{s}</li>)}
+          {SOURCES.map((s, i) => <li key={s} data-reveal style={delay(i)}>{s}</li>)}
         </ul>
       </section>
 
-      <section className="l-cta">
+      <section className="l-cta" data-reveal>
         <h2>Sprawdź swoją działkę w minutę</h2>
         <Link to="/map" className="btn-light btn-lg">Zobacz mapę <ArrowRightIcon /></Link>
       </section>

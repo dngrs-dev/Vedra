@@ -78,3 +78,55 @@ html { scroll-behavior: smooth; }
   .brand--dark .brand__text p { display: none; }
   .l-stats { gap: 18px; }
 }
+
+/* ================= Анимации ================= */
+@keyframes l-fade-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes l-art-in { from { opacity: 0; transform: translateY(30px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes l-drift { from { transform: translateX(-40px); } to { transform: translateX(60px); } }
+@keyframes l-sun { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes l-glow { 0%, 100% { opacity: 0.75; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
+@keyframes l-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+@keyframes l-sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes l-rows { from { stroke-dashoffset: 260; } to { stroke-dashoffset: 0; } }
+@keyframes l-shine { from { transform: translateX(-120%) skewX(-20deg); } to { transform: translateX(220%) skewX(-20deg); } }
+
+/* hero: появление при загрузке «лесенкой» */
+.anim-in { opacity: 0; animation: l-fade-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; animation-delay: var(--d, 0ms); }
+.anim-art { opacity: 0; animation: l-art-in 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.25s forwards; }
+
+/* живая иллюстрация */
+.hero-art .ha-cloud { animation: l-drift 14s ease-in-out infinite alternate; }
+.hero-art .ha-cloud--b { animation-duration: 19s; animation-delay: -6s; }
+.hero-art .ha-sun, .hero-art .ha-glow { transform-box: fill-box; transform-origin: center; }
+.hero-art .ha-sun { animation: l-sun 5s ease-in-out infinite; }
+.hero-art .ha-glow { animation: l-glow 5s ease-in-out infinite; }
+.hero-art .ha-drop { animation: l-bob 3.2s ease-in-out infinite; }
+.hero-art .ha-trees > * { transform-box: fill-box; transform-origin: 50% 100%; animation: l-sway 4s ease-in-out infinite; }
+.hero-art .ha-rows path { stroke-dasharray: 260; animation: l-rows 1.6s ease-out 0.6s both; }
+
+/* появление при прокрутке */
+.reveal-ready [data-reveal] { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); transition-delay: var(--d, 0ms); }
+.reveal-ready [data-reveal].is-visible { opacity: 1; transform: none; }
+/* у карточек свой hover-transform — после появления возвращаем быстрый отклик */
+.reveal-ready .l-step.is-visible { transition: opacity 0.7s ease, transform 0.25s ease, box-shadow 0.25s ease; transition-delay: var(--d, 0ms), 0ms, 0ms; }
+
+/* микро-взаимодействия */
+.landing .btn-primary svg, .btn-light svg { transition: transform 0.2s ease; }
+.landing .btn-primary:hover svg, .btn-light:hover svg { transform: translateX(4px); }
+.landing .btn-primary { position: relative; overflow: hidden; }
+.l-hero .btn-primary::after { content: ''; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent); transform: translateX(-120%) skewX(-20deg); animation: l-shine 3.5s ease-in-out 1.6s infinite; pointer-events: none; }
+.l-step:hover .l-step__icon { transform: scale(1.08) rotate(-4deg); }
+.l-step__icon, .l-benefit__icon { transition: transform 0.25s ease, background 0.25s ease; }
+.l-benefit { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.l-benefit:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(20, 40, 32, 0.1); }
+.l-benefit:hover .l-benefit__icon { background: var(--green-700); transform: scale(1.06); }
+.l-sources li { transition: background 0.2s, color 0.2s, transform 0.2s; }
+.l-sources li:hover { background: var(--green-800); color: #fff; transform: translateY(-2px); }
+.l-nav { transition: box-shadow 0.3s; }
+
+/* уважение к настройке «уменьшить движение» */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .landing *, .landing *::before, .landing *::after { animation: none !important; transition: none !important; }
+  .anim-in, .anim-art { opacity: 1; }
+}
