@@ -1,47 +1,34 @@
-"""Render a saved report as a PDF from trusted HTML and CSS templates."""
+"""Render saved reports as PDF.
+
+WeasyPrint renders the HTML and CSS templates when its native Pango libraries are present, as in the
+Docker image. Elsewhere, e.g. a plain Windows Python install, the matplotlib renderer in pdf_basic
+produces the same sections, so a PDF is always available.
+"""
 from __future__ import annotations
 
+import logging
 from base64 import b64encode
 from collections.abc import Sequence
-from datetime import datetime
 from functools import cache
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from app.config import ANALYSIS_TIMEZONE
-from app.contracts.common import Range
 from app.contracts.report import Report
 from app.recommendations import texts_pl as text
+from app.reports import pdf_basic
 from app.reports.charts import monthly_risk_svg
+from app.reports.formatting import display_value, source_time
 
 TEMPLATES = Path(__file__).with_name("templates")
-
-
-def _format_value(value) -> str:
-    if value is None:
-        return text.PDF_MISSING
-    if isinstance(value, Range):
-        estimate = _format_value(value.mid)
-        if value.low is not None and value.high is not None:
-            return f"{estimate} ({_format_value(value.low)}–{_format_value(value.high)})"
-        return estimate
-    if isinstance(value, float):
-        # Report formatting precision only. JSON retains the underlying values.
-        return f"{value:.2f}".rstrip("0").rstrip(".").replace(".", ",")
-    return str(value)
-
-
-def _source_time(value: datetime) -> str:
-    return value.astimezone(ZoneInfo(ANALYSIS_TIMEZONE)).strftime("%Y-%m-%d %H:%M %Z")
+logger = logging.getLogger(__name__)
 
 
 @cache
 def _environment() -> Environment:
     environment = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=select_autoescape(default=True))
-    environment.filters["display_value"] = _format_value
-    environment.filters["source_time"] = _source_time
+    environment.filters["display_value"] = display_value
+    environment.filters["source_time"] = source_time
     return environment
 
 
@@ -72,17 +59,26 @@ def render_html(report: Report, map_png: bytes | None = None) -> str:
     return render_many_html([(report, map_png)])
 
 
-def _write_pdf(html: str) -> bytes:
-    # WeasyPrint's Pango libraries are supplied by the Docker image or local platform.
-    from weasyprint import CSS, HTML
-
-    return HTML(string=html).write_pdf(stylesheets=[CSS(filename=TEMPLATES / "report.css")])
-
-
-def render(report: Report, map_png: bytes | None = None) -> bytes:
-    return _write_pdf(render_html(report, map_png))
+@cache
+def weasyprint_available() -> bool:
+    """Whether WeasyPrint and its native Pango libraries load on this host. Checked once per process."""
+    try:
+        import weasyprint  # noqa: F401
+    except (ImportError, OSError) as exc:
+        logger.warning("WeasyPrint unavailable (%s: %s). PDFs use the built-in renderer.",
+                       type(exc).__name__, str(exc).splitlines()[0] if str(exc) else "")
+        return False
+    return True
 
 
 def render_many(items: Sequence[tuple[Report, bytes | None]]) -> bytes:
     """Render several reports, for example one per selected crop, as a single PDF."""
-    return _write_pdf(render_many_html(items))
+    if not weasyprint_available():
+        return pdf_basic.render_many(items)
+    from weasyprint import CSS, HTML
+
+    return HTML(string=render_many_html(items)).write_pdf(stylesheets=[CSS(filename=TEMPLATES / "report.css")])
+
+
+def render(report: Report, map_png: bytes | None = None) -> bytes:
+    return render_many([(report, map_png)])

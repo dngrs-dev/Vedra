@@ -7,6 +7,7 @@ import { MONTHS_PL, pl } from '@/constants/pl';
 import { AnalysisError, AnalysisJobState } from '@/features/analysis/components/AnalysisJobState';
 import { BackendReportCards } from '@/features/analysis/components/BackendReportCards';
 import { ConfidenceBadge } from '@/features/analysis/components/Badges';
+import { PdfDownloadButton } from '@/features/analysis/components/PdfDownloadButton';
 import { useAnalysis } from '@/features/analysis/hooks/useAnalysis';
 import { useAnalysisStore } from '@/features/analysis/store';
 import { combinedReportPdfUrl, reportPdfUrl } from '@/services/analysisApi';
@@ -38,17 +39,21 @@ export function ReportPage() {
   if (!parcel) return <Navigate to="/map" replace />;
   if (demoMode && demo.data) return <DemoReport parcel={parcel} cropIds={cropIds} data={demo.data} />;
 
-  // Several crops give one analysis each; offer them together as one PDF once every analysis is ready.
+  // Several crops give one analysis each. Once none is still running, offer the ready ones as one PDF;
+  // a failed crop can be retried below and is then included as well.
   const readyIds = jobs.flatMap((job) => (job.report && job.analysisId ? [job.analysisId] : []));
-  const allReady = jobs.length > 1 && readyIds.length === jobs.length;
+  const pending = jobs.some((job) => !job.report && !job.error);
+  const combinedLabel = readyIds.length === jobs.length ? pl.report.downloadAll : pl.report.downloadReady;
 
   return (
     <div className="report-wrap">
       <div className="report-toolbar no-print">
         <Link to="/map" className="btn-secondary"><ArrowLeftIcon /> {pl.report.back}</Link>
-        {jobs.length > 1 && (allReady
-          ? <a className="btn-primary" href={combinedReportPdfUrl(readyIds)}><PrinterIcon /> {pl.report.downloadAll}</a>
-          : <button type="button" className="btn-primary" disabled><PrinterIcon /> {pl.report.downloadAllPending}</button>)}
+        {jobs.length > 1 && (pending
+          ? <button type="button" className="btn-primary" disabled><PrinterIcon /> {pl.report.downloadAllPending}</button>
+          : readyIds.length > 1 && (
+            <PdfDownloadButton href={combinedReportPdfUrl(readyIds)} label={combinedLabel} fileName="vedra-raport.pdf" />
+          ))}
       </div>
       {selectionError && <AnalysisError message={selectionError} />}
       {demoMode && (
@@ -74,7 +79,7 @@ export function ReportPage() {
                 <h1>{pl.report.title}</h1>
                 <p className="muted">{report.crop_name_pl} · {fmtDate(report.analysis_date)}</p>
               </div>
-              <a className="btn-primary no-print" href={reportPdfUrl(job.analysisId)}><PrinterIcon /> {pl.report.download}</a>
+              <PdfDownloadButton href={reportPdfUrl(job.analysisId)} label={pl.report.download} fileName={`vedra-${job.code}-${report.analysis_date}.pdf`} />
             </header>
             <Card title={pl.report.parcel}>
               <dl className="factors">

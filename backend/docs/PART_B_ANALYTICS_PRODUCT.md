@@ -139,7 +139,7 @@ def get_geo_provider() -> GeoProvider:
 | Function | Spec |
 | --- | --- |
 | `reports.builder.build(ctx) -> Report` | schema as in the plan (summary, assessment, causes, recommendations, map_layers from A's GeoJSON, irrigation, limitations, data_sources = all `Provenance` from weather + bundle, references). |
-| `reports.pdf.render(report, map_png) -> bytes` | Jinja2 HTML → WeasyPrint; charts SVG. |
+| `reports.pdf.render(report, map_png) -> bytes` | Jinja2 HTML → WeasyPrint; charts SVG. Without Pango, `reports.pdf_basic` renders the same sections with Matplotlib. |
 | `jobs.runner.submit(req) -> analysis_id`, `status(id)` | asyncio task, overall timeout, progress list. |
 | `storage.db.save_report / get_report` | SQLite, report JSON + PDF path; permanent id. |
 

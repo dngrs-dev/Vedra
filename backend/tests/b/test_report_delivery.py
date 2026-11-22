@@ -1,3 +1,4 @@
+import re
 from datetime import date
 from http import HTTPStatus
 from pathlib import Path
@@ -16,7 +17,7 @@ from app.contracts.report import Report
 from app.fakes.fake_geo import EXAMPLE_PARCEL_ID, FakeGeoProvider
 from app.jobs.runner import ANALYSIS_TIMEOUT_S
 from app.main import app
-from app.reports import pdf
+from app.reports import pdf, pdf_basic
 
 SAMPLE = Path(__file__).resolve().parents[1] / "fixtures" / "sample_report.json"
 
@@ -129,3 +130,44 @@ def test_several_crops_share_one_combined_pdf(monkeypatch):
     assert unknown.status_code == HTTPStatus.NOT_FOUND
     assert empty.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert single.json()["status"] == "done"
+
+
+def _page_count(document: bytes) -> int:
+    return len(re.findall(rb"/Type\s*/Page\b(?!s)", document))
+
+
+def test_builtin_renderer_needs_no_native_libraries():
+    # Used when WeasyPrint's Pango libraries are missing, e.g. a plain Windows Python install.
+    report = Report.model_validate_json(SAMPLE.read_bytes())
+    other = report.model_copy(update={"report_id": "other", "crop_name_pl": "Kukurydza na ziarno"})
+    single = pdf_basic.render(report)
+    combined = pdf_basic.render_many([(report, None), (other, None)])
+    assert single.startswith(b"%PDF-") and combined.startswith(b"%PDF-")
+    # Each report starts on a new page.
+    assert _page_count(combined) >= 2 * _page_count(single) >= 2
+
+
+def test_pdf_endpoints_fall_back_to_builtin_renderer(monkeypatch):
+    analysis_date = date(2026, 11, 21)
+    monkeypatch.setattr(routes_analyses, "analysis_today", lambda: analysis_date)
+    monkeypatch.setattr(settings, "geo_provider", "fake")
+    monkeypatch.setattr(open_meteo, "fetch_weather", AsyncMock(return_value=SourceResult[WeatherData](
+        status=SourceStatus.MISSING
+    )))
+    monkeypatch.setattr(FakeGeoProvider, "render_static_map", AsyncMock(return_value=None))
+    monkeypatch.setattr(pdf, "weasyprint_available", lambda: False)
+    with TestClient(app) as client:
+        ids = [client.post("/api/analyses", json={"parcel_id": EXAMPLE_PARCEL_ID, "crop_code": crop,
+                                                  "analysis_date": analysis_date.isoformat()}).json()["analysis_id"]
+               for crop in ("winter_cereals", "potatoes")]
+        deadline = monotonic() + ANALYSIS_TIMEOUT_S
+        while monotonic() < deadline and any(
+            client.get(f"/api/analyses/{item}").json()["status"] not in {"done", "error"} for item in ids
+        ):
+            sleep(0.01)  # Schedule the background tasks between test polls.
+        single = client.get(f"/api/analyses/{ids[0]}/report.pdf")
+        combined = client.get(f"/api/analyses/report.pdf?analysis_id={ids[0]}&analysis_id={ids[1]}")
+
+    assert single.status_code == combined.status_code == HTTPStatus.OK
+    assert single.content.startswith(b"%PDF-") and combined.content.startswith(b"%PDF-")
+    assert _page_count(combined.content) > _page_count(single.content)

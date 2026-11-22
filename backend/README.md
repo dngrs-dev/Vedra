@@ -22,7 +22,7 @@ zakres opisuje [lista kontrolna części B](docs/PART_B_ANALYTICS_PRODUCT.md#cp4
 ```text
 HTTP (FastAPI) → zadanie analizy → potok obliczeń → raport JSON → SQLite
                                        ↓                               ↓
-                GeoProvider (działka i dane przestrzenne)    WeasyPrint → PDF
+                GeoProvider (działka i dane przestrzenne)    WeasyPrint / Matplotlib → PDF
                 Open-Meteo (pogoda, pobierana równolegle)
 ```
 
@@ -87,9 +87,11 @@ python -m pip install -r requirements/base.txt -r requirements/a-geo.txt -r requ
 GEO_PROVIDER=fake python -m uvicorn app.main:app
 ```
 
-Do natywnego renderowania PDF potrzebne są biblioteki Pango i czcionki z polskimi znakami.
+PDF powstaje przez WeasyPrint, gdy dostępne są biblioteki Pango i czcionki z polskimi znakami.
 Obraz Dockera zawiera te zależności.
 [Instalacja WeasyPrint](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html).
+Bez Pango, np. w zwykłej instalacji Pythona w Windows, ten sam raport tworzy wbudowany moduł
+oparty na Matplotlib (`app/reports/pdf_basic.py`). Nie wymaga on dodatkowej instalacji.
 
 ### Próba w przeglądarce
 

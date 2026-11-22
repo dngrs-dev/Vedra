@@ -1,11 +1,20 @@
 """Small printable charts derived from report metrics."""
-from io import StringIO
+from __future__ import annotations
+
+from io import BytesIO, StringIO
+from typing import TYPE_CHECKING
 
 from app.contracts.report import Report
 from app.recommendations import texts_pl as text
 
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
 
-def monthly_risk_svg(report: Report) -> str | None:
+# Raster resolution for renderers that embed the chart as an image.
+PNG_DPI = 200
+
+
+def _monthly_risk_figure(report: Report) -> Figure | None:
     history = report.assessment.vulnerability
     if history is None:
         return None
@@ -16,7 +25,6 @@ def monthly_risk_svg(report: Report) -> str | None:
     ]
     if not values:
         return None
-    from matplotlib.backends.backend_svg import FigureCanvasSVG
     from matplotlib.figure import Figure
 
     months, risk = zip(*sorted(values))
@@ -29,6 +37,27 @@ def monthly_risk_svg(report: Report) -> str | None:
     axis.set_ylim(0, 100)  # A percentage ranges from zero to one hundred.
     axis.set_axisbelow(True)
     axis.grid(axis="y", alpha=0.25)
+    return figure
+
+
+def monthly_risk_svg(report: Report) -> str | None:
+    figure = _monthly_risk_figure(report)
+    if figure is None:
+        return None
+    from matplotlib.backends.backend_svg import FigureCanvasSVG
+
     output = StringIO()
     FigureCanvasSVG(figure).print_svg(output)
+    return output.getvalue()
+
+
+def monthly_risk_png(report: Report) -> bytes | None:
+    figure = _monthly_risk_figure(report)
+    if figure is None:
+        return None
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+    output = BytesIO()
+    FigureCanvasAgg(figure)
+    figure.savefig(output, format="png", dpi=PNG_DPI)
     return output.getvalue()

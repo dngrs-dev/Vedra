@@ -158,7 +158,9 @@ export const pl = {
     print: 'Drukuj / Zapisz jako PDF',
     download: 'Pobierz PDF',
     downloadAll: 'Pobierz PDF dla wszystkich upraw',
+    downloadReady: 'Pobierz wspólny PDF gotowych raportów',
     downloadAllPending: 'Trwa przygotowanie raportów…',
+    downloading: 'Przygotowanie pliku PDF…',
     back: 'Wróć do mapy',
     disclaimer:
       'Raport ma charakter pomocniczy i nie zastępuje oceny agronomicznej. Wynik obarczony jest niepewnością wynikającą z jakości i aktualności danych źródłowych.'
