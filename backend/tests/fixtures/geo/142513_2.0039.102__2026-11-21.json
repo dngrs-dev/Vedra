@@ -311,7 +311,7 @@
      "data_period": null,
      "resolution": "250 m",
      "licence": "CC BY 4.0",
-     "attribution_pl": "SoilGrids 2.0, ISRIC – World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
+     "attribution_pl": "SoilGrids 2.0, ISRIC - World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
     }
    ],
    "notes_pl": [
@@ -3011,7 +3011,7 @@
    "provenance": [
     {
      "source_id": "bdot10k_water",
-     "name": "BDOT10k (GUGiK) – sieć wodna, usługa WMS",
+     "name": "BDOT10k (GUGiK) - sieć wodna, usługa WMS",
      "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/kompozycja_BDOT10k_WMS/MapServer/WMSServer",
      "fetched_at": "2026-11-21T19:10:02.086723Z",
      "live": true,

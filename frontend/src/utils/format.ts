@@ -8,14 +8,14 @@ export function toISODate(d: Date): string {
 /** 21.11.2026 */
 export function fmtDate(iso: string): string {
   const d = new Date(iso.length === 10 ? iso + 'T00:00:00' : iso);
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return '-';
   return `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
 /** 21.11.2026, 14:30 */
 export function fmtDateTime(iso: string): string {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return '-';
   return `${fmtDate(iso)}, ${p2(d.getHours())}:${p2(d.getMinutes())}`;
 }
 

@@ -15,7 +15,7 @@ const balance = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 2 });
 
 function formatRange({ low, mid, high }: BackendRange): string {
   return low !== null && high !== null && low !== high
-    ? `${number.format(mid)} (${number.format(low)}–${number.format(high)})`
+    ? `${number.format(mid)} (${number.format(low)}-${number.format(high)})`
     : number.format(mid);
 }
 
@@ -143,7 +143,7 @@ export function BackendReportCards({ report }: { report: BackendReport }) {
         <p>{report.summary}</p>
         <p className="muted small">{copy.kbwDefinition}</p>
         <dl className="factors">
-          {kbw.period && <div><dt>{copy.period}</dt><dd>{fmtDate(kbw.period.start)} – {fmtDate(kbw.period.end)}</dd></div>}
+          {kbw.period && <div><dt>{copy.period}</dt><dd>{fmtDate(kbw.period.start)} - {fmtDate(kbw.period.end)}</dd></div>}
           {kbw.soil_category && <div><dt>{copy.soilCategory}</dt><dd>{kbw.soil_category}</dd></div>}
           {showBalance && <div><dt>KBW</dt><dd>{kbw.kbw_mm === null ? pl.moisture.noData : `${balance.format(kbw.kbw_mm)} mm`}</dd></div>}
           {typeof kbw.threshold_mm === 'number' && <div><dt>{copy.threshold}</dt><dd>{balance.format(kbw.threshold_mm)} mm</dd></div>}

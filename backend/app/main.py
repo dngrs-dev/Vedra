@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import RequestResponseEndpoint
 
-from app.api import routes_analyses, routes_meta, routes_parcels, routes_reports
+from app.api import routes_analyses, routes_meta, routes_parcels, routes_reports, routes_scenarios
 from app.config import settings
 from app.contracts.errors import InvalidParcelQuery, ParcelNotFound, UpstreamUnavailable
 from app.core import http
@@ -42,6 +42,8 @@ app.include_router(routes_meta.router)
 app.include_router(routes_parcels.router)
 app.include_router(routes_analyses.router)
 app.include_router(routes_reports.router)
+app.include_router(routes_scenarios.router)
+app.include_router(routes_scenarios.ai_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,

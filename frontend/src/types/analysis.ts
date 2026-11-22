@@ -13,7 +13,7 @@ export const RecommendationSchema = z.object({
   title: z.string(),
   text: z.string(),
   priority: PrioritySchema,
-  /** Почему это рекомендуется — на каких данных основано (обязательно по ТЗ). */
+  /** Почему это рекомендуется - на каких данных основано (обязательно по ТЗ). */
   evidence: z.string()
 });
 
@@ -55,7 +55,7 @@ export const AnalysisSchema = z.object({
       risk: z.number().min(0).max(100)
     })
   ),
-  /** Месяцы (1–12) наибольшего риска дефицита воды */
+  /** Месяцы (1-12) наибольшего риска дефицита воды */
   criticalMonths: z.array(z.number().int().min(1).max(12)),
 
   factors: z.array(FactorSchema),

@@ -30,7 +30,7 @@ export async function mockAnalyze(req: AnalysisRequest, signal?: AbortSignal): P
   const last = history[history.length - 1]!;
   const avgRisk = history.reduce((s, h) => s + h.risk, 0) / history.length;
 
-  // --- бывает, что данных нет — показываем это честно ---
+  // --- бывает, что данных нет - показываем это честно ---
   const noMoistureData = rnd() < 0.07;
   const moisture = noMoistureData ? null : Math.round(clamp(last.moisture + (rnd() - 0.5) * 10, 20, 90));
 
@@ -51,9 +51,9 @@ export async function mockAnalyze(req: AnalysisRequest, signal?: AbortSignal): P
   const dayAgo = new Date(Date.now() - 86400000).toISOString();
 
   const sources: DataSource[] = [
-    { id: 'sentinel', name: 'Sentinel-2 L2A (Copernicus)', category: 'satellite', period: `${baseYear - 10}–${baseYear}`, fetchedAt: noMoistureData ? null : now, license: 'Copernicus (open)', status: noMoistureData ? 'unavailable' : 'live' },
-    { id: 'openmeteo', name: 'Open-Meteo / IMGW-PIB', category: 'weather', period: `${baseYear - 10}–${baseYear}`, fetchedAt: now, license: 'CC BY 4.0', status: 'live' },
-    { id: 'iung', name: 'IUNG-PIB — Mapa podatności gleb na suszę', category: 'soil', period: 'statyczne', fetchedAt: dayAgo, license: 'IUNG-PIB', status: 'cached' },
+    { id: 'sentinel', name: 'Sentinel-2 L2A (Copernicus)', category: 'satellite', period: `${baseYear - 10}-${baseYear}`, fetchedAt: noMoistureData ? null : now, license: 'Copernicus (open)', status: noMoistureData ? 'unavailable' : 'live' },
+    { id: 'openmeteo', name: 'Open-Meteo / IMGW-PIB', category: 'weather', period: `${baseYear - 10}-${baseYear}`, fetchedAt: now, license: 'CC BY 4.0', status: 'live' },
+    { id: 'iung', name: 'IUNG-PIB - Mapa podatności gleb na suszę', category: 'soil', period: 'statyczne', fetchedAt: dayAgo, license: 'IUNG-PIB', status: 'cached' },
     { id: 'nmt', name: 'Geoportal NMT (ukształtowanie terenu)', category: 'spatial', period: 'statyczne', fetchedAt: dayAgo, license: 'GUGiK (open data)', status: 'cached' },
     { id: 'hydro', name: 'Hydroportal ISOK / Wody Polskie', category: 'hydrology', period: 'statyczne', fetchedAt: dayAgo, license: 'PGW Wody Polskie', status: 'cached' }
   ];
@@ -74,7 +74,7 @@ export async function mockAnalyze(req: AnalysisRequest, signal?: AbortSignal): P
     retention.push({
       id: 'ditch-weirs',
       title: 'Spowolnienie odpływu z rowów melioracyjnych',
-      text: `W odległości ok. ${ditchM} m znajduje się rów/ciek — rozważ okresowe piętrzenie wody (zastawki) po opadach.`,
+      text: `W odległości ok. ${ditchM} m znajduje się rów/ciek - rozważ okresowe piętrzenie wody (zastawki) po opadach.`,
       priority: 'medium',
       evidence: `Odległość do najbliższego cieku (Hydroportal): ${ditchM} m.`
     });
@@ -130,7 +130,7 @@ export async function mockAnalyze(req: AnalysisRequest, signal?: AbortSignal): P
       irrigation: {
         needed: needsIrrigation,
         summary: needsIrrigation
-          ? 'Wilgotność gleby jest poniżej progu optymalnego dla wybranej uprawy — zaplanuj nawadnianie.'
+          ? 'Wilgotność gleby jest poniżej progu optymalnego dla wybranej uprawy - zaplanuj nawadnianie.'
           : 'Nawadnianie nie jest konieczne w najbliższych 7 dniach.',
         optimalDate: irrDate ? irrDate.toISOString().slice(0, 10) : null,
         amountMm: needsIrrigation ? (state === 'critical' ? 25 : 15) : null
@@ -143,7 +143,7 @@ export async function mockAnalyze(req: AnalysisRequest, signal?: AbortSignal): P
       'Docelowo: rozdzielczość Sentinel-2 (10 m) może nie odzwierciedlać zróżnicowania wewnątrz małych działek.',
       'Nie uwzględniono: lokalnych zabiegów agrotechnicznych, odmiany, nawadniania wykonanego w przeszłości, wód gruntowych.',
       noMoistureData
-        ? 'Brak danych satelitarnych dla wybranej daty (zachmurzenie) — wilgotność gleby nie została oszacowana.'
+        ? 'Brak danych satelitarnych dla wybranej daty (zachmurzenie) - wilgotność gleby nie została oszacowana.'
         : 'Zachmurzenie może opóźniać aktualność wskaźników satelitarnych o kilka dni.'
     ],
     isDemo: true

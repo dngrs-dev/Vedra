@@ -5,12 +5,12 @@ import { BOUNDARY_COLOR, PANE_BOUNDARIES, PARCEL_FILL, boundaryWeight, type Boun
 import type { BoundaryFeature } from '@/services/parcelApi';
 
 interface ParcelBoundariesProps {
-  /** obręby (зум 15–16, клик приближает) или делянки (зум ≥ 17, клик выбирает). Смена — через key (перемонтирование). */
+  /** obręby (зум 15-16, клик приближает) или делянки (зум ≥ 17, клик выбирает). Смена - через key (перемонтирование). */
   kind: BoundaryKind;
   features: BoundaryFeature[];
-  /** ID выбранной делянки — её рисует отдельный полигон сверху, здесь не подсвечиваем */
+  /** ID выбранной делянки - её рисует отдельный полигон сверху, здесь не подсвечиваем */
   selectedId: string | null;
-  /** ID делянки, по которой только что кликнули (идёт запрос) — сразу заливаем плотнее */
+  /** ID делянки, по которой только что кликнули (идёт запрос) - сразу заливаем плотнее */
   pendingId: string | null;
   /** Клик по контуру: вызывается ДО клика по карте (canvas → слой → карта), карта затем делает выбор */
   onFeatureClick: (feature: BoundaryFeature) => void;
@@ -25,7 +25,7 @@ const label = (kind: BoundaryKind, f: BoundaryFeature) =>
 
 /**
  * Границы всех делянок (или obrębów) вокруг видимой области. Canvas-рендерер (тысячи полигонов без тормозов),
- * толщина линии зависит от зума, наведение — лёгкая заливка + код делянки рядом с курсором.
+ * толщина линии зависит от зума, наведение - лёгкая заливка + код делянки рядом с курсором.
  * Должен рендериться внутри <Pane name={PANE_BOUNDARIES}>.
  */
 export function ParcelBoundaries({ kind, features, selectedId, pendingId, onFeatureClick }: ParcelBoundariesProps) {
@@ -48,7 +48,7 @@ export function ParcelBoundaries({ kind, features, selectedId, pendingId, onFeat
     if (id) layers.current.get(id)?.setStyle(styleFor(id));
   };
 
-  // слой, рендерер и общий тултип — один раз на монтирование
+  // слой, рендерер и общий тултип - один раз на монтирование
   useEffect(() => {
     const renderer = L.canvas({ pane: PANE_BOUNDARIES, padding: 0.3 });
     const group = L.layerGroup().addTo(map);

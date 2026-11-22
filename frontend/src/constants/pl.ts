@@ -34,7 +34,7 @@ export const pl = {
     showWholeParcel: 'Pokaż całą działkę',
     locateFailed: 'Nie udało się pobrać lokalizacji',
     locateUnavailable: 'Geolokalizacja niedostępna w tej przeglądarce',
-    boundariesFailed: 'Granice działek są chwilowo niedostępne — wybór kliknięciem nadal działa',
+    boundariesFailed: 'Granice działek są chwilowo niedostępne - wybór kliknięciem nadal działa',
     hintSelected: 'Zaznaczono. Potwierdź działkę w panelu po prawej',
     regionsFailed: 'granice województw niedostępne'
   },
@@ -176,13 +176,12 @@ export const pl = {
   },
 
   footer: {
-    lastUpdate: 'Ostatnia Aktualizacja Danych:',
     report: 'Generuj Raport PDF',
     region: 'Region'
   },
 
   report: {
-    title: 'Raport — ocena sytuacji wodnej działki',
+    title: 'Raport - ocena sytuacji wodnej działki',
     parcel: 'Dane działki',
     assessment: 'Ocena wilgotności i ryzyka suszy',
     recommendations: 'Zalecenia',

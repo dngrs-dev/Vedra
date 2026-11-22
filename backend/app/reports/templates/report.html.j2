@@ -33,7 +33,7 @@
     <p>{{ report.summary }}</p>
     {% set kbw = report.assessment.kbw %}
     {% set show_balance = kbw.kbw_mm is not none or (kbw.period and kbw.verdict == "unavailable") %}
-    {% if kbw.period %}<p>Okres oceny: {{ kbw.period.start }} – {{ kbw.period.end }}</p>{% endif %}
+    {% if kbw.period %}<p>Okres oceny: {{ kbw.period.start }} - {{ kbw.period.end }}</p>{% endif %}
     {% if show_balance or kbw.threshold_mm is number or report.assessment.confidence %}
     <dl class="metrics">
       {% if show_balance %}<div><dt>Klimatyczny bilans wodny</dt><dd>{{ kbw.kbw_mm | display_value }}{% if kbw.kbw_mm is not none %} mm{% endif %}</dd></div>{% endif %}
@@ -137,6 +137,46 @@
     <p>{{ report.irrigation.why_pl }}</p>
     {% if report.irrigation.suggested_date %}<p>Szacowany termin: {{ report.irrigation.suggested_date }}</p>{% endif %}
     {% if report.irrigation.net_dose_mm %}<p>Dawka netto: {{ report.irrigation.net_dose_mm | display_value }} mm</p>{% endif %}
+  </section>
+  {% endif %}
+  {% if scenarios %}
+  <section class="scenarios">
+    <h2>Co jeśli? Symulacja działań</h2>
+    <p>Jak zmieniłyby się stres wodny uprawy i bilans wody na polu przy różnych działaniach.
+      Okres: {{ scenarios.window_start }} - {{ scenarios.window_end }} ({{ scenarios.window_note_pl | lower | replace(".", "") }}).
+      {% if custom %}<br>Twój wariant: {{ custom_levers }}.{% endif %}</p>
+    <table class="table">
+      <thead><tr><th>Wariant</th><th>Dni ze stresem wodnym</th><th>Niedobór wody</th><th>Najniższy zapas wody</th><th>Ryzyko</th></tr></thead>
+      <tbody>
+        {% for item in [scenarios.baseline] + ([custom] if custom else []) + scenarios.presets %}
+        <tr{% if item.id in ("baseline", "custom") %} class="strong"{% endif %}>
+          <td>{{ item.title_pl }}</td>
+          <td>{{ item.outcome.stress_days }} z {{ item.outcome.days }}</td>
+          <td>{{ item.outcome.et_deficit_pct | display_value }}%</td>
+          <td>{{ item.outcome.min_available_pct | display_value }}%</td>
+          <td>{{ risk_labels[item.outcome.risk] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if scenario_chart_url %}<img class="visual" src="{{ scenario_chart_url }}" alt="Zapas wody w glebie w sezonie">{% endif %}
+    {% set b = scenarios.baseline.outcome.budget %}
+    {% set c = custom.outcome.budget if custom else none %}
+    <table class="table">
+      <thead><tr><th>Bilans wody (mm)</th><th>Bez działań</th>{% if c %}<th>Twój wariant</th>{% endif %}</tr></thead>
+      <tbody>
+        {% for label, key in [("Opad", "precipitation_mm"), ("Nawadnianie", "irrigation_mm"),
+                              ("Woda oddana z retencji", "retention_release_mm"),
+                              ("Zużycie wody przez uprawę (ET)", "actual_et_mm"),
+                              ("Ucieka poza strefę korzeni", "losses_mm"),
+                              ("Zatrzymane przez retencję", "retained_mm")] %}
+        <tr><td>{{ label }}</td><td>{{ b[key] | display_value }}</td>{% if c %}<td>{{ c[key] | display_value }}</td>{% endif %}</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="small">{{ scenarios.kbw_note_pl }}</p>
+    <h3>Założenia modelu</h3>
+    <ul class="small">{% for note in scenarios.assumptions_pl %}<li>{{ note }}</li>{% endfor %}</ul>
   </section>
   {% endif %}
   {% if report.limitations_pl %}

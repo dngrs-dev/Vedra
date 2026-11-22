@@ -138,7 +138,7 @@ soilgrids_rest:
   licence: CC BY 4.0
   licence_verified: true
   licence_source: https://isric.org/explore/soilgrids/
-  attribution_pl: "SoilGrids 2.0, ISRIC – World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
+  attribution_pl: "SoilGrids 2.0, ISRIC - World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
 
 soilgrids_files:
   name: SoilGrids 2.0 (ISRIC) VRT/COG files
@@ -171,7 +171,7 @@ soilgrids_files:
   licence: CC BY 4.0             # same dataset as soilgrids_rest
   licence_verified: true
   licence_source: https://isric.org/explore/soilgrids/
-  attribution_pl: "SoilGrids 2.0, ISRIC – World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
+  attribution_pl: "SoilGrids 2.0, ISRIC - World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
 
 earth_search:
   name: Earth Search STAC (Element 84)
@@ -218,7 +218,7 @@ earth_search:
     SCL: scl
   scale_offset_from: "raster:bands (scale, nodata always; offset only outside harmonized_collections)"
   observed_latency_s: 0.4
-  licence: Copernicus Sentinel data – free, full and open access
+  licence: Copernicus Sentinel data - free, full and open access
   licence_verified: true
   licence_source: https://ewds.climate.copernicus.eu/licences/ec-sentinel
   attribution_pl: "Contains modified Copernicus Sentinel data [year]"   # official English wording; no official Polish text known
@@ -265,7 +265,7 @@ planetary_computer:
     - https://sentinel2l2a01.blob.core.windows.net/
   assets: {B04: B04, B08: B08, B8A: B8A, B11: B11, SCL: SCL}
   observed_latency_s: 0.5
-  licence: Copernicus Sentinel data – free, full and open access
+  licence: Copernicus Sentinel data - free, full and open access
   licence_verified: true
   licence_source: https://ewds.climate.copernicus.eu/licences/ec-sentinel
   terms_of_use: https://planetarycomputer.microsoft.com/terms   # service terms (hosting of the open dataset)
@@ -334,7 +334,7 @@ gugik_nmt_wcs:
   licence_verified: false
 
 mphp:
-  name: MPHP10k – Mapa Podziału Hydrograficznego Polski (Wody Polskie, ISOK)
+  name: MPHP10k - Mapa Podziału Hydrograficznego Polski (Wody Polskie, ISOK)
   wms_url: https://wody.isok.gov.pl/gpservices/KZGW/ISOK_MPHP/MapServer/WMSServer
   source: >-
     URL from the QGIS plugin «Wody Polskie» (https://github.com/LScislowski/Wody_Polskie_Baza_WMS);
@@ -376,7 +376,7 @@ terrain_processing:
                                  # not yet sourced -> volume_m3 low/high = None
 
 bdot10k_water:
-  name: BDOT10k (GUGiK) – sieć wodna, usługa WMS
+  name: BDOT10k (GUGiK) - sieć wodna, usługa WMS
   url: https://mapy.geoportal.gov.pl/wss/service/pub/guest/kompozycja_BDOT10k_WMS/MapServer/WMSServer
   source: >-
     URL from the geoportal WMS/WMTS list (https://www.geoportal.gov.pl/pl/usluga/uslugi-przegladania-wms-i-wmts/);
@@ -513,8 +513,8 @@ imgw:
   warnings_fields_seen: [opublikowano, "stopień", data_od, data_do, prawdopodobienstwo, numer, biuro, zdarzenie]
   observed_latency_s: 0.3
   attribution_pl: >-
-    Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy.
-    Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego Instytutu Badawczego zostały przetworzone.
+    Źródłem pochodzenia danych jest Instytut Meteorologii i Gospodarki Wodnej - Państwowy Instytut Badawczy.
+    Dane Instytutu Meteorologii i Gospodarki Wodnej - Państwowego Instytutu Badawczego zostały przetworzone.
   attribution_source: https://danepubliczne.imgw.pl/regulations
   licence: Regulamin udostępniania danych IMGW-PIB
   licence_source: https://danepubliczne.imgw.pl/regulations

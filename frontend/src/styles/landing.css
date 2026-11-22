@@ -114,7 +114,7 @@ html { scroll-behavior: smooth; }
 /* появление при прокрутке */
 .reveal-ready [data-reveal] { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); transition-delay: var(--d, 0ms); }
 .reveal-ready [data-reveal].is-visible { opacity: 1; transform: none; }
-/* у карточек свой hover-transform — после появления возвращаем быстрый отклик */
+/* у карточек свой hover-transform - после появления возвращаем быстрый отклик */
 .reveal-ready .l-step.is-visible { transition: opacity 0.7s ease, transform 0.25s ease, box-shadow 0.25s ease; transition-delay: var(--d, 0ms), 0ms, 0ms; }
 
 /* микро-взаимодействия */

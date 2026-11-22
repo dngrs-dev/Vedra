@@ -3,7 +3,7 @@ import { useEffect, type RefObject } from 'react';
 /**
  * Анимация появления при прокрутке: элементы с атрибутом data-reveal внутри root
  * получают класс is-visible, когда попадают в экран.
- * Прячем элементы только после монтирования (класс reveal-ready на root) — без JS контент всегда виден.
+ * Прячем элементы только после монтирования (класс reveal-ready на root) - без JS контент всегда виден.
  */
 export function useReveal(root: RefObject<HTMLElement | null>) {
   useEffect(() => {

@@ -206,11 +206,11 @@ async def fetch_blocking(lat: float, lon: float) -> dict:
 
 
 def wod_mm(layers: list[SoilLayer], depth_cm: int = 100) -> Range | None:
-    """Σ (θFC − θWP) × thickness over 0..depth_cm, in mm (θ in m3/m3 from add_water_retention, thickness in mm).
+    """Σ (θFC - θWP) × thickness over 0..depth_cm, in mm (θ in m3/m3 from add_water_retention, thickness in mm).
 
     mid = from medians. low/high = OUR CHOICE: θFC and θWP are both driven by texture and organic matter, so
-    their quantiles are paired co-monotonically: Σ(θFC(Q0.05) − θWP(Q0.05)) and Σ(θFC(Q0.95) − θWP(Q0.95)),
-    sorted into low/high and floored at 0. An anti-correlated envelope (FC Q0.05 − WP Q0.95) was tried in the
+    their quantiles are paired co-monotonically: Σ(θFC(Q0.05) - θWP(Q0.05)) and Σ(θFC(Q0.95) - θWP(Q0.95)),
+    sorted into low/high and floored at 0. An anti-correlated envelope (FC Q0.05 - WP Q0.95) was tried in the
     live check on 2026-11-21 and gave 7..410 mm around a 230 mm median - too wide to carry information.
     Quantiles are not additive across layers, so this is an indicative band, not a 90 % interval.
     """

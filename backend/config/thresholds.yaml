@@ -2,15 +2,15 @@ spi:
   moderate_dry: -1.0
   severe_dry: -1.5
   extreme_dry: -2.0
-  source: "McKee et al. (1993), p. 180 — https://www.droughtmanagement.info/literature/AMS_Relationship_Drought_Frequency_Duration_Time_Scales_1993.pdf"
+  source: "McKee et al. (1993), p. 180 - https://www.droughtmanagement.info/literature/AMS_Relationship_Drought_Frequency_Duration_Time_Scales_1993.pdf"
 soil_moisture:
   dry_percentile: 20
-  source: "Copernicus European Climate Data Explorer, soil drought index (prototype applies this percentile to its daily layer data) — https://confluence.ecmwf.int/spaces/CKB/pages/453680707"
+  source: "Copernicus European Climate Data Explorer, soil drought index (prototype applies this percentile to its daily layer data) - https://confluence.ecmwf.int/spaces/CKB/pages/453680707"
 confidence:
   corroborating_signals: 2
   source: "docs/PART_B_ANALYTICS_PRODUCT.md §3, prototype confidence rule"
 vegetation:
   vci_stress_below: 40
   vci_favorable_above: 60
-  source: "NOAA STAR Global Vegetation Health Products, experimental VCI interpretation — https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_browseByCountry_province.php"
-  interpretation_source: "POLSA, Dane satelitarne dla administracji publicznej, §6.3.4 — https://polsa.gov.pl/wp-content/themes/polsa/files/Podrecznik.pdf#page=293"
+  source: "NOAA STAR Global Vegetation Health Products, experimental VCI interpretation - https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_browseByCountry_province.php"
+  interpretation_source: "POLSA, Dane satelitarne dla administracji publicznej, §6.3.4 - https://polsa.gov.pl/wp-content/themes/polsa/files/Podrecznik.pdf#page=293"

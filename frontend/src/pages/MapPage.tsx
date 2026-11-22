@@ -3,6 +3,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { HelpIcon } from '@/components/ui/Icons';
 import { AnalysisPanel } from '@/features/analysis/components/AnalysisPanel';
 import { MapIntroModal } from '@/features/analysis/components/MapIntroModal';
+import { MapResults } from '@/features/analysis/components/MapResults';
 import { ParcelMap } from '@/features/analysis/components/ParcelMap';
 import { SelectModeToggle } from '@/features/analysis/components/SelectModeToggle';
 import { storageGet, storageSet } from '@/utils/storage';
@@ -11,7 +12,7 @@ import { storageGet, storageSet } from '@/utils/storage';
 const INTRO_HIDDEN_KEY = 'vedra.mapIntroHidden';
 
 /**
- * /map — слева карта, справа форма + результаты.
+ * /map - слева карта, справа форма + результаты.
  * При входе показывается окно-инструкция (если пользователь не отметил «Zapamiętaj mój wybór»).
  * Кнопка «Jak korzystać» в верхней панели открывает его снова.
  */
@@ -36,7 +37,10 @@ export function MapPage() {
           </button>
         }
       >
-        <ParcelMap />
+        <div className="map-col">
+          <ParcelMap />
+          <MapResults />
+        </div>
         <AnalysisPanel />
       </AppShell>
       {showIntro && <MapIntroModal onClose={closeIntro} initialRemember={hidden} />}

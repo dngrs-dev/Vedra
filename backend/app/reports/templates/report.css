@@ -42,3 +42,10 @@ a { color: #175d57; overflow-wrap: anywhere; }
 .field-plan h2 { margin-top: 2mm; }
 .site-table .field-check { text-align: center; }
 .field-checkbox { display: inline-block; width: 3mm; height: 3mm; border: 1px solid #43605c; }
+/* "Co jeśli?" scenario tables. */
+.table { border-collapse: collapse; width: 100%; margin: 2mm 0 3mm; font-size: 9pt; break-inside: avoid; }
+.table th, .table td { border-bottom: 1px solid #e4eeeb; padding: .8mm 1.5mm; text-align: right; vertical-align: top; }
+.table th:first-child, .table td:first-child { text-align: left; }
+.table th { color: #334f4b; font-weight: bold; }
+.table tr.strong td { font-weight: bold; background: #f2f8f6; }
+.scenarios .visual { margin: 1mm 0 2mm; }

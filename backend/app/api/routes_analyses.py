@@ -4,14 +4,16 @@ from __future__ import annotations
 import asyncio
 import logging
 from http import HTTPStatus
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from pydantic import BaseModel
 
 from app.analytics.crops import load
 from app.analytics.models import AnalysisRequest
 from app.api.deps import GeoDependency, RunnerDependency, StoreDependency
 from app.config import analysis_today, years_before
+from app.contracts.scenario import ScenarioLevers
 from app.jobs.runner import AnalysisStatus
 from app.recommendations import texts_pl as text
 from app.reports import pdf
@@ -56,7 +58,9 @@ async def get_analysis(analysis_id: str, runner: RunnerDependency, store: StoreD
 
 @router.get("/{analysis_id}/report.pdf", response_class=Response, summary=text.REPORT_PDF_SUMMARY)
 async def get_analysis_pdf(
-    analysis_id: str, runner: RunnerDependency, store: StoreDependency, geo: GeoDependency
+    analysis_id: str, runner: RunnerDependency, store: StoreDependency, geo: GeoDependency,
+    levers: Annotated[ScenarioLevers, Query()],
+    scenarios: Annotated[bool, Query(description="Dołącz symulację „Co jeśli?” (wartości suwaków w parametrach)")] = False,
 ) -> Response:
     saved = await asyncio.to_thread(store.by_analysis, analysis_id)
     if saved is None:
@@ -66,7 +70,16 @@ async def get_analysis_pdf(
         raise HTTPException(status.HTTP_404_NOT_FOUND, text.REPORT_NOT_FOUND)
 
     report = saved.report
-    content = await asyncio.to_thread(store.get_pdf, report.report_id)
+    scenario_report = None
+    if scenarios:
+        from app.api.routes_scenarios import build  # imported here: routes_scenarios is a sibling router
+
+        try:
+            scenario_report = await build(saved, analysis_id, levers)
+        except HTTPException:
+            logger.info("Scenario section unavailable for report %s", report.report_id)
+    # A PDF with scenarios depends on the sliders, so only the plain report is cached.
+    content = None if scenario_report else await asyncio.to_thread(store.get_pdf, report.report_id)
     if content is None:
         map_png = None
         if saved.bundle is not None:
@@ -76,11 +89,12 @@ async def get_analysis_pdf(
             except Exception:
                 logger.info("Static map unavailable for report %s", report.report_id, exc_info=True)
         try:
-            content = await asyncio.to_thread(pdf.render, report, map_png)
+            content = await asyncio.to_thread(pdf.render, report, map_png, scenario_report)
         except (ImportError, OSError) as exc:
             logger.exception("PDF renderer unavailable for report %s", report.report_id)
             raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, text.REPORT_PDF_UNAVAILABLE) from exc
-        await asyncio.to_thread(store.save_pdf, report.report_id, content)
+        if scenario_report is None:
+            await asyncio.to_thread(store.save_pdf, report.report_id, content)
 
     return Response(content, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="vedra-{report.report_id}.pdf"'})

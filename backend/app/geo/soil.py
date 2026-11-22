@@ -127,11 +127,11 @@ async def soil_info(parcel: Parcel, budget_s: float) -> SourceResult[SoilInfo]:
             why = (f"gatunek «{code}» z mapy nie występuje w tabeli rozporządzenia" if code
                    else "brak gatunku gleby z mapy glebowo-rolniczej")
             notes.append(f"Kategorię gleby wyznaczono z wody ogólnie dostępnej (WOD ≈ {info.wod_mm.mid:.0f} mm "
-                         f"w warstwie 0–100 cm, SoilGrids), ponieważ {why}.")
+                         f"w warstwie 0-100 cm, SoilGrids), ponieważ {why}.")
 
     if info.kbw_category is None and code is not None and category_from_soil_type(code) is None and sg_res is None:
         notes.append(f"Gatunek «{code}» z mapy nie występuje w tabeli kategorii gleb (Dz.U. 2019 poz. 739), "
-                     "a profil SoilGrids nie jest jeszcze dostępny – kategorii gleby nie ustalono.")
+                     "a profil SoilGrids nie jest jeszcze dostępny - kategorii gleby nie ustalono.")
 
     has_any = info.kbw_category is not None or info.soil_type_code is not None or bool(info.layers)
     complete = info.kbw_category is not None and bool(info.layers)

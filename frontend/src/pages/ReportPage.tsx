@@ -6,10 +6,13 @@ import { CROPS } from '@/constants/crops';
 import { MONTHS_PL, pl } from '@/constants/pl';
 import { AnalysisError, AnalysisJobState } from '@/features/analysis/components/AnalysisJobState';
 import { BackendReportCards } from '@/features/analysis/components/BackendReportCards';
+import { ScenarioSimulator } from '@/features/analysis/components/ScenarioSimulator';
 import { ConfidenceBadge } from '@/features/analysis/components/Badges';
 import { useAnalysis } from '@/features/analysis/hooks/useAnalysis';
 import { useAnalysisStore } from '@/features/analysis/store';
 import { reportPdfUrl } from '@/services/analysisApi';
+import { NO_ACTION, useScenarioStore } from '@/features/analysis/scenarioStore';
+import { ScenarioToggle } from '@/features/analysis/components/ScenarioToggle';
 import type { Analysis, Recommendation } from '@/types/analysis';
 import type { Parcel } from '@/types/parcel';
 import { fmtDate, fmtDateTime } from '@/utils/format';
@@ -34,6 +37,7 @@ export function ReportPage() {
   const parcel = useAnalysisStore((s) => s.confirmed);
   const cropIds = useAnalysisStore((s) => s.cropIds);
   const { demo, demoMode, jobs, selectionError } = useAnalysis();
+  const showScenarios = useScenarioStore((s) => s.showScenarios);
 
   if (!parcel) return <Navigate to="/map" replace />;
   if (demoMode && demo.data) return <DemoReport parcel={parcel} cropIds={cropIds} data={demo.data} />;
@@ -67,16 +71,17 @@ export function ReportPage() {
                 <h1>{pl.report.title}</h1>
                 <p className="muted">{report.crop_name_pl} · {fmtDate(report.analysis_date)}</p>
               </div>
-              <a className="btn-primary no-print" href={reportPdfUrl(job.analysisId)}><PrinterIcon /> {pl.report.download}</a>
+              <PdfDownload analysisId={job.analysisId} />
             </header>
             <Card title={pl.report.parcel}>
               <dl className="factors">
                 <div><dt>Identyfikator działki</dt><dd>{parcel.parcel_id}</dd></div>
                 <div><dt>Powierzchnia</dt><dd>{parcel.area_ha.toLocaleString('pl-PL')} ha</dd></div>
-                <div><dt>Lokalizacja</dt><dd>{[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(', ') || '—'}</dd></div>
+                <div><dt>Lokalizacja</dt><dd>{[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(', ') || '-'}</dd></div>
               </dl>
             </Card>
             <BackendReportCards report={report} />
+            {showScenarios && <ScenarioSimulator analysisId={job.analysisId} />}
             <p className="muted small">{pl.report.disclaimer}</p>
           </article>
         );
@@ -184,6 +189,20 @@ function DemoReport({ parcel, cropIds, data }: { parcel: Parcel; cropIds: string
         <ul>{data.limitations.map((l) => <li key={l}>{l}</li>)}</ul>
         <p className="muted small">{pl.report.disclaimer}</p>
       </article>
+    </div>
+  );
+}
+
+/** «Pobierz PDF» + галочка: dołączyć symulację „Co jeśli?” z aktualnymi suwakami. */
+function PdfDownload({ analysisId }: { analysisId: string }) {
+  const include = useScenarioStore((s) => s.showScenarios);
+  const levers = useScenarioStore((s) => s.levers[analysisId] ?? NO_ACTION);
+  return (
+    <div className="pdf-download no-print">
+      <a className="btn-primary" href={reportPdfUrl(analysisId, include ? levers : undefined)}>
+        <PrinterIcon /> {pl.report.download}
+      </a>
+      <ScenarioToggle compact />
     </div>
   );
 }

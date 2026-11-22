@@ -3,6 +3,7 @@ import { pl } from '@/constants/pl';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useAnalysisStore } from '../store';
 import { AnalysisError, AnalysisJobState } from './AnalysisJobState';
+import { AiToggle } from './AiToggle';
 import { AnalysisProgress } from './AnalysisProgress';
 import { BackendReportCards } from './BackendReportCards';
 import { BasisCard } from './BasisCard';
@@ -31,6 +32,7 @@ export function AnalysisPanel() {
         <CropSelect />
       </div>
       <DateField />
+      <AiToggle />
 
       {!parcel && (
         <div className="empty">
