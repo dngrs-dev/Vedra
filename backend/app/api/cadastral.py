@@ -1,9 +1,11 @@
-"""Resolve parcels through the national EGiB WFS before the geo provider's fallbacks."""
+"""Resolve parcels using local or live EGiB data before the legacy fallbacks."""
 from __future__ import annotations
 
+from asyncio import to_thread
 from datetime import timedelta
 from functools import lru_cache
 import json
+from pathlib import Path
 import re
 
 import numpy as np
@@ -12,7 +14,9 @@ from pyproj.exceptions import ProjError
 from shapely import transform
 from shapely.errors import ShapelyError
 from shapely.geometry import Point, mapping, shape
+from shapely.geometry.base import BaseGeometry
 
+from app.api import egib_snapshot
 from app.config import CONFIG_DIR
 from app.contracts.errors import UpstreamUnavailable
 from app.contracts.geo import GeoBundle, GeoProvider, GeoRequest
@@ -33,7 +37,6 @@ CACHE_NAMESPACE = "an.cadastral_wfs"
 POINT_MARGIN = 0.000001
 # Full identifier syntax from GUGiK ULDK docs and PART_A_DATA_GEO.md.
 PARCEL_ID = re.compile(r"[0-9]{6}_[0-9]\.[0-9]{4}\.(?:AR_[0-9]+\.)?[0-9A-Z/]+", re.IGNORECASE)
-_PROJECT = Transformer.from_crs(4326, 2180, always_xy=True)
 
 
 @lru_cache(maxsize=1)
@@ -42,20 +45,21 @@ def _admin_names() -> tuple[dict[str, str], dict[str, str]]:
     return data["voivodeships"], data["counties"]
 
 
-def _parcel(feature: dict) -> Parcel:
-    props = feature["properties"]
+def _project(geometry: BaseGeometry, transformer: Transformer) -> BaseGeometry:
+    return transform(geometry, lambda coordinates: np.column_stack(transformer.transform(*coordinates.T)))
+
+
+def _parcel(props: dict, geometry: BaseGeometry, projected: BaseGeometry | None = None) -> Parcel:
     parcel_id = props["ID_DZIALKI"].strip()
     if not PARCEL_ID.fullmatch(parcel_id):
         raise ValueError("Unexpected EGiB identifier")
-    geometry = shape(feature["geometry"])
     if geometry.geom_type not in {"Polygon", "MultiPolygon"} or geometry.is_empty or not geometry.is_valid:
         raise ValueError("Invalid cadastral geometry")
     lon_min, lat_min, lon_max, lat_max = geometry.bounds
     if not (-180 <= lon_min < lon_max <= 180 and -90 <= lat_min < lat_max <= 90):
         raise ValueError("EGiB geometry is outside WGS84 bounds")
-    projected = transform(
-        geometry, lambda coordinates: np.column_stack(_PROJECT.transform(coordinates[:, 0], coordinates[:, 1])),
-    )
+    if projected is None:
+        projected = _project(geometry, egib_snapshot.TO_PROJECTED)
     if projected.is_empty or not projected.is_valid or projected.area <= 0:
         raise ValueError("Invalid cadastral geometry in EPSG:2180")
 
@@ -79,6 +83,21 @@ def _parcel(feature: dict) -> Parcel:
     )
 
 
+def _from_snapshot(record: egib_snapshot.SnapshotParcel | None) -> Parcel | None:
+    if record is None:
+        return None
+    try:
+        geometry = _project(record.geometry, egib_snapshot.TO_WGS84)
+        return _parcel({
+            "ID_DZIALKI": record.parcel_id,
+            "NAZWA_GMINY": record.commune,
+            "NAZWA_OBREBU": record.region,
+            "NUMER_DZIALKI": record.number,
+        }, geometry, record.geometry)
+    except (ValueError, ShapelyError, ProjError):
+        return None
+
+
 async def _fetch(params: dict[str, str]) -> list[Parcel]:
     try:
         response = await http.get(WFS_URL, timeout=LOOKUP_TIMEOUT_S, retries=0, params={
@@ -97,7 +116,7 @@ async def _fetch(params: dict[str, str]) -> list[Parcel]:
     parcels = []
     for feature in features:
         try:
-            parcels.append(_parcel(feature))
+            parcels.append(_parcel(feature["properties"], shape(feature["geometry"])))
         except (KeyError, ValueError, TypeError, AttributeError, OSError, ShapelyError, ProjError):
             continue  # Ignore invalid individual records and leave unresolved lookups to the fallback.
     return parcels
@@ -113,13 +132,18 @@ def _remember(parcel: Parcel) -> Parcel:
 
 
 class CadastralProvider:
-    def __init__(self, fallback: GeoProvider) -> None:
+    def __init__(self, fallback: GeoProvider, *, snapshot_path: Path | None = None) -> None:
         self._fallback = fallback
+        self._snapshot_path = snapshot_path
 
     async def find_parcels(self, query: str) -> list[Parcel]:
         parcel_id = query.strip()
         if not PARCEL_ID.fullmatch(parcel_id):
             return await self._fallback.find_parcels(query)
+        if self._snapshot_path is not None:
+            parcel = _from_snapshot(await to_thread(egib_snapshot.by_id, self._snapshot_path, parcel_id))
+            if parcel is not None:
+                return [parcel]
         cached = cache.get(_id_key(parcel_id))
         if isinstance(cached, Parcel):
             return [cached]
@@ -141,6 +165,10 @@ class CadastralProvider:
         return result
 
     async def parcel_at_point(self, lat: float, lon: float) -> Parcel | None:
+        if self._snapshot_path is not None:
+            parcel = _from_snapshot(await to_thread(egib_snapshot.by_point, self._snapshot_path, lat, lon))
+            if parcel is not None:
+                return parcel
         point_key = cache.make_key(CACHE_NAMESPACE, lat=lat, lon=lon)
         saved_id = cache.get(point_key)
         if isinstance(saved_id, str):

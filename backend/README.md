@@ -33,7 +33,8 @@ sposób zgłaszania braków i maksymalny czas pobierania.
 
 ## 3. Stan integracji
 
-Tryb `real` wyszukuje kontur przez EGiB WFS lub źródła zapasowe i pobiera dane przestrzenne
+Tryb `real` wyszukuje kontur przez lokalną kopię EGiB, jeśli ją skonfigurowano, a następnie
+przez EGiB WFS i źródła zapasowe. Pobiera dane przestrzenne
 przez dostawcę części A. Tryb `fixtures` korzysta z zapisanych przypadków, a `fake` służy do
 demonstracji. Raport pokazuje dostępne wyniki oraz powody braków.
 [Źródła danych przestrzennych](docs/DATA_SOURCES.md).
@@ -113,6 +114,7 @@ backend korzysta z dołączonego archiwum dobowego IMGW-PIB i wskazuje stację w
 | Zmienna | Wartość domyślna | Znaczenie |
 | --- | --- | --- |
 | `GEO_PROVIDER` | `real` | `real` pobiera dane części A, `fixtures` czyta zapisy części A, `fake` zwraca dane demonstracyjne. |
+| `EGIB_SNAPSHOT_PATH` | brak | Ścieżka do opcjonalnej lokalnej bazy granic działek dla trybu `real`. |
 | `CACHE_DIR` | `.cache` | Pamięć podręczna źródeł. |
 | `DB_PATH` | `data/vedra.sqlite` | Baza raportów. |
 | `CORS_ORIGINS` | `http://localhost:5173` | Dozwolone adresy frontendu, rozdzielone przecinkami. |
@@ -138,11 +140,43 @@ Potok za każdym uruchomieniem oblicza wynik i zalecenia na podstawie wejściowy
 Raport wskazuje źródło, datę pobrania, warunki i przypisanie autorstwa w zakresie dostępnych metadanych.
 [Metodyka](docs/METHODOLOGY.md).
 
-Wyniki wyszukiwania w trybie `real` są buforowane przez dobę. Potwierdzenie działki po kliknięciu
+Wyniki wyszukiwania przez krajowe EGiB WFS są buforowane przez dobę. Potwierdzenie działki po kliknięciu
 może użyć już zapisanego konturu zamiast ponownie pobierać go po identyfikatorze. Nazwy administracyjne
 zapisano 21.11.2026 w `config/cadastral_teryt.json` z warstw województw i powiatów usługi PRG WFS.
-Backend pobiera wyłącznie dane potrzebne przy danym wyborze. Docelowy wariant bez zależności od
-zapytań na żywo może utrzymywać aktualizowany indeks przestrzenny krajowego eksportu na serwerze.
+
+### Lokalna kopia granic działek EGiB
+
+Katalog Otwarte Dane odsyła do usług GUGiK, między innymi KIEG (WMS) i ULDK. Do lokalnej kopii
+granic używamy eksportu GeoParquet z Geoportalu. Zawiera geometrię i identyfikatory oraz podstawowe
+atrybuty działek. [Katalog Otwarte Dane](https://dane.gov.pl/pl/dataset/925),
+[Eksporty Geoportalu](https://www.geoportal.gov.pl/aktualnosci/nowa-usluga-dane-powiatowe-dostepna-w-serwisie-www-geoportal-gov-pl/),
+[Warunki danych EGiB](docs/DATA_SOURCES.md#22-egib-geoparquet-export--prg-uldk-fallback).
+
+Poniższy przykład dla województwa warmińsko-mazurskiego uruchom w katalogu `backend`, w środowisku
+Pythona z zależnościami Vedry. Polecenie zapisuje pliki poza repozytorium.
+
+```powershell
+$vedraEgib = Join-Path $env:TEMP 'vedra-egib-snapshot'
+New-Item -ItemType Directory -Force $vedraEgib | Out-Null
+$export = Join-Path $vedraEgib '28_dzialki.parquet'
+$env:EGIB_SNAPSHOT_PATH = Join-Path $vedraEgib 'egib-28.sqlite'
+curl.exe --fail --remote-time --output $export https://opendata.geoportal.gov.pl/InneDane/latest_exports/eziudp_wfs/PARQUET/28_dzialki.parquet
+python -m scripts.b.build_egib_snapshot --output $env:EGIB_SNAPSHOT_PATH $export
+$env:GEO_PROVIDER = 'real'
+python -m uvicorn app.main:app
+```
+
+W Dockerze zamontuj gotową bazę tylko do odczytu, np. przez `--mount type=bind,source=$env:EGIB_SNAPSHOT_PATH,target=/app/egib.sqlite,readonly`,
+i ustaw `-e EGIB_SNAPSHOT_PATH=/app/egib.sqlite` oraz `-e GEO_PROVIDER=real`.
+
+Podaj jeden [eksport krajowy](https://opendata.geoportal.gov.pl/InneDane/latest_exports/eziudp_wfs/PARQUET/0_dzialki.parquet)
+lub zestaw plików z różnych województw. Baza obejmuje tylko zaimportowane dane. Czytanie po
+identyfikatorze i kliknięcie na mapie najpierw sprawdzają bazę lokalną. Po braku jednoznacznego
+wyniku aplikacja przechodzi do zwykłego wyszukiwania online. Pozostałe dane analizy korzystają
+z dotychczasowych źródeł. Wyszukiwanie nazwą obrębu oraz zaznaczanie ramką korzystają z usług online.
+
+Do aktualizacji pobierz nowszy eksport i ponownie uruchom skrypt. Skrypt podmienia bazę po udanej
+budowie. Dla pliku krajowego zapewnij miejsce na eksport, gotowy indeks oraz budowaną kopię.
 
 Aby odtworzyć bazę IMGW-PIB, uruchom w katalogu `backend` polecenie
 `python -m scripts.b.build_imgw_weather --cache-dir <katalog-roboczy>`. Budowa pobiera

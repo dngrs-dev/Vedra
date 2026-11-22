@@ -16,7 +16,7 @@ def get_geo_provider() -> GeoProvider:
     if settings.geo_provider == "real":
         from app.geo.provider import RealGeoProvider
 
-        return CadastralProvider(RealGeoProvider())
+        return CadastralProvider(RealGeoProvider(), snapshot_path=settings.egib_snapshot_path)
     if settings.geo_provider == "fixtures":
         from app.fakes.fixture_geo import FixtureGeoProvider
 
