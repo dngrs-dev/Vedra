@@ -13,12 +13,18 @@ import {
 import { pl } from '@/constants/pl';
 import { POLAND_BOUNDS } from '@/constants/poland';
 import { parcelFromBoundary, type BoundaryFeature } from '@/services/parcelApi';
-import type { LatLng } from '@/types/parcel';
+import type { LatLng, Parcel } from '@/types/parcel';
 import type { Voivodeship } from '@/types/region';
 import { useParcelBoundaries, type BoundaryMode } from '../hooks/useParcelBoundaries';
 import { useParcelSelect } from '../hooks/useParcelSelect';
 import { useVoivodeships } from '../hooks/useVoivodeships';
 import { useAnalysisStore } from '../store';
+
+/** Рамка делянки / группы (внешние контуры) */
+function parcelBounds(p: Parcel): L.LatLngBounds {
+  const rings = p.outline ? p.outline.map((poly) => poly[0] ?? []) : p.parts ? p.parts.map((x) => x.ring) : [p.ring];
+  return L.latLngBounds(rings.flat());
+}
 
 /** Точность хуже этой (м) — показываем весь круг точности, а не приближаем к точке */
 const LOCATE_FIT_ACCURACY_M = 300;
@@ -43,8 +49,8 @@ function writeBoundariesPref(on: boolean) {
  * Карта + плавающие элементы управления.
  * Сценарий: клик по воеводству → приближение → клик (приближает к точке до PICK_MIN_ZOOM) → клик по делянке
  * ИЛИ Ctrl + перетаскивание (своя область) → «Potwierdź działkę» в правой панели → расчёт на бэкенде.
- * Переключатель «Granice działek» (по умолчанию выкл.): на зуме 15–16 — obręby (клик приближает), с 17 — делянки
- * (наведение показывает номер, клик выбирает мгновенно — контур уже загружен).
+ * Переключатель «Granice działek» (по умолчанию выкл.): на зуме 15–16 — obręby (фон), с 17 — делянки
+ * (наведение показывает номер). Выбор кликом камеру не двигает; «Pokaż całą działkę» — если делянка не влезает.
  */
 export function ParcelMap() {
   const parcel = useAnalysisStore((s) => s.parcel);
@@ -62,6 +68,8 @@ export function ParcelMap() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
   const [watching, setWatching] = useState(false);
+  /** Выбранная делянка не помещается в видимую область — показываем кнопку «Pokaż całą działkę» */
+  const [parcelOffscreen, setParcelOffscreen] = useState(false);
   const cardRef = useRef<HTMLElement>(null);
   const lastAreaAt = useRef(0);
   /** Контур под последним кликом (слой границ сообщает его раньше, чем карта — сам клик) */
@@ -82,6 +90,35 @@ export function ParcelMap() {
   useEffect(() => {
     if (!loading) setPendingId(null);
   }, [loading]);
+
+  useEffect(() => {
+    if (!map || !parcel || parcel.isCustom) {
+      setParcelOffscreen(false);
+      return;
+    }
+    const bounds = parcelBounds(parcel);
+    const check = () => setParcelOffscreen(!map.getBounds().contains(bounds));
+    check();
+    map.on('moveend', check);
+    return () => {
+      map.off('moveend', check);
+    };
+  }, [map, parcel]);
+
+  const fitParcel = useCallback(
+    (p: Parcel) => map?.fitBounds(parcelBounds(p), { maxZoom: 17, padding: [60, 60], animate: true }),
+    [map]
+  );
+
+  /** Камеру двигаем только при поиске по ID и выделении рамкой — выбор кликом оставляет вид как есть */
+  const fitIfChanged = useCallback(
+    (beforeId: string | undefined, groupsOnly = false) => {
+      const now = useAnalysisStore.getState().parcel;
+      if (!now || now.id === beforeId || now.isCustom || (groupsOnly && !now.parts)) return;
+      fitParcel(now);
+    },
+    [fitParcel]
+  );
 
   const mode: BoundaryMode = !boundariesOn || zoom < OBREB_MIN_ZOOM
     ? 'off'
@@ -121,11 +158,7 @@ export function ParcelMap() {
       if (regionReady) map?.setView([lat, lng], PICK_MIN_ZOOM, { animate: true });
       return;
     }
-    if (mode === 'obreby') {
-      // уровень obrębów: клик приближает до уровня делянок
-      map?.setView([lat, lng], PARCEL_BOUNDARY_MIN_ZOOM, { animate: true });
-      return;
-    }
+    // зум ≥ 15: всегда выбор (obręby — только фон, клик по ним не приближает)
     if (hit && mode === 'parcels') {
       if (hit.id === parcel?.id) return; // повторный клик по уже выбранной делянке
       const ready = parcelFromBoundary(hit);
@@ -146,14 +179,16 @@ export function ParcelMap() {
   const onArea = useCallback(
     (ring: LatLng[]) => {
       lastAreaAt.current = Date.now();
-      selectArea(ring);
+      const before = useAnalysisStore.getState().parcel?.id;
+      void selectArea(ring).then(() => fitIfChanged(before, true));
     },
-    [selectArea]
+    [selectArea, fitIfChanged]
   );
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    void selectById(query);
+    const before = useAnalysisStore.getState().parcel?.id;
+    void selectById(query).then(() => fitIfChanged(before));
   };
 
   /* ---------- геолокация: точка + круг точности, обновляется при перемещении ---------- */
@@ -321,6 +356,11 @@ export function ParcelMap() {
       <div className="map-hint" role="note">
         {hint}
         {regionsFailed && <span className="map-hint__warn"> · {pl.map.regionsFailed}</span>}
+        {parcel && parcelOffscreen && (
+          <button type="button" className="map-hint__btn" onClick={() => fitParcel(parcel)}>
+            {pl.map.showWholeParcel}
+          </button>
+        )}
       </div>
 
       {loading && (
