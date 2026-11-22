@@ -173,7 +173,7 @@ def get_geo_provider() -> GeoProvider:
 
 ### CP4 — validation and robustness (→ 07:00)
 - [x] `scripts/b/build_kbw_official.py` (MRiRW obwieszczenia → `data/b/kbw_official.parquet`, legend read from the PDFs) and `scripts/b/backtest.py` → `docs/VALIDATION.md`.
-  The official annexes and all historical matches are verified. Numeric agreement is pending access to the Open-Meteo archive (HTTP 429).
+  The official annexes and historical matches were verified. The comparison with local IMGW-PIB observations, including discrepancies, is in [VALIDATION.md](VALIDATION.md).
 - [x] `tests/contract/test_pipeline_on_fixtures.py` green for every fixture; end-to-end with `real` on all parcels × 3 dates; timings.
   Local integration of Part A `8a4099b` finished all 24 API scenarios on both passes.
   The eight first-lookups took 0.453–2.110 s; the 24 repeated analyses took 0.062–0.079 s.
@@ -183,7 +183,7 @@ def get_geo_provider() -> GeoProvider:
 ### CP5 — docs and release (→ 10:00)
 - [x] `README.md` (9 mandatory points of the task §4.2), `METHODOLOGY.md`, `SCALABILITY.md`, `SECURITY.md`, `AI_USAGE.md`.
 - [x] `scripts/b/generate_sample_reports.py` → `data/b/samples/reports/*.pdf`.
-  Three sample PDFs use recorded Part A geo inputs and show the Open-Meteo archive gap explicitly.
+  The sample PDFs use recorded Part A spatial inputs and bundled IMGW-PIB observations. Repeated retention actions have numbered maps and separate evidence for each location.
 - [ ] Deploy the validated backend with `GEO_PROVIDER=real` over HTTPS and smoke-test it from a clean browser.
   This is the final task. Earlier checkpoints run locally with `fake`, `fixtures`, or `real` as available.
 

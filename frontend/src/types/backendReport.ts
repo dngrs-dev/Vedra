@@ -5,11 +5,24 @@ import { ConfidenceSchema } from './analysis';
 const range = z.object({ low: z.number().nullable(), mid: z.number(), high: z.number().nullable() });
 const period = z.object({ start: z.string(), end: z.string() });
 const availability = z.enum(['ok', 'partial', 'missing']);
+// Coordinate order and bounds follow WGS84 GeoJSON (RFC 7946).
+const position = z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]).rest(z.number());
+const line = z.array(position).min(2);
+const polygon = z.array(z.array(position).min(4)).nonempty();
+const geometry = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('Point'), coordinates: position }),
+  z.object({ type: z.literal('MultiPoint'), coordinates: z.array(position).nonempty() }),
+  z.object({ type: z.literal('LineString'), coordinates: line }),
+  z.object({ type: z.literal('MultiLineString'), coordinates: z.array(line).nonempty() }),
+  z.object({ type: z.literal('Polygon'), coordinates: polygon }),
+  z.object({ type: z.literal('MultiPolygon'), coordinates: z.array(polygon).nonempty() })
+]);
 const metric = z.object({
   code: z.string(),
   label_pl: z.string(),
   value: z.union([z.number(), z.string(), range]).nullable(),
-  unit: z.string().nullable()
+  unit: z.string().nullable(),
+  source_ids: z.array(z.string()).default([])
 });
 
 export const BackendReportSchema = z.object({
@@ -18,7 +31,8 @@ export const BackendReportSchema = z.object({
     area_ha: z.number(),
     commune: z.string(),
     county: z.string(),
-    voivodeship: z.string()
+    voivodeship: z.string(),
+    geometry_wgs84: geometry.nullish().catch(null)
   }),
   crop_name_pl: z.string(),
   analysis_date: z.string(),
@@ -59,7 +73,8 @@ export const BackendReportSchema = z.object({
     action_pl: z.string(),
     why_pl: z.string(),
     evidence: z.array(metric),
-    reference_ids: z.array(z.string())
+    reference_ids: z.array(z.string()),
+    geometry: geometry.nullish().catch(null)
   })),
   irrigation: z.object({
     why_pl: z.string(),
@@ -84,3 +99,4 @@ export const BackendReportSchema = z.object({
 export type BackendReport = z.infer<typeof BackendReportSchema>;
 export type BackendMetric = z.infer<typeof metric>;
 export type BackendRange = z.infer<typeof range>;
+export type BackendGeometry = z.infer<typeof geometry>;

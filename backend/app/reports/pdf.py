@@ -13,7 +13,9 @@ from app.config import ANALYSIS_TIMEZONE
 from app.contracts.common import Range
 from app.contracts.report import Report
 from app.recommendations import texts_pl as text
+from app.reports import site_maps
 from app.reports.charts import monthly_risk_svg
+from app.reports.recommendation_groups import group_actions
 
 TEMPLATES = Path(__file__).with_name("templates")
 
@@ -50,8 +52,13 @@ def _data_url(data: bytes, media_type: str) -> str:
 
 def render_html(report: Report, map_png: bytes | None = None) -> str:
     chart = monthly_risk_svg(report)
+    actions = []
+    for action in group_actions(report.recommendations):
+        site_map, coordinates = site_maps.render(report.parcel.geometry_wgs84, action.sites)
+        actions.append((action, _data_url(site_map.encode(), "image/svg+xml") if site_map else None, coordinates))
     return _environment().get_template("report.html.j2").render(
         report=report,
+        actions=actions,
         map_url=_data_url(map_png, "image/png") if map_png else None,
         chart_url=_data_url(chart.encode(), "image/svg+xml") if chart else None,
         category_labels=text.PDF_CATEGORY_LABELS,

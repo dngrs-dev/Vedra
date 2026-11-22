@@ -108,6 +108,14 @@ export const pl = {
   demoBanner: 'Dane demonstracyjne. Wyniki są przykładowe i nie opisują wybranego obszaru.',
 
   backend: {
+    site: 'Miejsce',
+    sites: 'Miejsca do sprawdzenia',
+    siteMap: 'Mapa miejsc do sprawdzenia',
+    loadingSiteMap: 'Wczytywanie mapy miejsc…',
+    siteMapLegend: 'Zielony obrys oznacza działkę. Wybierz numer na mapie lub pod nią.',
+    siteEvidence: 'Wspólne przesłanki dla działania są w uzasadnieniu.',
+    // The landscape rules append this exact caution to affected records (backend texts_pl.py).
+    outsideSite: 'Miejsce leży poza działką. Uzgodnij wizję z właścicielem terenu.',
     preparing: 'Uruchamiam analizę…',
     kbw: 'Klimatyczny bilans wodny (KBW)',
     kbwDefinition: 'Bilans to różnica między opadem a szacowanym parowaniem gleby i roślin przy dostatecznej ilości wody.',

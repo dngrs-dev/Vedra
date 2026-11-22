@@ -1,9 +1,12 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, useId, useState, type ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 import { pl } from '@/constants/pl';
-import type { BackendMetric, BackendRange, BackendReport } from '@/types/backendReport';
+import type { BackendGeometry, BackendMetric, BackendRange, BackendReport } from '@/types/backendReport';
 import { fmtDate, fmtDateTime } from '@/utils/format';
+import { groupRecommendations, type RecommendationSite } from '../recommendationGroups';
 import { ConfidenceBadge } from './Badges';
+
+const RecommendationMap = lazy(() => import('./RecommendationMap'));
 
 const number = new Intl.NumberFormat('pl-PL', { maximumSignificantDigits: 21 });
 // Match the two-decimal display used for the same estimates in the backend PDF.
@@ -19,7 +22,7 @@ function formatMetric({ value, unit }: BackendMetric, format = number): string {
   if (value === null) return pl.moisture.noData;
   const display = typeof value === 'number' ? format.format(value)
     : typeof value === 'string' ? value : formatRange(value);
-  return unit ? `${display} ${unit}` : display;
+  return unit ? `${display}\u00a0${unit}` : display;
 }
 
 function Metrics({ items }: { items: BackendMetric[] }) {
@@ -37,6 +40,46 @@ function SourceLink({ url, children }: { url: string; children: ReactNode }) {
   return /^https?:\/\//i.test(url) ? <a href={url} target="_blank" rel="noreferrer">{children}</a> : <>{children}</>;
 }
 
+function RecommendationSites({ sites, parcel }: { sites: RecommendationSite[]; parcel?: BackendGeometry | null }) {
+  const [expanded, setExpanded] = useState(false);
+  const [selected, setSelected] = useState(1);
+  const id = useId();
+  const site = sites.find((entry) => entry.number === selected) ?? sites[0];
+  const { backend: copy } = pl;
+  if (!site) return null;
+
+  return (
+    <div className="recommendation-sites">
+      <button type="button" className="link-btn" aria-expanded={expanded} aria-controls={id}
+        onClick={() => setExpanded(!expanded)}>
+        {copy.sites} ({sites.length})
+      </button>
+      <div id={id} hidden={!expanded}>
+        {expanded && (
+          <>
+            <Suspense fallback={<p role="status">{copy.loadingSiteMap}</p>}>
+              <RecommendationMap parcel={parcel} sites={sites} selected={site.number} onSelect={setSelected} />
+            </Suspense>
+            <div className="site-controls" role="group" aria-label={copy.sites}>
+              {sites.map((entry) => (
+                <button key={entry.number} type="button" aria-label={`${copy.site} ${entry.number}`}
+                  aria-pressed={entry.number === site.number} onClick={() => setSelected(entry.number)}>
+                  {entry.number}
+                </button>
+              ))}
+            </div>
+            <div className="site-detail" aria-live="polite">
+              <strong>{copy.site} {site.number}</strong>
+              {site.note && <p>{site.note}</p>}
+              {site.evidence.length ? <Metrics items={site.evidence} /> : <p>{copy.siteEvidence}</p>}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function BackendReportCards({ report }: { report: BackendReport }) {
   const { assessment, causes, recommendations, irrigation, data_sources, limitations_pl, references } = report;
   const { kbw, confidence, signals, vulnerability } = assessment;
@@ -46,6 +89,7 @@ export function BackendReportCards({ report }: { report: BackendReport }) {
   const historyMetrics = vulnerability?.metrics ?? [];
   const lastPeriod = historyMetrics.find((metric) => metric.code === 'kbw_last_period');
   const lastBalance = historyMetrics.find((metric) => metric.code === 'kbw_last_balance');
+  const actions = groupRecommendations(recommendations);
 
   return (
     <>
@@ -106,26 +150,27 @@ export function BackendReportCards({ report }: { report: BackendReport }) {
       {(recommendations.length > 0 || irrigation) && (
         <Card title={pl.report.recommendations}>
           {Object.entries(copy.categories).map(([category, title]) => {
-            const items = recommendations.filter((item) => item.category === category);
+            const items = actions.filter((item) => item.recommendation.category === category);
             if (!items.length) return null;
             return (
               <div className="reco" key={category}>
                 <h3>{title}</h3>
                 <ul className="reco__list">
-                  {items.map((item) => (
-                    <li key={item.id}>
-                      <strong>{item.title_pl}</strong>
-                      <p>{item.action_pl}</p>
+                  {items.map(({ recommendation, instruction, evidence, sites }) => (
+                    <li key={`${report.parcel.parcel_id}:${report.analysis_date}:${recommendation.id}`}>
+                      <strong>{recommendation.title_pl}</strong>
+                      <p>{instruction}</p>
                       <details className="why">
                         <summary>{pl.reco.why}</summary>
-                        <p>{item.why_pl}</p>
-                        <Metrics items={item.evidence} />
+                        <p>{recommendation.why_pl}</p>
+                        <Metrics items={evidence} />
                         <ul>
-                          {references.filter((ref) => item.reference_ids.includes(ref.id)).map((ref) => (
+                          {references.filter((ref) => recommendation.reference_ids.includes(ref.id)).map((ref) => (
                             <li key={ref.id}><SourceLink url={ref.url}>{ref.title_pl}</SourceLink></li>
                           ))}
                         </ul>
                       </details>
+                      {sites.length > 0 && <RecommendationSites sites={sites} parcel={report.parcel.geometry_wgs84} />}
                     </li>
                   ))}
                 </ul>
