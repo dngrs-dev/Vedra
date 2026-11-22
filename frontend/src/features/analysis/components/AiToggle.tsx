@@ -1,7 +1,7 @@
 import { useAiStore } from '../aiStore';
 import { useAiStatus } from '../hooks/useAiStatus';
 
-/** Переключатель «Analiza AI» в правой панели (до запуска анализа). */
+// Enable AI commentary from the report.
 export function AiToggle() {
   const enabled = useAiStore((s) => s.enabled);
   const setEnabled = useAiStore((s) => s.setEnabled);

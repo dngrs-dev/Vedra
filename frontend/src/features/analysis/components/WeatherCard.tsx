@@ -4,7 +4,7 @@ import { ringCenter } from '@/utils/geo';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useAnalysisStore } from '../store';
 
-// Обновляем раз в 15 минут - с такой частотой Open-Meteo обновляет текущие данные.
+// Match Open-Meteo's 15-minute cadence for current conditions.
 const REFRESH_MS = 15 * 60 * 1000;
 const num = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 1 });
 
@@ -28,10 +28,6 @@ function WeatherIcon({ kind }: { kind: WeatherKind }) {
   );
 }
 
-/**
- * «Pogoda teraz» w prawym panelu: aktualna pogoda w środku wybranej działki + link do tego miejsca w Mapach Google.
- * Bez wybranej działki nic nie pokazuje (wcześniej była to stała stopka na dole ekranu, która zasłaniała interfejs).
- */
 export function WeatherCard() {
   const selected = useAnalysisStore((s) => s.confirmed ?? s.parcel);
   const region = useAnalysisStore((s) => s.region);
@@ -49,28 +45,28 @@ export function WeatherCard() {
     retry: 1
   });
 
-  if (lat === null || lng === null) return null;
-
-  // Miejsce: gmina i województwo z raportu, inaczej region analizy demo albo województwo na mapie
   const parcel = visibleJobs.find((job) => job.report)?.report?.parcel;
   const place = parcel
     ? [...new Set([parcel.commune, parcel.voivodeship].filter(Boolean))].join(', ')
     : demo.data?.region || (!part ? region : null);
-  const label = place || `${lat.toFixed(3)}° N, ${lng.toFixed(3)}° E`;
-  const maps = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  const hasLocation = lat !== null && lng !== null;
+  const label = hasLocation ? place || `${lat.toFixed(3)}° N, ${lng.toFixed(3)}° E` : null;
+  const maps = hasLocation ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : undefined;
   const current = weather.data;
   const info = current ? describeWeather(current.weather_code) : null;
   const time = current?.time.slice(11, 16);
 
   return (
-    <section className="card weather-card" aria-label="Aktualna pogoda na działce">
+    <section className="weather-card" aria-label="Aktualna pogoda na działce">
       <WeatherIcon kind={info?.kind ?? 'cloud'} />
       <div className="weather-card__text">
         <div className="weather-card__title">Pogoda teraz</div>
-        <a className="weather-card__place" href={maps} target="_blank" rel="noreferrer"
-          title="Otwórz lokalizację działki w Mapach Google">
-          {label} <span aria-hidden="true">↗</span>
-        </a>
+        {label && (
+          <a className="weather-card__place" href={maps} target="_blank" rel="noreferrer"
+            title="Otwórz lokalizację działki w Mapach Google">
+            {label} <span aria-hidden="true">↗</span>
+          </a>
+        )}
         {current && info ? (
           <>
             <div className="weather-card__now">
@@ -81,7 +77,9 @@ export function WeatherCard() {
           </>
         ) : (
           <div className="weather-card__small">
-            {weather.isError ? 'Nie udało się pobrać aktualnej pogody.' : 'Pobieram aktualną pogodę…'}
+            {hasLocation
+              ? weather.isError ? 'Nie udało się pobrać aktualnej pogody.' : 'Pobieram aktualną pogodę…'
+              : 'Wybierz działkę, aby sprawdzić pogodę.'}
           </div>
         )}
       </div>

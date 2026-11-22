@@ -26,12 +26,12 @@ function formatMetric({ value, unit }: BackendMetric, format = number): string {
   return unit ? `${display}\u00a0${unit}` : display;
 }
 
-function Metrics({ items }: { items: BackendMetric[] }) {
+function Metrics({ items, format }: { items: BackendMetric[]; format?: Intl.NumberFormat }) {
   if (!items.length) return null;
   return (
     <dl className="factors">
       {items.map((metric) => (
-        <div key={metric.code}><dt>{metric.label_pl}</dt><dd>{formatMetric(metric)}</dd></div>
+        <div key={metric.code}><dt>{metric.label_pl}</dt><dd>{formatMetric(metric, format)}</dd></div>
       ))}
     </dl>
   );
@@ -118,30 +118,20 @@ function RecommendationSites({ sites, parcel, field, focus }: RecommendationSite
   );
 }
 
-export function BackendReportCards({ report }: { report: BackendReport }) {
-  const { assessment, causes, recommendations, irrigation, data_sources, limitations_pl, references } = report;
-  const { kbw, confidence, signals, vulnerability } = assessment;
+export function KbwAssessmentCards({ report, compact = false }: { report: BackendReport; compact?: boolean }) {
+  const { kbw, confidence, vulnerability } = report.assessment;
   const { backend: copy } = pl;
   const showBalance = kbw.kbw_mm !== null || (kbw.period !== null && kbw.verdict === 'unavailable');
   const { verdict } = kbw;
   const historyMetrics = vulnerability?.metrics ?? [];
   const lastPeriod = historyMetrics.find((metric) => metric.code === 'kbw_last_period');
   const lastBalance = historyMetrics.find((metric) => metric.code === 'kbw_last_balance');
-  const actions = groupRecommendations(recommendations);
-  const field = useFieldChecks(report);
-  const [focus, setFocus] = useState<SiteFocus | null>(null);
-  const fieldSites = actions.filter(({ recommendation }) => recommendation.category === 'landscape_retention')
-    .flatMap((action) => action.sites.map((site) => ({ action, site })));
-  const remaining = fieldSites.filter(({ site }) => !field.outcome(site));
-  // Follow the existing recommendation order, starting with a site without an access caution when possible.
-  const next = remaining.find(({ site }) => !site.note) ?? remaining[0];
-
   return (
     <>
       <Card title={copy.kbw}>
         {(verdict === 'drought' || verdict === 'no_drought') && <p><strong>{copy.verdict[verdict]}</strong></p>}
         <p>{report.summary}</p>
-        <p className="muted small">{copy.kbwDefinition}</p>
+        {!compact && <p className="muted small">{copy.kbwDefinition}</p>}
         <dl className="factors">
           {kbw.period && <div><dt>{copy.period}</dt><dd>{fmtDate(kbw.period.start)} - {fmtDate(kbw.period.end)}</dd></div>}
           {kbw.soil_category && <div><dt>{copy.soilCategory}</dt><dd>{kbw.soil_category}</dd></div>}
@@ -163,7 +153,7 @@ export function BackendReportCards({ report }: { report: BackendReport }) {
         )}
       </Card>
 
-      {vulnerability && (
+      {vulnerability ? (
         <Card title={copy.history}>
           <p>{vulnerability.summary_pl}</p>
           {vulnerability.years_assessed.length > 0 && (
@@ -172,12 +162,30 @@ export function BackendReportCards({ report }: { report: BackendReport }) {
               <div><dt>{copy.droughtYears}</dt><dd>{vulnerability.drought_years.join(', ') || copy.noDroughtYears}</dd></div>
             </dl>
           )}
-          <Metrics items={lastPeriod && lastBalance
+          {!compact && <Metrics format={balance} items={lastPeriod && lastBalance
             ? historyMetrics.filter((metric) => metric !== lastPeriod && metric !== lastBalance)
-            : historyMetrics} />
+            : historyMetrics} />}
         </Card>
-      )}
+      ) : <Card title={copy.history}><p>{copy.noHistory}</p></Card>}
+    </>
+  );
+}
 
+export function BackendReportCards({ report }: { report: BackendReport }) {
+  const { assessment: { signals }, causes, recommendations, irrigation, data_sources, limitations_pl, references } = report;
+  const { backend: copy } = pl;
+  const actions = groupRecommendations(recommendations);
+  const field = useFieldChecks(report);
+  const [focus, setFocus] = useState<SiteFocus | null>(null);
+  const fieldSites = actions.filter(({ recommendation }) => recommendation.category === 'landscape_retention')
+    .flatMap((action) => action.sites.map((site) => ({ action, site })));
+  const remaining = fieldSites.filter(({ site }) => !field.outcome(site));
+  // Follow the existing recommendation order, starting with a site without an access caution when possible.
+  const next = remaining.find(({ site }) => !site.note) ?? remaining[0];
+
+  return (
+    <>
+      <KbwAssessmentCards report={report} />
       {causes.length > 0 && (
         <Card title={copy.causes}>
           <ol className="reco__list">

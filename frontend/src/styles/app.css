@@ -27,13 +27,13 @@ button { font: inherit; cursor: pointer; }
 /* ---------- layout ---------- */
 .app { display: grid; grid-template-rows: auto 1fr; height: 100vh; height: 100dvh; min-height: 560px; }
 
-.topbar { background: var(--green-800); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 22px; }
+.topbar { background: var(--green-800); color: #fff; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px 22px; }
 .brand { display: flex; align-items: center; gap: 16px; }
 .brand__logo { display: flex; flex-direction: column; align-items: center; font-weight: 700; font-size: 12px; letter-spacing: 0.5px; line-height: 1; }
 .brand__logo svg { margin-bottom: 2px; }
 .brand__text h1 { margin: 0; font-size: 18px; font-weight: 700; }
 .brand__text p { margin: 2px 0 0; font-size: 13px; opacity: 0.85; }
-.topbar__actions { display: flex; gap: 12px; align-items: center; }
+.topbar__actions { display: flex; gap: 12px; align-items: center; justify-self: end; }
 .icon-btn { position: relative; width: 38px; height: 38px; border: 0; background: transparent; color: #fff; display: grid; place-items: center; border-radius: 50%; }
 .icon-btn:hover { background: rgba(255, 255, 255, 0.12); }
 .icon-btn--round { background: #fff; color: var(--green-800); }
@@ -107,7 +107,11 @@ button { font: inherit; cursor: pointer; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- side panel ---------- */
-.panel { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding: 2px 4px 2px 0; min-height: 0; }
+.panel { display: flex; flex-direction: column; gap: 12px; overflow: hidden; padding: 2px 4px 2px 0; min-height: 0; min-width: 0; }
+.panel-stage { width: min(100%, 320px); margin: auto; padding: 16px 6px; }
+.panel-setup { display: flex; flex-direction: column; gap: 16px; }
+.panel-setup > p { margin: 0; text-align: center; }
+.panel-results { display: grid; align-content: start; gap: 12px; min-height: 0; overflow-y: auto; padding: 2px; }
 .field__label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px; }
 .field__hint { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
 .input { width: 100%; background: #fff; border: 1px solid #cfd8d4; border-radius: 8px; padding: 9px 12px; font: inherit; color: var(--ink); }
@@ -229,10 +233,10 @@ button { font: inherit; cursor: pointer; }
 .empty p { margin: 0; }
 
 .progress__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.progress__list li { display: flex; align-items: center; gap: 10px; color: #9aa7a2; }
+.progress__list li { display: flex; align-items: center; gap: 10px; color: var(--muted); }
 .progress__list li.is-active { color: var(--ink); font-weight: 600; }
-.progress__list li.is-done { color: var(--ok); }
-.progress__mark { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid currentColor; }
+.progress__list li.is-done { color: var(--green-700); }
+.progress__mark { width: 18px; height: 18px; flex: none; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid currentColor; font-size: 11px; }
 .progress__list li.is-done .progress__mark { background: var(--ok); color: #fff; border-color: var(--ok); }
 .progress__list li.is-active .progress__mark { border-color: transparent; }
 
@@ -275,7 +279,9 @@ button { font: inherit; cursor: pointer; }
   .main { display: flex; flex-direction: column; padding: 12px; }
   .map-card { height: 56vh; min-height: 320px; flex: none; }
   .panel { overflow: visible; }
-  .map-search { max-width: calc(100% - 130px); width: auto; }
+  .map-search { top: 10px; left: 10px; right: 10px; max-width: none; width: auto; }
+  .map-batch-search { top: 52px; left: 10px; width: min(330px, calc(100% - 20px)); }
+  .map-side-btns { top: 56px; right: 10px; }
   .map-type { top: 58px; left: 12px; transform: none; }
   .map-zoom, .map-fullscreen { display: none; }
   .brand__text p { display: none; }
@@ -351,16 +357,15 @@ button { font: inherit; cursor: pointer; }
 .parcel-list li { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 3px 0; border-bottom: 1px dashed #cfdcd6; }
 .parcel-list li span:first-child { font-family: ui-monospace, Consolas, monospace; overflow: hidden; text-overflow: ellipsis; }
 
-/* ---------- переключатель режима выбора в верхней панели ---------- */
-.topbar__center { flex: 1; display: flex; justify-content: center; min-width: 0; padding: 0 16px; }
-.mode-toggle { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.18); }
-.mode-toggle button { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; padding: 7px 16px; background: transparent; color: rgba(255, 255, 255, 0.85); font-weight: 600; font-size: 13px; white-space: nowrap; transition: background 0.2s, color 0.2s; }
-.mode-toggle button:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
-.mode-toggle button.is-active { background: #fff; color: var(--green-800); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
-.mode-toggle button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+/* Rectangle selection mode in the map help dialog. */
+.mode-toggle { display: flex; flex-wrap: wrap; width: fit-content; gap: 4px; margin: 0 0 16px; padding: 4px; border-radius: 10px; background: var(--green-100); }
+.mode-toggle button { border: 0; border-radius: 7px; padding: 7px 12px; background: transparent; color: var(--green-800); font-weight: 600; font-size: 13px; }
+.mode-toggle button:hover { background: var(--card); }
+.mode-toggle button.is-active { background: var(--green-800); color: #fff; }
+.mode-toggle button:focus-visible { outline: 2px solid var(--green-700); outline-offset: 2px; }
 @media (max-width: 900px) {
-  .topbar { flex-wrap: wrap; row-gap: 8px; }
-  .topbar__center { order: 3; flex-basis: 100%; padding: 0; }
+  .topbar { display: flex; flex-wrap: wrap; justify-content: space-between; row-gap: 8px; }
+  .topbar__center { order: 3; flex-basis: 100%; display: flex; justify-content: center; }
   .topbar .brand { flex: 0 1 auto; min-width: 0; }
   .topbar__actions { flex: none; }
 }
@@ -369,9 +374,6 @@ button { font: inherit; cursor: pointer; }
   .topbar .brand { gap: 10px; }
   .topbar .brand__text h1 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .topbar__actions { gap: 6px; }
-}
-@media (max-width: 400px) {
-  .mode-toggle button { padding: 7px 11px; font-size: 12px; }
 }
 
 /* ---------- «Zapamiętaj mój wybór» + кнопка «Jak korzystać» ---------- */
@@ -386,28 +388,7 @@ button { font: inherit; cursor: pointer; }
 }
 
 
-.topbar { position: relative; }
-.topbar__center {
-  position: absolute;
-  left: 86%;
-  transform: translateX(-50%);
-  flex: none;
-  padding: 0;
-}
-@media (max-width: 900px) {
-  /* на узких экранах - отдельной строкой под логотипом, как было */
-  .topbar__center { position: static; transform: none; flex-basis: 100%; }
-}
-
-/* ---------- мобилка: компактный переключатель режима, элементы карты внизу ---------- */
 @media (max-width: 760px) {
-  /* логотип держит свою ширину (иначе flex сжимает ссылку до 0 и её перекрывает переключатель);
-     переключатель - справа в той же строке, а если не влезает - переносится и прижимается вправо */
-  .topbar .brand { flex: 0 1 auto; }
-  .topbar__center { flex: 0 0 auto; width: auto; margin-left: auto; }
-  .mode-toggle { gap: 2px; padding: 3px; }
-  .mode-toggle button { padding: 5px 10px; font-size: 12px; }
-
   /* Satelita/Teren и «Małopolskie · ← Cała Polska» - в нижнюю часть карты */
   .map-type { top: auto; bottom: 22px; left: auto; right: 8px; transform: none; }
   .map-type button { height: 30px; padding: 0 10px; font-size: 12px; }
@@ -416,9 +397,6 @@ button { font: inherit; cursor: pointer; }
   .map-region button { flex: none; padding: 4px 8px; font-size: 11px; white-space: nowrap; }
   /* подсказка - над нижними кнопками */
   .map-hint { bottom: 62px; font-size: 12px; padding: 6px 12px; }
-}
-@media (max-width: 400px) {
-  .mode-toggle button { padding: 5px 9px; font-size: 11.5px; }
 }
 
 /* ---------- «Co jeśli?» - симулятор действий и комментарий ИИ ---------- */
@@ -483,21 +461,7 @@ button { font: inherit; cursor: pointer; }
   .sim-sliders, .sim-actions, .sim-ai__head .btn-primary, .sim-presets button { display: none; }
 }
 
-/* ---------- /map: результаты под картой, переключатель AI, окно zgody ---------- */
-/* Страница прокручивается: карта занимает первый экран, симулятор и ответы AI - под ней. */
-.app { height: auto; min-height: 100vh; min-height: 100dvh; }
-.map-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.map-col > .map-card { flex: none; height: calc(100vh - 100px); height: calc(100dvh - 100px); min-height: 420px; }
-/* Gdy są wyniki: mapa niższa, żeby nagłówek „Co jeśli?” i analizy AI był widoczny bez przewijania. */
-.map-col--results > .map-card { height: calc(100vh - 170px); height: calc(100dvh - 170px); }
-.main > .panel { position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 100px); max-height: calc(100dvh - 100px); }
-.map-results { display: grid; gap: 16px; }
-.map-results__crop { display: grid; gap: 8px; }
-.map-results .sim-sliders { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 24px; }
-.map-results .sim-compare { max-width: 760px; }
-.map-results .sim-chart svg { height: 160px; }
-.map-results .sim-ai__body { max-width: 900px; }
-
+.report-options { margin-bottom: 12px; }
 .ai-toggle { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fafcfb; }
 .switch { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
 .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -522,37 +486,23 @@ button { font: inherit; cursor: pointer; }
 .consent__actions .btn-primary:disabled { opacity: 0.5; cursor: default; }
 
 @media (max-width: 760px) {
-  /* мобилка: карта → панель → симулятор и AI */
-  .map-col { display: contents; }
-  .map-col > .map-card { order: 1; height: 56vh; min-height: 320px; }
-  .main > .panel { order: 2; position: static; max-height: none; }
-  .map-results { order: 3; }
-  .map-results .sim-sliders { grid-template-columns: 1fr; }
+  .panel-stage { padding: 20px 6px; }
+  .panel-results { overflow: visible; }
   .consent__actions .btn-primary, .consent__actions .btn-secondary { flex: 1; justify-content: center; }
 }
 
-/* ---------- panel: «Pogoda teraz», przejście do raportu i do „Co jeśli?” ---------- */
-.weather-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+/* Current weather in the header. */
+.weather-card { display: flex; align-items: center; gap: 10px; padding: 6px 12px; min-width: 0; border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 10px; background: rgba(255, 255, 255, 0.09); }
 .weather-card svg { flex: none; }
 .weather-card__text { display: grid; gap: 2px; min-width: 0; }
-.weather-card__title { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
-.weather-card__place { color: var(--green-800); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.weather-card__title { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.weather-card__place { color: inherit; font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
 .weather-card__place:hover { text-decoration: underline; }
-.weather-card__place span { font-size: 12px; color: var(--muted); }
-.weather-card__now { font-size: 13px; color: var(--ink); }
-.weather-card__small { font-size: 12px; color: var(--muted); }
-/* Przyciski pod wynikami: przyklejone do dołu panelu (który ma własne przewijanie), więc zawsze widoczne. */
-.panel-next { display: grid; gap: 8px; position: sticky; bottom: 0; z-index: 1; margin-top: auto; padding: 14px 0 6px;
-  background: linear-gradient(rgba(255, 255, 255, 0), #fff 14px); }
-.panel-next .btn-primary, .panel-next .btn-secondary { justify-content: center; white-space: normal; text-align: center; }
-@media (max-width: 760px) {
-  /* mobilka: panel nie ma własnego przewijania - bez przyklejania, żeby nie zasłaniać strony */
-  .panel-next { position: static; background: none; padding-top: 4px; }
-}
-.map-results { scroll-margin-top: 12px; }
-.map-results__head { background: var(--green-100); border: 1px solid #cfe0d8; border-left: 4px solid var(--green-700); border-radius: var(--radius); padding: 12px 16px; }
-.map-results__head h2 { margin: 0 0 2px; font-size: 17px; color: var(--green-900); }
-.map-results__head p { margin: 0; font-size: 13px; color: #3c4b46; }
+.weather-card__place span, .weather-card__small { font-size: 11px; color: #e6efeb; }
+.weather-card__now { font-size: 13px; }
+.panel-next { display: grid; gap: 8px; margin-top: auto; padding: 8px 0 2px; }
+.panel-next .link-btn { justify-self: start; }
+.panel-next .btn-primary { justify-content: center; text-align: center; }
 
 /* ---------- raport: «Pobierz PDF» + галочка «Co jeśli?» ---------- */
 .pdf-download { display: grid; justify-items: end; gap: 6px; }
@@ -567,6 +517,5 @@ button { font: inherit; cursor: pointer; }
 .scenario-toggle input { accent-color: var(--green-700); width: 17px; height: 17px; margin: 2px 0 0; flex: none; cursor: pointer; }
 .scenario-toggle span { display: grid; gap: 1px; }
 .scenario-toggle small { color: var(--muted); font-size: 12px; }
-.map-results > .scenario-toggle { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fafcfb; }
 .scenario-toggle--compact { font-size: 13px; align-items: center; }
 .scenario-toggle--compact input { margin: 0; }

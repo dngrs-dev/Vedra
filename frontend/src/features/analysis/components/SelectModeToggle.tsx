@@ -6,7 +6,7 @@ const OPTIONS: { value: SelectMode; label: string; tip: string }[] = [
   { value: 'smart', label: pl.selectMode.smart, tip: pl.selectMode.smartTip }
 ];
 
-/** Переключатель режима рамки Ctrl + ЛКМ (в верхней панели на /map). */
+// The map help dialog also provides the rectangle selection modes.
 export function SelectModeToggle() {
   const mode = useAnalysisStore((s) => s.selectMode);
   const setMode = useAnalysisStore((s) => s.setSelectMode);

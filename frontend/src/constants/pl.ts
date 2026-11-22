@@ -63,7 +63,7 @@ export const pl = {
     locateFailed: 'Nie udało się pobrać lokalizacji',
     locateUnavailable: 'Geolokalizacja niedostępna w tej przeglądarce',
     boundariesFailed: 'Granice działek są chwilowo niedostępne - wybór kliknięciem nadal działa',
-    hintSelected: 'Zaznaczono. Potwierdź działkę w panelu po prawej',
+    hintSelected: 'Działka została zaznaczona',
     hintResults: 'Wyniki są gotowe',
     regionsFailed: 'granice województw niedostępne'
   },
@@ -77,14 +77,7 @@ export const pl = {
   },
 
   confirm: {
-    button: 'Potwierdź działkę',
-    change: 'Zmień działkę',
-    selected: 'Wybrana działka',
-    custom: 'Własny obszar',
-    group: 'Wybrane działki',
-    showList: 'Pokaż listę działek',
-    tip: 'Obliczenia ruszą dopiero po potwierdzeniu. Możesz jeszcze zmienić uprawę i datę.',
-    ctrlTip: 'Przytrzymaj Ctrl (⌘ na Macu) i przeciągnij ramkę. Tryb ramki wybierzesz na górnym pasku: „Zwykły wybór” lub „Inteligentny wybór”.'
+    button: 'Potwierdź działkę'
   },
 
   form: {
@@ -136,7 +129,6 @@ export const pl = {
   priority: { high: 'Wysoki priorytet', medium: 'Średni priorytet', low: 'Niski priorytet' },
   sourceStatus: { live: 'na żywo', cached: 'z pamięci podręcznej', unavailable: 'niedostępne' },
 
-  empty: 'Wskaż działkę na mapie lub wpisz jej identyfikator, aby zobaczyć ocenę sytuacji wodnej.',
   error: {
     title: 'Nie udało się wykonać analizy',
     retry: 'Spróbuj ponownie',
@@ -190,6 +182,7 @@ export const pl = {
     signals: 'Wskaźniki uzupełniające',
     availability: { ok: 'Dostępne', partial: 'Dane częściowe', missing: 'Brak danych' },
     history: 'Podatność historyczna',
+    noHistory: 'Brak danych do oceny podatności historycznej.',
     assessedYears: 'Lata objęte oceną',
     droughtYears: 'Lata z suszą',
     noDroughtYears: 'Nie stwierdzono suszy w ocenionych latach',
@@ -209,11 +202,16 @@ export const pl = {
   },
 
   panel: {
-    openReport: 'Zobacz pełny raport i pobierz PDF',
-    toScenarios: 'Symulacja „Co jeśli?” i analiza AI',
-    toScenariosShort: 'Co jeśli? i analiza AI',
-    scenariosTitle: 'Symulacja „Co jeśli?” i analiza AI',
-    scenariosLead: 'Sprawdź, jak działania na polu (retencja, próchnica, międzyplony, nawadnianie) zmienią zapas wody w glebie i ryzyko suszy.'
+    chooseParcel: 'Wybierz działkę na mapie lub wyszukaj ją po identyfikatorze.',
+    changeInputs: 'Zmień parametry',
+    openReport: 'Zobacz pełny raport',
+    loading: 'Analizuję działkę…',
+    // The first three progress messages emitted by backend/app/jobs/runner.py and app/analytics/pipeline.py.
+    loadingSteps: [
+      'Analiza czeka na rozpoczęcie.',
+      'Wyszukiwanie działki.',
+      'Pobieranie danych pogodowych i przestrzennych.'
+    ]
   },
 
   report: {

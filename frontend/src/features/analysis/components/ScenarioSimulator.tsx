@@ -299,7 +299,7 @@ export function ScenarioSimulator({ analysisId }: { analysisId: string }) {
         )}
       </section>
       ) : (
-        <p className="muted small sim-ai-off">Analiza AI jest wyłączona - włączysz ją przełącznikiem „Analiza AI” w panelu po prawej.</p>
+        <p className="muted small sim-ai-off">Analiza AI jest wyłączona. Możesz ją włączyć na górze raportu.</p>
       )}
       {consentOpen && aiStatus && (
         <AiConsentModal

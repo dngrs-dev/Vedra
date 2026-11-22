@@ -14,6 +14,7 @@ export function Header({ center, actions }: { center?: ReactNode; actions?: Reac
         </div>
       </Link>
       {center && <div className="topbar__center">{center}</div>}
+      {actions && <div className="topbar__actions">{actions}</div>}
     </header>
   );
 }

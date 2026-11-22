@@ -22,9 +22,10 @@ function comparableResults(jobs: AnalysisJob[]) {
   ));
 }
 
-export function GroupAnalysisResults({ jobs, parcelId }: {
+export function GroupAnalysisResults({ jobs, parcelId, showComparison = true }: {
   jobs: AnalysisJob[];
   parcelId: string | undefined;
+  showComparison?: boolean;
 }) {
   const setChosen = useAnalysisStore((state) => state.setResultParcelId);
   const parcels = [...new Set(jobs.map((job) => job.parcelId))];
@@ -33,8 +34,8 @@ export function GroupAnalysisResults({ jobs, parcelId }: {
   const completed = jobs.filter((job) => job.report);
   const failures = jobs.filter((job) => job.error);
   const failedParcels = new Set(failures.map(({ parcelId }) => parcelId));
-  const offSeason = completed.length > 0 && completed.every((job) => job.report?.assessment.kbw.verdict === 'off_season');
-  const comparison = comparableResults(completed);
+  const offSeason = showComparison && completed.length > 0 && completed.every((job) => job.report?.assessment.kbw.verdict === 'off_season');
+  const comparison = showComparison ? comparableResults(completed) : [];
   const { batch: copy } = pl;
 
   return (

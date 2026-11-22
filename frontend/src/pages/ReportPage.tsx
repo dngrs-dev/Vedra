@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { CROPS } from '@/constants/crops';
 import { MONTHS_PL, pl } from '@/constants/pl';
 import { AnalysisError, AnalysisJobState } from '@/features/analysis/components/AnalysisJobState';
+import { AiToggle } from '@/features/analysis/components/AiToggle';
 import { BackendReportCards } from '@/features/analysis/components/BackendReportCards';
 import { ScenarioSimulator } from '@/features/analysis/components/ScenarioSimulator';
 import { ConfidenceBadge } from '@/features/analysis/components/Badges';
@@ -73,6 +74,7 @@ export function ReportPage() {
       )}
       {isGroup && <GroupAnalysisResults jobs={jobs} parcelId={resultParcelId} />}
       {isGroup && combinedDownload && <div className="report-toolbar no-print">{combinedDownload}</div>}
+      {readyIds.length > 0 && <div className="report-options no-print"><AiToggle /></div>}
       {visibleJobs.map((job) => {
         const report = job.report;
         if (!report || !job.analysisId) {

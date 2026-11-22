@@ -1,29 +1,15 @@
 import { useNavigate } from 'react-router-dom';
-import { VedraMark } from '@/components/ui/Icons';
+import { Card } from '@/components/ui/Card';
 import { pl } from '@/constants/pl';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useAnalysisStore } from '../store';
 import { AnalysisError, AnalysisJobState } from './AnalysisJobState';
-import { AiToggle } from './AiToggle';
 import { AnalysisProgress } from './AnalysisProgress';
-import { BackendReportCards } from './BackendReportCards';
-import { BasisCard } from './BasisCard';
+import { KbwAssessmentCards } from './BackendReportCards';
 import { CropSelect } from './CropSelect';
 import { DateField } from './DateField';
 import { GroupAnalysisResults } from './GroupAnalysisResults';
-import { MoistureCard } from './MoistureCard';
-import { scrollToMapResults } from './MapResults';
-import { RecommendationsCard } from './RecommendationsCard';
-import { WeatherCard } from './WeatherCard';
 
-/**
- * Правая панель. Состояния:
- *  1) делянка не выбрана → подсказка
- *  2) выбрана, не подтверждена → карточка + «Potwierdź działkę»
- *  3) подтверждена → прогресс / ошибка / результаты (расчёт на бэкенде)
- * Pod wybraną działką - aktualna pogoda; pod wynikami - przejście do pełnego raportu (PDF) i do symulacji
- * „Co jeśli?” z analizą AI pod mapą (dawniej przycisk raportu był w stałej stopce, która zasłaniała ekran).
- */
 export function AnalysisPanel() {
   const parcel = useAnalysisStore((s) => s.parcel);
   const confirmed = useAnalysisStore((s) => s.confirmed);
@@ -31,102 +17,69 @@ export function AnalysisPanel() {
   const unconfirm = useAnalysisStore((s) => s.unconfirm);
   const { demo, demoMode, isGroup, jobs, resultParcelId, visibleJobs, selectionError } = useAnalysis();
   const navigate = useNavigate();
-  const scenariosReady = visibleJobs.some((job) => job.report);
-  const reportReady = jobs.some((job) => job.report) || !!(confirmed && demo.data);
 
+  if (!confirmed) {
+    return (
+      <aside className="panel" aria-label="Parametry analizy">
+        <form className="panel-stage panel-setup" onSubmit={(event) => { event.preventDefault(); confirm(); }}>
+          <div className="field">
+            <label className="field__label" id="cropLabel">{pl.form.crop}</label>
+            <CropSelect />
+          </div>
+          <DateField />
+          <button type="submit" className="btn-primary btn-block" disabled={!parcel}
+            aria-describedby={parcel ? undefined : 'panel-choose-parcel'}>
+            {parcel?.parts ? pl.batch.confirm : pl.confirm.button}
+          </button>
+          {!parcel && <p id="panel-choose-parcel" className="muted small">{pl.panel.chooseParcel}</p>}
+        </form>
+      </aside>
+    );
+  }
+
+  const pendingJobs = jobs.filter((job) => !job.report && !job.error);
+  const running = pendingJobs.find((job) => !job.queued && job.progress.length > 0) ?? pendingJobs[0];
+  if ((demoMode && demo.isPending) || running) {
+    return (
+      <aside className="panel" aria-label="Postęp analizy">
+        <div className="panel-stage">
+          <AnalysisProgress progress={running?.progress} compact />
+        </div>
+      </aside>
+    );
+  }
+
+  const reportReady = !!demo.data || jobs.some((job) => job.report);
   return (
     <aside className="panel" aria-label="Wyniki analizy">
-      <div className="field">
-        <label className="field__label" id="cropLabel">{pl.form.crop}</label>
-        <CropSelect />
+      <div className="panel-results">
+        {selectionError && <AnalysisError message={selectionError} />}
+        {demoMode && demo.isError && <AnalysisError message={demo.error.message} retry={() => void demo.refetch()} />}
+        {demoMode && demo.data && (
+          <div className="results">
+            <div className="demo-banner" role="note">{pl.demoBanner}</div>
+            <Card title={pl.backend.kbw}><p>{pl.backend.verdict.unavailable}</p></Card>
+            <Card title={pl.backend.history}><p>{pl.backend.noHistory}</p></Card>
+          </div>
+        )}
+        {isGroup && <GroupAnalysisResults jobs={jobs} parcelId={resultParcelId} showComparison={false} />}
+        {visibleJobs.map((job) => (
+          <section key={`${job.parcelId}:${job.code}`} className="results">
+            {visibleJobs.length > 1 && (
+              <h2 className="analysis-crop">{job.report?.crop_name_pl ?? job.names.join(', ')}</h2>
+            )}
+            {job.report ? <KbwAssessmentCards report={job.report} compact /> : <AnalysisJobState job={job} />}
+          </section>
+        ))}
       </div>
-      <DateField />
-      <AiToggle />
-
-      {!parcel && (
-        <div className="empty">
-          <VedraMark size={56} />
-          <p>{pl.empty}</p>
-          <p className="empty__tip">{pl.confirm.ctrlTip}</p>
-        </div>
-      )}
-
-      {parcel?.parts && (
-        <div className="parcel-chip parcel-chip--group">
-          <span className="muted">{pl.confirm.group}</span>
-          <strong>{parcel.parts.length}</strong>
-          <span className="parcel-chip__area">{parcel.areaHa} ha</span>
-          <details className="parcel-list">
-            <summary>{pl.confirm.showList}</summary>
-            <ul>
-              {parcel.parts.map((p) => (
-                <li key={p.id}><span>{p.id}</span><span className="muted">{p.areaHa} ha</span></li>
-              ))}
-            </ul>
-          </details>
-        </div>
-      )}
-
-      {parcel && !parcel.parts && (
-        <div className="parcel-chip">
-          <span className="muted">{parcel.isCustom ? pl.confirm.custom : pl.confirm.selected}</span>
-          <strong>{parcel.isCustom ? `${parcel.areaHa} ha` : parcel.id}</strong>
-          <span className="parcel-chip__area">{parcel.isCustom ? '' : `${parcel.areaHa} ha`}</span>
-        </div>
-      )}
-
-      {parcel && !confirmed && (
-        <div className="confirm">
-          <button type="button" className="btn-primary btn-block" onClick={confirm}>
-            {parcel.parts ? pl.batch.confirm : pl.confirm.button}
-          </button>
-          <p className="muted small">{pl.confirm.tip}</p>
-          {parcel.parts && <p className="muted small">{pl.batch.commonInputs}</p>}
-        </div>
-      )}
-
-      {confirmed && (
-        <button type="button" className="link-btn" onClick={unconfirm}>← {pl.confirm.change}</button>
-      )}
-
-      {parcel && <WeatherCard />}
-
-      {selectionError && <AnalysisError message={selectionError} />}
-      {confirmed && demoMode && demo.isError && (
-        <AnalysisError message={demo.error.message} retry={() => void demo.refetch()} />
-      )}
-
-      {confirmed && demoMode && demo.isPending && <AnalysisProgress />}
-
-      {confirmed && demo.data && (
-        <div className="results">
-          <div className="demo-banner" role="note">{pl.demoBanner}</div>
-          <MoistureCard data={demo.data} />
-          <RecommendationsCard data={demo.data} />
-          <BasisCard data={demo.data} />
-        </div>
-      )}
-
-      {isGroup && <GroupAnalysisResults jobs={jobs} parcelId={resultParcelId} />}
-      {visibleJobs.map((job) => (
-        <section key={`${job.parcelId}:${job.code}`} className="results">
-          <h2 className="analysis-crop">{job.report?.crop_name_pl ?? job.names.join(', ')}</h2>
-          {job.report ? <BackendReportCards report={job.report} /> : <AnalysisJobState job={job} />}
-        </section>
-      ))}
-
-      {reportReady && (
-        <div className="panel-next">
+      <div className="panel-next">
+        <button type="button" className="link-btn" onClick={unconfirm}>{pl.panel.changeInputs}</button>
+        {reportReady && (
           <button type="button" className="btn-primary btn-block" onClick={() => navigate('/report')}>
             {pl.panel.openReport}
           </button>
-          {scenariosReady && (
-            <button type="button" className="btn-secondary btn-block" onClick={scrollToMapResults}>
-              ↓ {pl.panel.toScenarios}
-            </button>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </aside>
   );
 }
