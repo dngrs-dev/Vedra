@@ -33,7 +33,7 @@ function groupParcels(parcels: Parcel[], ring: LatLng[], center: Parcel['center'
 export function useParcelSelect() {
   const setParcel = useAnalysisStore((s) => s.setParcel);
   const [loading, setLoading] = useState(false);
-  /** Сколько делянок уже найдено в рамке (null — поиск по рамке не идёт) */
+  /** Сколько делянок уже найдено в рамке (null - поиск по рамке не идёт) */
   const [found, setFound] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -118,7 +118,7 @@ export function useParcelSelect() {
   const selectByLatLng = useCallback(
     (lat: number, lng: number) => {
       if (!pointInRing(lat, lng, POLAND_OUTLINE)) {
-        // контур упрощённый, поэтому не блокируем жёстко у самой границы — только предупреждаем вдали
+        // контур упрощённый, поэтому не блокируем жёстко у самой границы - только предупреждаем вдали
         const nearBorder = lat > 48.9 && lat < 55.05 && lng > 13.9 && lng < 24.3;
         if (!nearBorder) {
           toast(pl.search.outsidePoland, 'error');

@@ -8,14 +8,14 @@ interface RegionLayerProps {
   regions: Voivodeship[];
   /** Имя активного воеводства (карта приближена на него) */
   active: string | null;
-  /** fit = false: воеводство стало активным «по пути» (клик на крупном зуме) — камеру не двигаем */
+  /** fit = false: воеводство стало активным «по пути» (клик на крупном зуме) - камеру не двигаем */
   onSelect: (v: Voivodeship, fit: boolean) => void;
 }
 
 /** Цвет контура выбранного воеводства */
 const ACTIVE_COLOR = '#8fd5b9';
 
-/** Подписи исчезают при приближении — тогда они только мешают. */
+/** Подписи исчезают при приближении - тогда они только мешают. */
 const LABEL_MAX_ZOOM = 8;
 
 function makeLabel(name: string): L.DivIcon {
@@ -56,7 +56,7 @@ export function RegionLayer({ regions, active, onSelect }: RegionLayerProps) {
                 // клик по активному воеводству «пролетает» дальше на карту → выбор делянки
                 if (isActive) return;
                 if (map.getZoom() >= PICK_MIN_ZOOM) {
-                  // на крупном зуме (напр. после «Moja lokalizacja» в другом воеводстве) клик — это выбор делянки:
+                  // на крупном зуме (напр. после «Moja lokalizacja» в другом воеводстве) клик - это выбор делянки:
                   // воеводство становится активным без смены вида, клик идёт дальше на карту
                   onSelect(v, false);
                   return;
@@ -75,7 +75,7 @@ export function RegionLayer({ regions, active, onSelect }: RegionLayerProps) {
         );
       })}
 
-      {/* Контур активного воеводства — последним: иначе белые линии соседей, нарисованные позже,
+      {/* Контур активного воеводства - последним: иначе белые линии соседей, нарисованные позже,
           перекрывают общую границу, и она получается «наполовину белой» */}
       {regions
         .filter((v) => v.name === active)

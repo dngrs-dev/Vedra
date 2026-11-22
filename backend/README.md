@@ -22,7 +22,7 @@ zakres opisuje [lista kontrolna części B](docs/PART_B_ANALYTICS_PRODUCT.md#cp4
 ```text
 HTTP (FastAPI) → zadanie analizy → potok obliczeń → raport JSON → SQLite
                                        ↓                               ↓
-                GeoProvider (działka i dane przestrzenne)    WeasyPrint → PDF
+                GeoProvider (działka i dane przestrzenne)    WeasyPrint / Matplotlib → PDF
                 Open-Meteo (pogoda, pobierana równolegle)
 ```
 
@@ -46,7 +46,8 @@ demonstracji. Raport pokazuje dostępne wyniki oraz powody braków.
 
 Frontend uruchamia `POST /api/analyses` dla każdej pary działka–uprawa i odczytuje postęp zadania.
 Działki z listy identyfikatorów lub inteligentnego zaznaczenia można analizować w jednej serii.
-Porównanie pokazuje różniące się wyniki KBW dla tej samej uprawy i okresu. Każda analiza ma własny PDF.
+Porównanie pokazuje różniące się wyniki KBW dla tej samej uprawy i okresu.
+Dla każdej działki można pobrać PDF ze wszystkimi gotowymi uprawami albo raport dla jednej uprawy.
 Własne obszary i zastępcze obrysy korzystają z wyników demonstracyjnych.
 [Uruchomienie frontendu](../frontend/README.md).
 
@@ -61,7 +62,10 @@ Własne obszary i zastępcze obrysy korzystają z wyników demonstracyjnych.
 | `POST /api/analyses` | Uruchomienie zadania i zwrot `analysis_id` z kodem 202. |
 | `GET /api/analyses/{id}` | Stan, postęp i raport po zakończeniu. |
 | `GET /api/analyses/{id}/report.pdf` | Pobranie raportu w formacie PDF. |
+| `GET /api/analyses/report.pdf?analysis_id=&analysis_id=` | Jeden PDF dla kilku upraw działki: część ogólna, część dla każdej uprawy i wspólne źródła danych, bez powtórzeń. |
 | `GET /api/reports/{id}` | Odczyt zapisanego raportu po `report_id`. |
+| `POST /api/analyses/{id}/scenarios` | Symulacja „co jeśli”: retencja, próchnica, międzyplony/mulcz, nawadnianie wobec wariantu bez działań. |
+| `POST /api/analyses/{id}/ai-insight` | Prognoza i porada AI: Gemini (`GEMINI_API_KEY`, darmowy limit) lub Claude (`AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`); bez klucza podsumowanie z reguł. |
 
 Docelowa forma odpowiedzi to [model raportu](app/contracts/report.py).
 [Przykład JSON](tests/fixtures/sample_report.json).
@@ -95,9 +99,11 @@ python -m pip install -r requirements/base.txt -r requirements/a-geo.txt -r requ
 GEO_PROVIDER=fake python -m uvicorn app.main:app
 ```
 
-Do natywnego renderowania PDF potrzebne są biblioteki Pango i czcionki z polskimi znakami.
+PDF powstaje przez WeasyPrint, gdy dostępne są biblioteki Pango i czcionki z polskimi znakami.
 Obraz Dockera zawiera te zależności.
 [Instalacja WeasyPrint](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html).
+Bez Pango, np. w zwykłej instalacji Pythona w Windows, ten sam raport tworzy wbudowany moduł
+oparty na Matplotlib (`app/reports/pdf_basic.py`). Nie wymaga on dodatkowej instalacji.
 
 ### Próba w przeglądarce
 

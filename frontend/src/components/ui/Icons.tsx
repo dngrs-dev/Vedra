@@ -59,7 +59,7 @@ export function KowrLogo() {
   );
 }
 
-/** Знак Vedra — три полоски из логотипа, без подписи; цвет берёт из currentColor */
+/** Знак Vedra - три полоски из логотипа, без подписи; цвет берёт из currentColor */
 export const VedraMark = ({ size = 48 }: IconProps) => (
   <svg viewBox="0 0 64 28" width={size} height={(size * 28) / 64} fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
     <path d="M2 14c12-12 36-12 60-2M2 19c12-10 34-10 56-2M2 24c10-8 30-8 48-2" />
@@ -87,4 +87,21 @@ export const CalendarIcon = ({ size = 24 }: IconProps) => (
 
 export const HelpIcon = ({ size = 18 }: IconProps) => (
   <svg {...base(size)}><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7" /><path d="M12 17h.01" /></svg>
+);
+
+/* ---------- strona główna: ikony funkcji ---------- */
+export const HistoryIcon = ({ size = 26 }: IconProps) => (
+  <svg {...base(size)}><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l3 2" /></svg>
+);
+export const LeafIcon = ({ size = 26 }: IconProps) => (
+  <svg {...base(size)}><path d="M5 19c0-8 5-14 15-15 0 9-5 15-13 15" /><path d="M5 19c3-4 6-7 10-9" /></svg>
+);
+export const SlidersIcon = ({ size = 26 }: IconProps) => (
+  <svg {...base(size)}><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+);
+export const SparkIcon = ({ size = 26 }: IconProps) => (
+  <svg {...base(size)}><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" /></svg>
+);
+export const MapIcon = ({ size = 26 }: IconProps) => (
+  <svg {...base(size)}><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z" /><path d="M9 4v14M15 6v14" /></svg>
 );

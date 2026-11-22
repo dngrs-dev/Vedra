@@ -26,7 +26,7 @@ from app.geo.sources import source
 log = logging.getLogger(__name__)
 EGIB_CACHE_S = 30 * 24 * 3600   # OUR CHOICE: parcels change rarely; the export is rebuilt daily
 ULDK_TIMEOUT_S = 3.0           # CONTRACTS.md §1: target for a normal parcel lookup.
-EGIB_TIMEOUT_S = 8.0           # OUR CHOICE: allow the 4–7 s fallback measured in the CP4 EGiB probe.
+EGIB_TIMEOUT_S = 8.0           # OUR CHOICE: allow the 4-7 s fallback measured in the CP4 EGiB probe.
 
 # Full parcel id WWPPGG_R.OOOO.[AR_NR.]NR_DZ - regex from docs/PART_A_DATA_GEO.md (uldk.parse_query)
 PARCEL_ID_RE = re.compile(r"^\d{6}_\d\.\d{4}\.(?:AR_\d+\.)?[0-9A-Za-z/]+$")

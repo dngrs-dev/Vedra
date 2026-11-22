@@ -56,7 +56,7 @@ export function HistoryChart({ data, width = 230, height = 120, interactive = tr
       <svg
         viewBox={`0 0 ${width} ${height}`}
         role="img"
-        aria-label={`Wykres ${data[0]!.year}–${data[n - 1]!.year}: ${pl.moisture.legendMoisture} i ${pl.moisture.legendRisk}`}
+        aria-label={`Wykres ${data[0]!.year}-${data[n - 1]!.year}: ${pl.moisture.legendMoisture} i ${pl.moisture.legendRisk}`}
         onMouseMove={interactive ? onMove : undefined}
         onMouseLeave={interactive ? () => setHover(null) : undefined}
       >

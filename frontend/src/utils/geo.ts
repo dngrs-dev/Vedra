@@ -1,6 +1,6 @@
 import type { LatLng } from '@/types/parcel';
 
-/** Площадь полигона в гектарах (equirectangular — для UI достаточно). */
+/** Площадь полигона в гектарах (equirectangular - для UI достаточно). */
 export function polygonAreaHa(ring: LatLng[]): number {
   if (ring.length < 3) return 0;
   const R = 6371008.8;
@@ -26,7 +26,7 @@ export function ringCenter(ring: LatLng[]): { lat: number; lng: number } {
   };
 }
 
-/** Демо-контур (≈ 3 га) вокруг точки — используется, если ULDK недоступен. */
+/** Демо-контур (≈ 3 га) вокруг точки - используется, если ULDK недоступен. */
 export function demoSquare(lat: number, lng: number): LatLng[] {
   const dLat = 0.0013;
   const dLng = dLat / Math.cos((lat * Math.PI) / 180);
@@ -62,7 +62,7 @@ function ringArea2(ring: LatLng[]): number {
   return a / 2;
 }
 
-/** Центроид кольца (формула многоугольника); для вырожденных колец — центр bbox. */
+/** Центроид кольца (формула многоугольника); для вырожденных колец - центр bbox. */
 export function ringCentroid(ring: LatLng[]): LatLng {
   const a = ringArea2(ring);
   if (Math.abs(a) < 1e-12) {
@@ -98,7 +98,7 @@ export function rectToRing(a: { lat: number; lng: number }, b: { lat: number; ln
 }
 
 /**
- * Обрезает полигон по прямоугольнику (Sutherland–Hodgman, рамка выровнена по осям).
+ * Обрезает полигон по прямоугольнику (Sutherland-Hodgman, рамка выровнена по осям).
  * Возвращает часть полигона, лежащую внутри рамки (может быть пустой).
  */
 export function clipRingToRect(ring: LatLng[], s: number, w: number, n: number, e: number): LatLng[] {

@@ -30,8 +30,8 @@ interface Job {
 }
 
 /**
- * Общая очередь загрузки ячеек. Видимые — по приоритету «от центра экрана», с отменой ушедших с экрана.
- * Фоновые (вокруг выбранной делянки, даже при выключенных границах) — когда видимых нет, не отменяются:
+ * Общая очередь загрузки ячеек. Видимые - по приоритету «от центра экрана», с отменой ушедших с экрана.
+ * Фоновые (вокруг выбранной делянки, даже при выключенных границах) - когда видимых нет, не отменяются:
  * из них потом мгновенно выбираются соседние делянки.
  */
 const queue: Job[] = [];
@@ -92,7 +92,7 @@ function want(jobs: Job[]) {
   pump();
 }
 
-/** Фоновые ячейки делянок: новые — в начало очереди (свежий вид / выбор важнее старого фона). */
+/** Фоновые ячейки делянок: новые - в начало очереди (свежий вид / выбор важнее старого фона). */
 function enqueueBackground(jobs: Job[]) {
   const fresh = jobs.filter((j) => !cellCache.has(j.key) && !running.has(j.key));
   const keys = new Set(fresh.map((j) => j.key));
@@ -102,7 +102,7 @@ function enqueueBackground(jobs: Job[]) {
   pump();
 }
 
-/** Загрузить в фоне 3 × 3 ячейки делянок вокруг точки (обычно — вокруг только что выбранной делянки). */
+/** Загрузить в фоне 3 × 3 ячейки делянок вокруг точки (обычно - вокруг только что выбранной делянки). */
 export function prefetchAround(lat: number, lng: number) {
   const grid = GRIDS.parcels;
   const ci = Math.floor(lat / grid.lat);
@@ -117,7 +117,7 @@ export function prefetchAround(lat: number, lng: number) {
 }
 
 /**
- * Загрузить в фоне ячейки делянок видимой области (от центра к краям) — на зуме выбора, ещё до первого клика:
+ * Загрузить в фоне ячейки делянок видимой области (от центра к краям) - на зуме выбора, ещё до первого клика:
  * пока пользователь присматривается, контуры уже приходят, и клик выбирает делянку мгновенно.
  */
 export function prefetchView(map: LeafletMap) {
@@ -154,7 +154,7 @@ function visibleJobs(map: LeafletMap, kind: BoundaryKind): Job[] {
   const cj = (b.getWest() + b.getEast()) / 2 / grid.lon - 0.5;
   const out: Job[] = [];
   for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) out.push({ key: cellKey(kind, i, j), kind, i, j });
-  // ближние к центру экрана — первыми
+  // ближние к центру экрана - первыми
   out.sort((a, c) => Math.hypot(a.i - ci, a.j - cj) - Math.hypot(c.i - ci, c.j - cj));
   return out.slice(0, MAX_VISIBLE_CELLS);
 }

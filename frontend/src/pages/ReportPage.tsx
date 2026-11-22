@@ -6,11 +6,15 @@ import { CROPS } from '@/constants/crops';
 import { MONTHS_PL, pl } from '@/constants/pl';
 import { AnalysisError, AnalysisJobState } from '@/features/analysis/components/AnalysisJobState';
 import { BackendReportCards } from '@/features/analysis/components/BackendReportCards';
+import { ScenarioSimulator } from '@/features/analysis/components/ScenarioSimulator';
 import { ConfidenceBadge } from '@/features/analysis/components/Badges';
 import { GroupAnalysisResults } from '@/features/analysis/components/GroupAnalysisResults';
+import { PdfDownloadButton } from '@/features/analysis/components/PdfDownloadButton';
 import { useAnalysis } from '@/features/analysis/hooks/useAnalysis';
 import { useAnalysisStore } from '@/features/analysis/store';
-import { reportPdfUrl } from '@/services/analysisApi';
+import { combinedReportPdfUrl, reportPdfUrl } from '@/services/analysisApi';
+import { NO_ACTION, useScenarioStore } from '@/features/analysis/scenarioStore';
+import { ScenarioToggle } from '@/features/analysis/components/ScenarioToggle';
 import type { Analysis, Recommendation } from '@/types/analysis';
 import type { Parcel } from '@/types/parcel';
 import { fmtDate, fmtDateTime } from '@/utils/format';
@@ -34,15 +38,32 @@ function RecoBlock({ title, items }: { title: string; items: Recommendation[] })
 export function ReportPage() {
   const parcel = useAnalysisStore((s) => s.confirmed);
   const cropIds = useAnalysisStore((s) => s.cropIds);
-  const { demo, demoMode, isGroup, jobs, selectionError } = useAnalysis();
+  const { demo, demoMode, isGroup, jobs, resultParcelId, visibleJobs, selectionError } = useAnalysis();
+  const showScenarios = useScenarioStore((s) => s.showScenarios);
 
   if (!parcel) return <Navigate to="/map" replace />;
   if (demoMode && demo.data) return <DemoReport parcel={parcel} cropIds={cropIds} data={demo.data} />;
+
+  const readyIds = visibleJobs.flatMap((job) => (job.report && job.analysisId ? [job.analysisId] : []));
+  const pending = visibleJobs.some((job) => !job.report && !job.error);
+  const combinedLabel = readyIds.length === visibleJobs.length ? pl.report.downloadAll : pl.report.downloadReady;
+  const parcelFilename = resultParcelId?.replace(/\//g, '-');
+  const combinedDownload = visibleJobs.length > 1 && (pending
+    ? <button type="button" className="btn-primary" disabled><PrinterIcon /> {pl.report.downloadAllPending}</button>
+    : readyIds.length > 1 && (
+      <PdfDownloadButton
+        key={resultParcelId}
+        href={combinedReportPdfUrl(readyIds)}
+        label={combinedLabel}
+        fileName={parcelFilename ? `vedra-${parcelFilename}.pdf` : 'vedra-raport.pdf'}
+      />
+    ));
 
   return (
     <div className="report-wrap">
       <div className="report-toolbar no-print">
         <Link to="/map" className="btn-secondary"><ArrowLeftIcon /> {pl.report.back}</Link>
+        {!isGroup && combinedDownload}
       </div>
       {selectionError && <AnalysisError message={selectionError} />}
       {demoMode && (
@@ -50,7 +71,9 @@ export function ReportPage() {
           ? <AnalysisError message={demo.error.message} retry={() => void demo.refetch()} />
           : <p role="status">{pl.backend.preparing}</p>
       )}
-      <GroupAnalysisResults jobs={jobs} group={isGroup}>{(visible) => visible.map((job) => {
+      {isGroup && <GroupAnalysisResults jobs={jobs} parcelId={resultParcelId} />}
+      {isGroup && combinedDownload && <div className="report-toolbar no-print">{combinedDownload}</div>}
+      {visibleJobs.map((job) => {
         const report = job.report;
         if (!report || !job.analysisId) {
           return (
@@ -68,20 +91,21 @@ export function ReportPage() {
                 <h1>{pl.report.title}</h1>
                 <p className="muted">{report.crop_name_pl} · {fmtDate(report.analysis_date)}</p>
               </div>
-              <a className="btn-primary no-print" href={reportPdfUrl(job.analysisId)}><PrinterIcon /> {pl.report.download}</a>
+              <PdfDownload analysisId={job.analysisId} fileName={`vedra-${job.code}-${report.analysis_date}.pdf`} />
             </header>
             <Card title={pl.report.parcel}>
               <dl className="factors">
                 <div><dt>Identyfikator działki</dt><dd>{parcel.parcel_id}</dd></div>
                 <div><dt>Powierzchnia</dt><dd>{parcel.area_ha.toLocaleString('pl-PL')} ha</dd></div>
-                <div><dt>Lokalizacja</dt><dd>{[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(', ') || '—'}</dd></div>
+                <div><dt>Lokalizacja</dt><dd>{[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(', ') || '-'}</dd></div>
               </dl>
             </Card>
             <BackendReportCards report={report} />
+            {showScenarios && <ScenarioSimulator analysisId={job.analysisId} />}
             <p className="muted small">{pl.report.disclaimer}</p>
           </article>
         );
-      })}</GroupAnalysisResults>
+      })}
     </div>
   );
 }
@@ -185,6 +209,22 @@ function DemoReport({ parcel, cropIds, data }: { parcel: Parcel; cropIds: string
         <ul>{data.limitations.map((l) => <li key={l}>{l}</li>)}</ul>
         <p className="muted small">{pl.report.disclaimer}</p>
       </article>
+    </div>
+  );
+}
+
+/**
+ * «Pobierz PDF» + галочка: dołączyć symulację „Co jeśli?” z aktualnymi suwakami.
+ * PdfDownloadButton pobiera plik przez fetch i pokazuje błąd API zamiast strony z JSON.
+ */
+function PdfDownload({ analysisId, fileName }: { analysisId: string; fileName: string }) {
+  const include = useScenarioStore((s) => s.showScenarios);
+  const levers = useScenarioStore((s) => s.levers[analysisId] ?? NO_ACTION);
+  return (
+    <div className="pdf-download no-print">
+      <PdfDownloadButton href={reportPdfUrl(analysisId, include ? levers : undefined)} label={pl.report.download}
+        fileName={fileName} />
+      <ScenarioToggle compact />
     </div>
   );
 }

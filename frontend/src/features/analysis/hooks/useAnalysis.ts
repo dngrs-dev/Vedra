@@ -20,6 +20,7 @@ export function useAnalysis({ active = true }: { active?: boolean } = {}) {
   const confirmed = useAnalysisStore((s) => s.confirmed);
   const cropIds = useAnalysisStore((s) => s.cropIds);
   const date = useAnalysisStore((s) => s.date);
+  const chosenParcelId = useAnalysisStore((s) => s.resultParcelId);
   const demoMode = USE_MOCK || !!(confirmed?.isCustom || confirmed?.isDemo);
   const isGroup = !demoMode && !!confirmed?.parts;
   const identifiers = confirmed && !demoMode ? confirmed.parts?.map(({ id }) => id) ?? [confirmed.id] : [];
@@ -133,7 +134,12 @@ export function useAnalysis({ active = true }: { active?: boolean } = {}) {
     };
   });
 
-  return { demo, demoMode, isGroup, jobs, selectionError };
+  const resultParcelId = chosenParcelId && parcelIds.includes(chosenParcelId)
+    ? chosenParcelId
+    : jobs.find((job) => job.report)?.parcelId ?? parcelIds[0];
+  const visibleJobs = isGroup ? jobs.filter((job) => job.parcelId === resultParcelId) : jobs;
+
+  return { demo, demoMode, isGroup, jobs, resultParcelId, visibleJobs, selectionError };
 }
 
 export type AnalysisJob = ReturnType<typeof useAnalysis>['jobs'][number];

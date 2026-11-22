@@ -8,7 +8,7 @@ from app.config import CONFIG_DIR
 
 
 def test_statutory_threshold_table_contains_every_crop_category_and_period():
-    # The annex to Dz.U. 2019 poz. 739 lists 14 crops, categories I–IV, and 14 periods.
+    # The annex to Dz.U. 2019 poz. 739 lists 14 crops, categories I-IV, and 14 periods.
     catalog = load()
     assert len(catalog) == 14
     expected = set(product(catalog, ("I", "II", "III", "IV"), range(1, 15)))

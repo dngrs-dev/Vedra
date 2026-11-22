@@ -101,7 +101,7 @@ def test_report_keeps_the_latest_assessed_kbw_separate_from_the_selected_date():
         history, None, later.end, weather_sources=source_ids, vegetation_sources=[], show_latest_period=True,
     )
     metrics = {metric.code: metric for metric in result.metrics}
-    assert metrics["kbw_last_period"].value == "01.04.2023 – 31.05.2023"
+    assert metrics["kbw_last_period"].value == "01.04.2023 - 31.05.2023"
     assert metrics["kbw_last_balance"].value == 0
     assert metrics["kbw_last_balance"].source_ids == source_ids
     assert len(vulnerability.assess(history, None, later.end, weather_sources=source_ids,

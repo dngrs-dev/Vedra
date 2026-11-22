@@ -1,8 +1,10 @@
+import { useNavigate } from 'react-router-dom';
 import { VedraMark } from '@/components/ui/Icons';
 import { pl } from '@/constants/pl';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useAnalysisStore } from '../store';
 import { AnalysisError, AnalysisJobState } from './AnalysisJobState';
+import { AiToggle } from './AiToggle';
 import { AnalysisProgress } from './AnalysisProgress';
 import { BackendReportCards } from './BackendReportCards';
 import { BasisCard } from './BasisCard';
@@ -10,20 +12,27 @@ import { CropSelect } from './CropSelect';
 import { DateField } from './DateField';
 import { GroupAnalysisResults } from './GroupAnalysisResults';
 import { MoistureCard } from './MoistureCard';
+import { scrollToMapResults } from './MapResults';
 import { RecommendationsCard } from './RecommendationsCard';
+import { WeatherCard } from './WeatherCard';
 
 /**
  * Правая панель. Состояния:
  *  1) делянка не выбрана → подсказка
  *  2) выбрана, не подтверждена → карточка + «Potwierdź działkę»
  *  3) подтверждена → прогресс / ошибка / результаты (расчёт на бэкенде)
+ * Pod wybraną działką - aktualna pogoda; pod wynikami - przejście do pełnego raportu (PDF) i do symulacji
+ * „Co jeśli?” z analizą AI pod mapą (dawniej przycisk raportu był w stałej stopce, która zasłaniała ekran).
  */
 export function AnalysisPanel() {
   const parcel = useAnalysisStore((s) => s.parcel);
   const confirmed = useAnalysisStore((s) => s.confirmed);
   const confirm = useAnalysisStore((s) => s.confirm);
   const unconfirm = useAnalysisStore((s) => s.unconfirm);
-  const { demo, demoMode, isGroup, jobs, selectionError } = useAnalysis();
+  const { demo, demoMode, isGroup, jobs, resultParcelId, visibleJobs, selectionError } = useAnalysis();
+  const navigate = useNavigate();
+  const scenariosReady = visibleJobs.some((job) => job.report);
+  const reportReady = jobs.some((job) => job.report) || !!(confirmed && demo.data);
 
   return (
     <aside className="panel" aria-label="Wyniki analizy">
@@ -32,6 +41,7 @@ export function AnalysisPanel() {
         <CropSelect />
       </div>
       <DateField />
+      <AiToggle />
 
       {!parcel && (
         <div className="empty">
@@ -79,6 +89,8 @@ export function AnalysisPanel() {
         <button type="button" className="link-btn" onClick={unconfirm}>← {pl.confirm.change}</button>
       )}
 
+      {parcel && <WeatherCard />}
+
       {selectionError && <AnalysisError message={selectionError} />}
       {confirmed && demoMode && demo.isError && (
         <AnalysisError message={demo.error.message} retry={() => void demo.refetch()} />
@@ -95,12 +107,26 @@ export function AnalysisPanel() {
         </div>
       )}
 
-      <GroupAnalysisResults jobs={jobs} group={isGroup}>{(visible) => visible.map((job) => (
+      {isGroup && <GroupAnalysisResults jobs={jobs} parcelId={resultParcelId} />}
+      {visibleJobs.map((job) => (
         <section key={`${job.parcelId}:${job.code}`} className="results">
           <h2 className="analysis-crop">{job.report?.crop_name_pl ?? job.names.join(', ')}</h2>
           {job.report ? <BackendReportCards report={job.report} /> : <AnalysisJobState job={job} />}
         </section>
-      ))}</GroupAnalysisResults>
+      ))}
+
+      {reportReady && (
+        <div className="panel-next">
+          <button type="button" className="btn-primary btn-block" onClick={() => navigate('/report')}>
+            {pl.panel.openReport}
+          </button>
+          {scenariosReady && (
+            <button type="button" className="btn-secondary btn-block" onClick={scrollToMapResults}>
+              ↓ {pl.panel.toScenarios}
+            </button>
+          )}
+        </div>
+      )}
     </aside>
   );
 }
