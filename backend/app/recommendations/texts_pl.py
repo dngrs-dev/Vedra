@@ -273,3 +273,14 @@ PDF_CROP_NO_EXTRA_ACTIONS = "Dla tej uprawy obowiązują działania wspólne opi
 PDF_CROP_VALUES_NOTE = "Wartości zależne od uprawy podano w części raportu dla każdej uprawy."
 PDF_CROP_VALUES_HEADING = "Wartości właściwe dla uprawy"
 PDF_CROP_VALUES_INTRO = "Uzupełniają wskaźniki, przyczyny i działania opisane w części ogólnej raportu."
+PDF_CROP_VALUES_APPLIES = "Dotyczy: {items}"
+PDF_SITE_ON_MAP = "Miejsce {label} na mapie"
+PDF_SITE_VARIANT = "Wariant {label}"
+PDF_ON_MAP = "Oznaczenie na mapie: {label}"
+PDF_KBW_DEFINITION = (
+    "Klimatyczny bilans wodny (KBW) to różnica między opadem a szacowanym parowaniem gleby i roślin "
+    "przy dostatecznej ilości wody."
+)
+PDF_YES_NO = {True: "tak", False: "nie"}
+PDF_SOURCE_LIVE = {True: "Pobrano podczas analizy", False: "Źródło zapisane wcześniej"}
+PDF_NO_DROUGHT_YEARS = "Nie stwierdzono suszy w ocenionych latach"

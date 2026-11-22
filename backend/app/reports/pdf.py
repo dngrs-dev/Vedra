@@ -16,7 +16,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.contracts.report import Report
 from app.recommendations import texts_pl as text
-from app.reports import pdf_basic
+from app.reports import grouping, pdf_basic
 from app.reports.charts import monthly_risk_svg
 from app.reports.combined import combine
 from app.reports.formatting import display_value, source_time
@@ -30,6 +30,23 @@ def _environment() -> Environment:
     environment = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=select_autoescape(default=True))
     environment.filters["display_value"] = display_value
     environment.filters["source_time"] = source_time
+    environment.filters["metric_row"] = lambda metric: (metric.label_pl, grouping.metric_text(metric))
+    # The rows and groups are shared with the built-in renderer, so both PDFs show the same content.
+    environment.globals.update(
+        texts=text,
+        group_recommendations=grouping.group_recommendations,
+        site_heading=grouping.site_heading,
+        parcel_rows=grouping.parcel_rows,
+        assessment_rows=grouping.assessment_rows,
+        history_year_rows=grouping.history_year_rows,
+        irrigation_rows=grouping.irrigation_rows,
+        source_lines=grouping.source_lines,
+        last_kbw=grouping.last_kbw,
+        metric_text=grouping.metric_text,
+        overview_columns=grouping.OVERVIEW_COLUMNS,
+        overview_row=grouping.overview_row,
+        any_varies=lambda items, varies: bool(varies) and any(map(varies, items)),
+    )
     return environment
 
 
@@ -37,24 +54,9 @@ def _data_url(data: bytes, media_type: str) -> str:
     return f"data:{media_type};base64,{b64encode(data).decode('ascii')}"
 
 
-def _entry(report: Report, map_png: bytes | None) -> dict:
+def _chart_url(report: Report) -> str | None:
     chart = monthly_risk_svg(report)
-    return {
-        "report": report,
-        "map_url": _data_url(map_png, "image/png") if map_png else None,
-        "chart_url": _data_url(chart.encode(), "image/svg+xml") if chart else None,
-    }
-
-
-def _labels() -> dict:
-    return {
-        "category_labels": text.PDF_CATEGORY_LABELS,
-        "status_labels": text.PDF_STATUS_LABELS,
-        "confidence_labels": text.PDF_CONFIDENCE_LABELS,
-        "verdict_labels": text.PDF_VERDICT_LABELS,
-        "crop_values_note_text": text.PDF_CROP_VALUES_NOTE,
-        "missing": text.PDF_MISSING,
-    }
+    return _data_url(chart.encode(), "image/svg+xml") if chart else None
 
 
 def render_many_html(items: Sequence[tuple[Report, bytes | None]]) -> str:
@@ -65,20 +67,13 @@ def render_many_html(items: Sequence[tuple[Report, bytes | None]]) -> str:
     """
     document = combine(items)
     if document is None:
-        return _environment().get_template("report.html.j2").render(
-            entries=[_entry(report, map_png) for report, map_png in items], **_labels(),
-        )
+        entries = [{"report": report, "map_url": _data_url(map_png, "image/png") if map_png else None,
+                    "chart_url": _chart_url(report)} for report, map_png in items]
+        return _environment().get_template("report.html.j2").render(entries=entries)
     return _environment().get_template("combined.html.j2").render(
         document=document,
         map_url=_data_url(document.map_png, "image/png") if document.map_png else None,
-        crops=[{"part": part, "chart_url": _entry(part.report, None)["chart_url"]} for part in document.crops],
-        part_general=text.PDF_PART_GENERAL,
-        part_appendix=text.PDF_PART_APPENDIX,
-        overview_text=text.PDF_COMBINED_OVERVIEW,
-        crop_values_heading=text.PDF_CROP_VALUES_HEADING,
-        crop_values_intro=text.PDF_CROP_VALUES_INTRO,
-        no_extra_actions=text.PDF_CROP_NO_EXTRA_ACTIONS,
-        **_labels(),
+        crops=[{"part": part, "chart_url": _chart_url(part.report)} for part in document.crops],
     )
 
 

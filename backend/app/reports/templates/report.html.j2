@@ -13,12 +13,8 @@
 <header>
   <p class="wordmark">VEDRA</p>
   <h1>Raport gospodarowania wodą</h1>
-  {{ parts.identity([
-    ("Działka ewidencyjna", report.parcel.parcel_id),
-    ("Obręb", report.parcel.region),
-    ("Uprawa", report.crop_name_pl),
-    ("Data analizy", report.analysis_date),
-  ]) }}
+  {{ parts.rows(parcel_rows(report.parcel) + [("Uprawa", report.crop_name_pl), ("Data analizy", report.analysis_date)],
+                "metrics identity") }}
 </header>
 <main>
   {{ parts.assessment(report, "Sytuacja wodna działki") }}

@@ -36,3 +36,7 @@ a { color: #175d57; overflow-wrap: anywhere; }
 .overview td { border-bottom: 1px solid #e4eeeb; }
 .overview th, .overview td { padding: .8mm 1mm; }
 .overview .number { text-align: right; white-space: nowrap; }
+.overview .right { text-align: right; }
+.category { margin-top: 3mm; }
+.site { margin-left: 4mm; }
+.site h4 { color: #154c43; font-size: 9.5pt; margin: 1mm 0 0; }

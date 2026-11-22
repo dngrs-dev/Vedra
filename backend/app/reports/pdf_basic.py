@@ -24,8 +24,12 @@ from app.contracts.report import (
 )
 from app.recommendations import texts_pl as text
 from app.reports.charts import monthly_risk_png
-from app.reports.combined import CombinedReport, CropDetail, combine
-from app.reports.formatting import display_value, source_time
+from app.reports.combined import CombinedReport, CropValue, combine
+from app.reports.grouping import (
+    OVERVIEW_COLUMNS, Site, assessment_rows, group_recommendations, history_year_rows, irrigation_rows,
+    last_kbw, metric_text, overview_row, parcel_rows, site_heading, source_lines,
+)
+from app.reports.formatting import display_value
 
 # A4 in PostScript points (ISO 216) and the margins from report.css (16 / 17 / 18 mm).
 PAGE_W, PAGE_H = 595.28, 841.89
@@ -62,6 +66,12 @@ def _width(value: str, font: FontProperties) -> float:
     return _renderer().get_text_width_height_descent(value, font, ismath=False)[0]
 
 
+@lru_cache(maxsize=64)
+def _space(font: FontProperties) -> float:
+    # A lone or trailing space measures as zero, so take the advance between two characters.
+    return _width("a a", font) - _width("aa", font)
+
+
 def _split_word(word: str, font: FontProperties, width: float) -> list[str]:
     """Break a word wider than the column, such as a long URL, into fitting pieces."""
     pieces = []
@@ -80,7 +90,7 @@ def _split_word(word: str, font: FontProperties, width: float) -> list[str]:
 
 def _wrap(value: str, font: FontProperties, width: float, first_width: float | None = None) -> list[str]:
     # Line widths are summed from cached word widths, so each word is measured once per document.
-    space = _width(" ", font)
+    space = _space(font)
     lines: list[str] = []
     for paragraph in value.splitlines() or [""]:
         line, line_w = "", 0.0
@@ -148,7 +158,7 @@ def _lines(value: str, size: float = 10, bold: bool = False, color: str = INK, i
     """A wrapped paragraph; ``lead`` is a bold prefix such as a status label."""
     font, line_h = _font(size, bold), size * LINE_HEIGHT
     width = frame.width - indent
-    lead_w = _width(f"{lead} ", _font(size, True)) if lead else 0
+    lead_w = _width(lead, _font(size, True)) + _space(font) if lead else 0
     lines = _wrap(value, font, width, first_width=width - lead_w if lead else None)
     rows = []
     for index, line in enumerate(lines):
@@ -183,11 +193,8 @@ def _rule(y: float, color: str, frame: Frame = BODY) -> Line2D:
     return Line2D([frame.x / PAGE_W, frame.right / PAGE_W], [y / PAGE_H, y / PAGE_H], color=color, linewidth=0.75)
 
 
-def _metric_value(metric: Metric) -> str:
-    return display_value(metric.value) + (f" {metric.unit}" if metric.unit else "")
-
-
-def _pairs(items: Iterable[tuple[str, str]], size: float = 10, frame: Frame = BODY) -> list[Row]:
+def _pairs(items: Iterable[tuple[str, str]], size: float = 10, frame: Frame = BODY,
+           after: float = 2 * MM) -> list[Row]:
     """Label and value rows, as the ``.metrics`` definition lists in report.css."""
     rows = []
     label_font, value_font, line_h = _font(size), _font(size, True), size * LINE_HEIGHT
@@ -206,15 +213,16 @@ def _pairs(items: Iterable[tuple[str, str]], size: float = 10, frame: Frame = BO
                       INK, ha="right")
             figure.add_artist(_rule(top - height + 0.3, RULE_LIGHT, frame))
         rows.append(Row(height, draw))
-    return [_gap(1 * MM), *rows, _gap(2 * MM)] if rows else []
+    return [_gap(1 * MM), *rows, *([_gap(after)] if after else [])] if rows else []
 
 
 def _metrics(metrics: Iterable[Metric]) -> list[Row]:
-    return _pairs((metric.label_pl, _metric_value(metric)) for metric in metrics)
+    return _pairs((metric.label_pl, metric_text(metric)) for metric in metrics)
 
 
-def _bullets(items: Iterable[tuple[str, str | None]], size: float = 10) -> list[Row]:
-    rows = []
+def _bullets(items: Iterable[tuple[str, str | None]], size: float = 10) -> list[Block]:
+    """A bulleted list; each entry is kept on one page."""
+    blocks = []
     for value, url in items:
         item = _lines(value, size, indent=5 * MM, url=url, color=LINK if url else INK, after=1 * MM)
         bullet = item[0].draw
@@ -223,8 +231,8 @@ def _bullets(items: Iterable[tuple[str, str | None]], size: float = 10) -> list[
             _text(figure, MARGIN_X + 1.2 * MM, top - size * 1.1, "•", _font(size), INK)
             bullet(figure, top)
         item[0] = Row(item[0].height, draw)
-        rows.extend(item)
-    return [*rows, _gap(2 * MM)] if rows else []
+        blocks.append(Block(item, keep=len(item)))
+    return [*blocks, Block([_gap(2 * MM)])] if blocks else []
 
 
 def _image(png: bytes, max_height: float) -> list[Row]:
@@ -269,7 +277,7 @@ def _item(rows: list[Row]) -> Block:
 
 def _section(heading: str, *blocks: Block | list[Row]) -> list[Block]:
     """A heading kept together with the start of its content, as `h2 { break-after: avoid; }`."""
-    items = [block if isinstance(block, Block) else Block(block) for block in blocks]
+    items = [block if isinstance(block, Block) else Block(block) for block in blocks if block]
     title = _heading(heading, 2)
     if not items:
         return [Block(title, keep=len(title))]
@@ -278,41 +286,25 @@ def _section(heading: str, *blocks: Block | list[Row]) -> list[Block]:
     return [Block(title + first.rows, keep=lead), *items[1:]]
 
 
-def _masthead(title: str, identity: list[tuple[str, str]], overline: str = "VEDRA") -> Block:
+def _masthead(title: str, identity: Iterable[tuple[str, str]], overline: str = "VEDRA") -> Block:
     return Block([*_lines(overline, 8, bold=True, color=ACCENT, after=0), *_heading(title, 1), *_pairs(identity)])
 
 
-def _numeric_threshold(report: Report) -> bool:
-    threshold = report.assessment.kbw.threshold_mm
-    return isinstance(threshold, (int, float)) and not isinstance(threshold, bool)
-
-
-def _last_kbw(report: Report) -> tuple[Metric | None, Metric | None]:
-    history = report.assessment.vulnerability.metrics if report.assessment.vulnerability else []
-    by_code = {metric.code: metric for metric in history}
-    return by_code.get("kbw_last_period"), by_code.get("kbw_last_balance")
-
-
 def _assessment(report: Report, heading: str) -> list[Block]:
-    """The KBW assessment for a crop in the shaded summary box."""
+    """The full KBW assessment for a crop in the shaded summary box."""
     kbw = report.assessment.kbw
-    last_period, last_balance = _last_kbw(report)
-    summary = [_gap(1 * MM), *_heading(heading, 2, SUMMARY)[1:], *_lines(report.summary, frame=SUMMARY)]
-    if kbw.period:
-        summary += _lines(f"Okres oceny: {kbw.period.start} – {kbw.period.end}", frame=SUMMARY)
-    pairs = []
-    if kbw.kbw_mm is not None or (kbw.period and kbw.verdict == "unavailable"):
-        pairs.append(("Klimatyczny bilans wodny",
-                      display_value(kbw.kbw_mm) + (" mm" if kbw.kbw_mm is not None else "")))
-    if _numeric_threshold(report):
-        pairs.append(("Próg dla uprawy i gleby", f"{display_value(kbw.threshold_mm)} mm"))
-    if report.assessment.confidence:
-        pairs.append(("Pewność oceny", text.PDF_CONFIDENCE_LABELS[report.assessment.confidence]))
-    summary += _pairs(pairs, frame=SUMMARY)
+    last_period, last_balance = last_kbw(report)
+    summary = [_gap(1 * MM), *_heading(heading, 2, SUMMARY)[1:],
+               *_lines(text.PDF_VERDICT_LABELS[kbw.verdict], bold=True, frame=SUMMARY, after=1 * MM),
+               *_lines(report.summary, frame=SUMMARY)]
+    if kbw.explanation_pl != report.summary:
+        summary += _lines(kbw.explanation_pl, frame=SUMMARY)
+    summary += _lines(text.PDF_KBW_DEFINITION, 8.5, color=MUTED, frame=SUMMARY)
+    summary += _pairs(assessment_rows(report), frame=SUMMARY)
     if last_period and last_balance:
         summary += _heading("Ostatnia dostępna ocena KBW", 3, SUMMARY)
         summary += _pairs([("Okres oceny", display_value(last_period.value)),
-                           ("Wynik", _metric_value(last_balance))], frame=SUMMARY)
+                           ("Wynik", metric_text(last_balance))], frame=SUMMARY)
     summary.append(_gap(2 * MM))
     return [Block([_gap(4 * MM)]), Block(_boxed(summary), keep=min(len(summary), 8))]
 
@@ -329,96 +321,105 @@ def _never(_: Signal | Cause | Recommendation) -> bool:
     return False
 
 
-def _crop_values_note(item: Signal | Cause | Recommendation, varies: Varies) -> list[Row]:
-    return _lines(text.PDF_CROP_VALUES_NOTE, 8.5, color=MUTED, after=1 * MM) if varies(item) else []
+def _crop_values_note(items: Iterable[Signal | Cause | Recommendation], varies: Varies) -> list[Row]:
+    """Said once per section: values that differ by crop are given in each crop part."""
+    return _lines(text.PDF_CROP_VALUES_NOTE, 8.5, color=MUTED, after=2 * MM) if any(map(varies, items)) else []
 
 
 def _signals(signals: Sequence[Signal], heading: str = "Wskaźniki", varies: Varies = _never) -> list[Block]:
     if not signals:
         return []
-    return _section(heading, *(
+    return _section(heading, _crop_values_note(signals, varies), *(
         _item(_lines(signal.summary_pl, lead=f"{text.PDF_STATUS_LABELS[signal.status.value]}.")
-              + _metrics(signal.metrics) + _crop_values_note(signal, varies) + [_gap(1 * MM)])
+              + _metrics(signal.metrics) + [_gap(1 * MM)])
         for signal in signals
     ))
 
 
 def _vulnerability(report: Report) -> list[Block]:
-    if not report.assessment.vulnerability:
+    history = report.assessment.vulnerability
+    if not history:
         return []
-    last_period, last_balance = _last_kbw(report)
+    last_period, last_balance = last_kbw(report)
     hidden = {"kbw_last_period", "kbw_last_balance"} if last_period and last_balance else set()
     chart = monthly_risk_png(report)
+    years = _pairs(history_year_rows(report))
     return _section("Podatność w poprzednich latach",
-                    _lines(report.assessment.vulnerability.summary_pl),
+                    _lines(history.summary_pl) + years,
                     Block(_image(chart, CHART_MAX_H) if chart else []),
-                    _metrics(metric for metric in report.assessment.vulnerability.metrics if metric.code not in hidden))
+                    _metrics(metric for metric in history.metrics if metric.code not in hidden))
 
 
 def _causes(causes: Sequence[Cause], heading: str = "Przyczyny niedoboru wody", varies: Varies = _never) -> list[Block]:
     if not causes:
         return []
-    return _section(heading, *(
-        _item(_heading(cause.title_pl, 3) + _lines(cause.explanation_pl) + _metrics(cause.evidence)
-              + _crop_values_note(cause, varies))
+    return _section(heading, _crop_values_note(causes, varies), *(
+        _item(_heading(cause.title_pl, 3) + _lines(cause.explanation_pl) + _metrics(cause.evidence))
         for cause in causes
     ))
 
 
 def _recommendations(items: Sequence[Recommendation], references: Sequence[Reference], heading: str,
                      empty: str | None, varies: Varies = _never) -> list[Block]:
+    """Actions grouped by category; an action repeated for several places is written once with each place."""
     by_id = {reference.id: reference for reference in references}
-    blocks = []
-    for item in items:
-        rows = _lines(text.PDF_CATEGORY_LABELS[item.category], 8, bold=True, color=ACCENT, after=0)
-        rows += _heading(item.title_pl, 3) + _lines(item.action_pl) + _lines(item.why_pl) + _metrics(item.evidence)
-        rows += _crop_values_note(item, varies)
-        for reference_id in item.reference_ids:
-            if reference := by_id.get(reference_id):
-                rows += _lines(reference.title_pl, 8.5, color=LINK, url=reference.url, after=0)
-        blocks.append(_item(rows + [_gap(3 * MM)]))
-    if not blocks and empty is None:
-        return []
-    return _section(heading, *(blocks or [_lines(empty)]))
+    blocks: list[Block | list[Row]] = []
+    for category in group_recommendations(items):
+        title = _lines(category.title.upper(), 8.5, bold=True, color=ACCENT, after=1 * MM)
+        for index, action in enumerate(category.actions):
+            item = action.first
+            rows = (title if index == 0 else []) + _heading(item.title_pl, 3) + _lines(item.action_pl)
+            rows += _lines(item.why_pl)
+            if action.map_label:
+                rows += _lines(text.PDF_ON_MAP.format(label=action.map_label), 8.5, color=MUTED, after=1 * MM)
+            rows += _metrics(action.evidence)
+            for reference_id in item.reference_ids:
+                if reference := by_id.get(reference_id):
+                    rows += _lines(reference.title_pl, 8.5, color=LINK, url=reference.url, after=0)
+            if not action.sites:
+                blocks.append(_item(rows + [_gap(3 * MM)]))
+                continue
+            # The shared text stays with the first place; each further place is kept together on its own.
+            first, *others = action.sites
+            blocks.append(_item(rows + [_gap(1 * MM)] + _site(first)))
+            blocks += [_item(_site(site)) for site in others]
+            blocks.append([_gap(2 * MM)])
+    if not blocks:
+        return [] if empty is None else _section(heading, _lines(empty))
+    return _section(heading, _crop_values_note(items, varies), *blocks)
+
+
+def _site(site: Site) -> list[Row]:
+    frame = Frame(MARGIN_X + 4 * MM, TEXT_W - 4 * MM)
+    rows = _lines(site_heading(site), 9.5, bold=True, color=HEADING, indent=4 * MM, after=0)
+    return rows + _pairs(((metric.label_pl, metric_text(metric)) for metric in site.evidence), 9.5, frame)
 
 
 def _irrigation(irrigation: IrrigationAdvice | None) -> list[Block]:
     if not irrigation:
         return []
-    rows = _lines(irrigation.why_pl)
-    if irrigation.suggested_date:
-        rows += _lines(f"Szacowany termin: {irrigation.suggested_date}")
-    if irrigation.net_dose_mm:
-        rows += _lines(f"Dawka netto: {display_value(irrigation.net_dose_mm)} mm")
-    return _section("Ocena nawadniania", rows)
+    return _section("Ocena nawadniania", _lines(irrigation.why_pl) + _pairs(irrigation_rows(irrigation)))
 
 
 def _appendix(limitations: Sequence[str], sources: Sequence[Provenance],
               references: Sequence[Reference]) -> list[Block]:
-    blocks = _section("Ograniczenia oceny", _bullets((note, None) for note in limitations)) if limitations else []
+    blocks = _section("Ograniczenia oceny", *_bullets((note, None) for note in limitations)) if limitations else []
     items = []
     for source in sources:
-        first = source.name + (f" · Okres danych: {source.data_period}" if source.data_period else "")
-        second = f"Pobranie: {source_time(source.fetched_at)}" + (
-            f" · Rozdzielczość: {source.resolution}" if source.resolution else "")
-        third = f"Licencja: {source.licence}" + (f" · {source.attribution_pl}" if source.attribution_pl else "")
+        first, second, third = source_lines(source)
         items.append(_item(_lines(first, 8.5, bold=True, color=LINK, url=source.url, after=0)
                            + _lines(second, 8.5, after=0) + _lines(third, 8.5, after=3 * MM)))
     blocks += _section("Źródła danych", *(
         items or [_lines("Źródła danych przestrzennych i pogodowych były niedostępne.", 8.5)]
     ))
-    blocks += _section("Odniesienia", _bullets(((ref.title_pl, ref.url) for ref in references), 8.5))
+    blocks += _section("Odniesienia", *_bullets(((ref.title_pl, ref.url) for ref in references), 8.5))
     return blocks
 
 
 def _report_blocks(report: Report, map_png: bytes | None) -> list[Block]:
     return [
-        _masthead(TITLE, [
-            ("Działka ewidencyjna", report.parcel.parcel_id),
-            ("Obręb", display_value(report.parcel.region)),
-            ("Uprawa", report.crop_name_pl),
-            ("Data analizy", str(report.analysis_date)),
-        ]),
+        _masthead(TITLE, [*parcel_rows(report.parcel), ("Uprawa", report.crop_name_pl),
+                          ("Data analizy", str(report.analysis_date))]),
         *_assessment(report, "Sytuacja wodna działki"),
         *_map(map_png),
         *_signals(report.assessment.signals),
@@ -431,7 +432,7 @@ def _report_blocks(report: Report, map_png: bytes | None) -> list[Block]:
     ]
 
 
-def _table(columns: Sequence[tuple[str, float, str]], rows: Sequence[Sequence[str]], size: float = 9.5) -> list[Row]:
+def _table(columns: Sequence[tuple[str, float, str]], rows: Sequence[Sequence[str]], size: float = 9) -> list[Row]:
     """A simple table: ``columns`` are (header, share of the text width, horizontal alignment)."""
     pad = 2 * MM
     widths = [share * TEXT_W for _, share, _ in columns]
@@ -455,25 +456,17 @@ def _table(columns: Sequence[tuple[str, float, str]], rows: Sequence[Sequence[st
 
 
 def _overview(document: CombinedReport) -> list[Row]:
-    """Each crop's KBW verdict against its own threshold."""
-    rows = []
-    for part in document.crops:
-        kbw = part.report.assessment.kbw
-        rows.append([
-            part.report.crop_name_pl,
-            text.PDF_VERDICT_LABELS[kbw.verdict],
-            f"{display_value(kbw.kbw_mm)} mm" if kbw.kbw_mm is not None else text.PDF_MISSING,
-            f"{display_value(kbw.threshold_mm)} mm" if _numeric_threshold(part.report) else "—",
-        ])
-    return _table([("Uprawa", 0.3, "left"), ("Ocena", 0.34, "left"), ("KBW", 0.18, "right"),
-                   ("Próg uprawy", 0.18, "right")], rows)
+    return _table(OVERVIEW_COLUMNS, [overview_row(part.report) for part in document.crops])
 
 
-def _crop_details(details: Sequence[CropDetail]) -> list[Block]:
-    if not details:
+def _crop_values(values: Sequence[CropValue]) -> list[Block]:
+    if not values:
         return []
     return _section(text.PDF_CROP_VALUES_HEADING, _lines(text.PDF_CROP_VALUES_INTRO), *(
-        _item(_heading(detail.title, 3) + _metrics(detail.metrics)) for detail in details
+        _item(_pairs([(value.metric.label_pl, metric_text(value.metric))], after=0)
+              + _lines(text.PDF_CROP_VALUES_APPLIES.format(items=", ".join(value.applies_to)), 8.5, color=MUTED,
+                       after=2 * MM))
+        for value in values
     ))
 
 
@@ -484,14 +477,11 @@ def _part_title(overline: str, title: str) -> Block:
 
 def _combined_blocks(document: CombinedReport) -> list[Block]:
     """General part, one part per crop from a new page, then the shared appendix."""
-    parcel, crops = document.parcel, document.crop_names
+    crops = document.crop_names
     blocks = [
-        _masthead(TITLE, [
-            ("Działka ewidencyjna", parcel.parcel_id),
-            ("Obręb", display_value(parcel.region)),
-            ("Uprawy", ", ".join(crops)),
-            ("Data analizy", str(document.analysis_date)),
-        ], overline=f"VEDRA · {text.PDF_PART_GENERAL.upper()}"),
+        _masthead(TITLE, [*parcel_rows(document.parcel), ("Uprawy", ", ".join(crops)),
+                          ("Data analizy", str(document.analysis_date))],
+                  overline=f"VEDRA · {text.PDF_PART_GENERAL.upper()}"),
         *_section("Podsumowanie dla upraw", _lines(text.PDF_COMBINED_OVERVIEW), _overview(document)),
         *_map(document.map_png),
         *_signals(document.signals, "Wskaźniki dla działki", document.has_crop_values),
@@ -504,7 +494,7 @@ def _combined_blocks(document: CombinedReport) -> list[Block]:
         blocks += [PAGE_BREAK, _part_title(f"VEDRA · UPRAWA {index} Z {len(crops)}", part.report.crop_name_pl)]
         blocks += _assessment(part.report, "Ocena dla uprawy")
         blocks += _vulnerability(part.report)
-        blocks += _crop_details(part.details)
+        blocks += _crop_values(part.values)
         blocks += _signals(part.signals, "Wskaźniki dla uprawy")
         blocks += _causes(part.causes, "Przyczyny dotyczące uprawy")
         blocks += _recommendations(part.recommendations, document.references, "Działania dla uprawy",

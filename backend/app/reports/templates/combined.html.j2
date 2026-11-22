@@ -10,30 +10,21 @@
 {% set varies = document.has_crop_values %}
 <article class="report">
 <header>
-  <p class="wordmark">VEDRA · {{ part_general | upper }}</p>
+  <p class="wordmark">VEDRA · {{ texts.PDF_PART_GENERAL | upper }}</p>
   <h1>Raport gospodarowania wodą</h1>
-  {{ parts.identity([
-    ("Działka ewidencyjna", document.parcel.parcel_id),
-    ("Obręb", document.parcel.region),
-    ("Uprawy", document.crop_names | join(", ")),
-    ("Data analizy", document.analysis_date),
-  ]) }}
+  {{ parts.rows(parcel_rows(document.parcel)
+                + [("Uprawy", document.crop_names | join(", ")), ("Data analizy", document.analysis_date)],
+                "metrics identity") }}
 </header>
 <main>
   <section>
     <h2>Podsumowanie dla upraw</h2>
-    <p>{{ overview_text }}</p>
+    <p>{{ texts.PDF_COMBINED_OVERVIEW }}</p>
     <table class="overview">
-      <thead><tr><th>Uprawa</th><th>Ocena</th><th class="number">KBW</th><th class="number">Próg uprawy</th></tr></thead>
+      <thead><tr>{% for name, _, align in overview_columns %}<th class="{{ align }}">{{ name }}</th>{% endfor %}</tr></thead>
       <tbody>
       {% for crop in crops %}
-        {% set kbw = crop.part.report.assessment.kbw %}
-        <tr>
-          <td>{{ crop.part.report.crop_name_pl }}</td>
-          <td>{{ verdict_labels[kbw.verdict] }}</td>
-          <td class="number">{% if kbw.kbw_mm is not none %}{{ kbw.kbw_mm | display_value }} mm{% else %}{{ missing }}{% endif %}</td>
-          <td class="number">{% if kbw.threshold_mm is number %}{{ kbw.threshold_mm | display_value }} mm{% else %}—{% endif %}</td>
-        </tr>
+        <tr>{% for cell in overview_row(crop.part.report) %}<td class="{{ overview_columns[loop.index0][2] }}">{{ cell }}</td>{% endfor %}</tr>
       {% endfor %}
       </tbody>
     </table>
@@ -57,18 +48,22 @@
 <main>
   {{ parts.assessment(part.report, "Ocena dla uprawy") }}
   {{ parts.vulnerability(part.report, crop.chart_url) }}
-  {% if part.details %}
+  {% if part.values %}
   <section>
-    <h2>{{ crop_values_heading }}</h2>
-    <p>{{ crop_values_intro }}</p>
-    {% for detail in part.details %}
-      <div class="item"><h3>{{ detail.title }}</h3>{{ parts.metrics(detail.metrics) }}</div>
+    <h2>{{ texts.PDF_CROP_VALUES_HEADING }}</h2>
+    <p>{{ texts.PDF_CROP_VALUES_INTRO }}</p>
+    {% for value in part.values %}
+      <div class="item">
+        {{ parts.metrics([value.metric]) }}
+        <p class="small note">{{ texts.PDF_CROP_VALUES_APPLIES.format(items=value.applies_to | join(", ")) }}</p>
+      </div>
     {% endfor %}
   </section>
   {% endif %}
   {{ parts.signals(part.signals, "Wskaźniki dla uprawy") }}
   {{ parts.causes(part.causes, "Przyczyny dotyczące uprawy") }}
-  {{ parts.recommendations(part.recommendations, document.references, "Działania dla uprawy", no_extra_actions) }}
+  {{ parts.recommendations(part.recommendations, document.references, "Działania dla uprawy",
+                           texts.PDF_CROP_NO_EXTRA_ACTIONS) }}
   {{ parts.irrigation(part.irrigation) }}
 </main>
 </article>
@@ -76,8 +71,8 @@
 
 <article class="report next-report">
 <header>
-  <p class="wordmark">VEDRA · {{ part_appendix | upper }}</p>
-  <h1>{{ part_appendix }}</h1>
+  <p class="wordmark">VEDRA · {{ texts.PDF_PART_APPENDIX | upper }}</p>
+  <h1>{{ texts.PDF_PART_APPENDIX }}</h1>
 </header>
 <main>
   {{ parts.appendix(document.limitations, document.data_sources, document.references) }}

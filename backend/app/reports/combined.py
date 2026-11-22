@@ -18,14 +18,15 @@ from app.contracts.parcel import Parcel
 from app.contracts.report import Cause, IrrigationAdvice, Metric, Recommendation, Reference, Report, Signal
 
 T = TypeVar("T", bound=BaseModel)
+ALL_SHARED_ACTIONS = "wszystkie działania z części ogólnej"
 
 
 @dataclass(frozen=True)
-class CropDetail:
-    """Values of a shared signal, cause or recommendation that differ for this crop."""
+class CropValue:
+    """A value that differs for this crop, listed once with the shared items it belongs to."""
 
-    title: str
-    metrics: list[Metric]
+    metric: Metric
+    applies_to: list[str]
 
 
 @dataclass(frozen=True)
@@ -38,7 +39,7 @@ class CropPart:
     causes: list[Cause]
     recommendations: list[Recommendation]
     irrigation: IrrigationAdvice | None
-    details: list[CropDetail]
+    values: list[CropValue]
 
 
 @dataclass(frozen=True)
@@ -107,14 +108,15 @@ def split_metrics(lists: Sequence[Sequence[Metric]], crops: Sequence[str]) -> tu
 def _split(
     lists: Sequence[Sequence[T]], crops: Sequence[str], key: Callable[[T], str], same: Callable[[T, T], bool],
     metrics_field: str,
-) -> tuple[list[T], list[list[T]], list[list[CropDetail]], set[str]]:
+) -> tuple[list[T], list[list[T]], list[list[tuple[str, Metric]]], set[str]]:
     """Split items into those shared by every crop and the rest per crop.
 
-    Shared items keep the metrics common to all crops. Their differing metrics become per-crop details.
+    Shared items keep the metrics common to all crops. Their differing metrics are returned per crop with
+    the title of the item they belong to.
     """
     shared: list[T] = []
     shared_keys: set[str] = set()
-    details: list[list[CropDetail]] = [[] for _ in lists]
+    details: list[list[tuple[str, Metric]]] = [[] for _ in lists]
     varying: set[str] = set()
     for item in lists[0]:
         found = [next((other for other in items if key(other) == key(item)), None) for items in lists]
@@ -126,8 +128,7 @@ def _split(
         if any(per_crop):
             varying.add(item_key(item))
             for index, metrics in enumerate(per_crop):
-                if metrics:
-                    details[index].append(CropDetail(_title(item), metrics))
+                details[index].extend((_title(item), metric) for metric in metrics)
     rest = [[item for item in items if key(item) not in shared_keys] for items in lists]
     return shared, rest, details, varying
 
@@ -143,6 +144,26 @@ def _same_cause(first: Cause, second: Cause) -> bool:
 def _same_recommendation(first: Recommendation, second: Recommendation) -> bool:
     fields = ("category", "title_pl", "action_pl", "why_pl", "reference_ids", "geometry")
     return all(getattr(first, field) == getattr(second, field) for field in fields)
+
+
+def _crop_values(pairs: Sequence[tuple[str, Metric]], shared_titles: Sequence[str]) -> list[CropValue]:
+    """One row per distinct value, e.g. the drought years cited by every retention action.
+
+    When a value belongs to every shared action, they are named together rather than one by one.
+    """
+    grouped: dict[tuple, tuple[Metric, list[str]]] = {}
+    for title, metric in pairs:
+        key = (metric.code, metric.label_pl, repr(metric.value), metric.unit)
+        _, titles = grouped.setdefault(key, (metric, []))
+        if title not in titles:
+            titles.append(title)
+    values = []
+    every = set(shared_titles)
+    for metric, titles in grouped.values():
+        if len(shared_titles) > 1 and every <= set(titles):
+            titles = [ALL_SHARED_ACTIONS, *(title for title in titles if title not in every)]
+        values.append(CropValue(metric, titles))
+    return values
 
 
 def _sources(reports: Sequence[Report]) -> list[Provenance]:
@@ -185,7 +206,8 @@ def combine(items: Sequence[tuple[Report, bytes | None]]) -> CombinedReport | No
         crops=[
             CropPart(report, map_png, crop_signals[index], crop_causes[index], crop_recommendations[index],
                      None if shared_irrigation else report.irrigation,
-                     signal_details[index] + cause_details[index] + recommendation_details[index])
+                     _crop_values(signal_details[index] + cause_details[index] + recommendation_details[index],
+                                  [item.title_pl for item in recommendations]))
             for index, (report, map_png) in enumerate(items)
         ],
         varying=signal_varying | cause_varying | recommendation_varying,
