@@ -1,4 +1,5 @@
 from datetime import date
+from hashlib import sha256
 from http import HTTPStatus
 from pathlib import Path
 from time import monotonic, sleep
@@ -12,13 +13,44 @@ from app.analytics.models import WeatherData
 from app.api import routes_analyses
 from app.config import settings
 from app.contracts.common import SourceResult, SourceStatus
-from app.contracts.report import Report
+from app.contracts.report import Metric, Recommendation, Report
 from app.fakes.fake_geo import EXAMPLE_PARCEL_ID, FakeGeoProvider
 from app.jobs.runner import ANALYSIS_TIMEOUT_S
 from app.main import app
+from app.recommendations import texts_pl
 from app.reports import pdf
+from app.reports.recommendation_groups import group_actions
 
 SAMPLE = Path(__file__).resolve().parents[1] / "fixtures" / "sample_report.json"
+
+
+def test_repeated_action_groups_keep_site_evidence_and_outside_caution():
+    report = Report.model_validate_json(SAMPLE.read_bytes())
+    title, instruction, why, ref = texts_pl.RETENTION_SPOT_TEXTS["depression"]
+    common = Metric(code="kbw", label_pl="KBW", value=-120, unit="mm")
+    first_evidence = Metric(code="retention_area", label_pl=texts_pl.RETENTION_AREA, value=20, unit="m²")
+    next_evidence = first_evidence.model_copy(update={"value": 31})
+    first = Recommendation(id="test-1", category="landscape_retention", title_pl=title, action_pl=instruction,
+                           why_pl=why, evidence=[common, first_evidence], reference_ids=[ref],
+                           geometry=report.parcel.geometry_wgs84)
+    second = first.model_copy(update={"id": "test-2", "evidence": [common, next_evidence],
+                                      "action_pl": f"{instruction} {texts_pl.RETENTION_OUTSIDE_PARCEL}"})
+    unrelated = first.model_copy(update={"id": "test-3", "geometry": None})
+    report.recommendations = [first, second, unrelated]
+
+    grouped, separate = group_actions(report.recommendations)
+    assert grouped.action_pl == instruction
+    assert grouped.evidence == [common]
+    assert [site.evidence for site in grouped.sites] == [[first_evidence], [next_evidence]]
+    assert [site.number for site in grouped.sites] == [1, 2]
+    assert grouped.sites[1].note_pl == texts_pl.RETENTION_OUTSIDE_PARCEL
+    assert not separate.sites
+
+    html = pdf.render_html(report)
+    assert html.count('class="site-table small"') == 1
+    assert html.count(texts_pl.RETENTION_OUTSIDE_PARCEL) == 1
+    assert 'data:image/svg+xml' in html
+    assert '20 m²' in html and '31 m²' in html
 
 
 def test_native_renderer_produces_a_pdf_when_pango_is_available():
@@ -61,6 +93,10 @@ def test_saved_report_survives_restart_and_pdf_is_cached_without_map(monkeypatch
         assert response.json()["status"] == "done"
         report = response.json()["report"]
 
+    # A previously downloaded PDF must be regenerated in the new layout.
+    old_path = settings.db_path.with_suffix(".reports") / f"{sha256(report['report_id'].encode()).hexdigest()}.pdf"
+    old_path.parent.mkdir(parents=True, exist_ok=True)
+    old_path.write_bytes(b"%PDF-old-layout")
     with TestClient(app) as client:
         assert client.get(f"/api/reports/{report['report_id']}").json() == report
         assert client.get(f"/api/analyses/{analysis_id}").json()["report"] == report

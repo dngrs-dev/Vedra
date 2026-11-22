@@ -81,14 +81,40 @@
   {% endif %}
   <section>
     <h2>Zalecane działania</h2>
-    {% for recommendation in report.recommendations %}
-      <div class="item">
-        <p class="category">{{ category_labels[recommendation.category] }}</p>
-        <h3>{{ recommendation.title_pl }}</h3>
-        <p>{{ recommendation.action_pl }}</p>
-        <p>{{ recommendation.why_pl }}</p>
-        {{ metrics(recommendation.evidence) }}
-        <p class="small">{% for ref in report.references if ref.id in recommendation.reference_ids %}<a href="{{ ref.url }}">{{ ref.title_pl }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+    {% for action, site_map, coordinates in actions %}
+      {% set recommendation = action.recommendation %}
+      <div class="action">
+        <div class="item">
+          <p class="category">{{ category_labels[recommendation.category] }}</p>
+          <h3>{{ recommendation.title_pl }}</h3>
+          <p>{{ action.action_pl }}</p>
+          <p>{{ recommendation.why_pl }}</p>
+          {{ metrics(action.evidence) }}
+          <p class="small">{% for ref in report.references if ref.id in recommendation.reference_ids %}<a href="{{ ref.url }}">{{ ref.title_pl }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+        </div>
+        {% if action.sites %}
+          {% if site_map %}
+            <figure class="site-map">
+              <img class="visual" src="{{ site_map }}" alt="Mapa miejsc dla działania: {{ recommendation.title_pl }}">
+              <figcaption class="small">Zielony obrys oznacza działkę. Numery na mapie odpowiadają pozycjom w tabeli.</figcaption>
+            </figure>
+          {% endif %}
+          <table class="site-table small">
+            <thead><tr><th scope="col">Miejsce</th><th scope="col">Przesłanki i uwagi</th></tr></thead>
+            <tbody>
+              {% for site in action.sites %}
+                <tr>
+                  <th scope="row">{{ site.number }}{% if site.number in coordinates %}<br><span>{{ coordinates[site.number] }}</span>{% else %}<br><span>Brak położenia na mapie</span>{% endif %}</th>
+                  <td>
+                    {% if site.note_pl %}<p>{{ site.note_pl }}</p>{% endif %}
+                    {% for metric in site.evidence %}{{ metric.label_pl }}: <strong>{{ metric.value | display_value }}{% if metric.unit %} {{ metric.unit }}{% endif %}</strong>{% if not loop.last %} · {% endif %}{% endfor %}
+                    {% if not site.evidence and not site.note_pl %}Wspólne przesłanki dla działania podano powyżej.{% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
       </div>
     {% else %}<p>Dostępne dane nie pozwalają wskazać działań dla działki.</p>{% endfor %}
   </section>

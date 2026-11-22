@@ -31,6 +31,11 @@ oblicza wskaźniki, ocenia ich zgodność i uzasadnia zalecenia. Umowa między c
 sposób zgłaszania braków i maksymalny czas pobierania.
 [Kontrakty](docs/CONTRACTS.md), [podział odpowiedzialności](docs/TEAM_SPLIT.md).
 
+Frontend i backend działają z jednego drzewa repozytorium. Podział na części dotyczy
+odpowiedzialności za kod. Zrzuty danych, pomiary oraz decyzje projektowe dokumentują
+[część A](docs/PART_A_DATA_GEO.md) i [część B](docs/PART_B_ANALYTICS_PRODUCT.md).
+W części B pozostało uruchomienie przez HTTPS jako ostatni krok. Obie części można sprawdzić lokalnie.
+
 ## 3. Stan integracji
 
 Tryb `real` wyszukuje kontur przez lokalną kopię EGiB, jeśli ją skonfigurowano, a następnie
@@ -230,6 +235,9 @@ W katalogu `backend` uruchom `python -m pytest tests/b`. W zintegrowanym drzewie
 Przykłady wykorzystują zapisane dane przestrzenne części A i dołączone pomiary IMGW-PIB.
 Raporty z Wrześni i Inowrocławia pokazują KBW dla wskazanych dat. Raport z Kętrzyna
 pokazuje przypadek poza sezonem oceny oraz ostatni dostępny okres historyczny.
+Powtarzające się zalecenia dla miejsc retencji mają wspólne uzasadnienie. W raporcie webowym
+można wybierać miejsca na mapie. W PDF numery na mapach prowadzą do tabel z pomiarami i uwagami
+dla poszczególnych miejsc.
 
 - [Września, 10.07.2018](data/b/samples/reports/wrzesnia-2018-07-10.pdf)
 - [Inowrocław, 31.05.2023](data/b/samples/reports/inowroclaw-2023-05-31.pdf)

@@ -28,3 +28,13 @@ a { color: #175d57; overflow-wrap: anywhere; }
 .map { max-height: 56mm; object-fit: contain; }
 .limitations li { margin-bottom: .25mm; }
 .small { font-size: 8.5pt; }
+.action { margin-bottom: 4mm; }
+.site-map { break-inside: avoid; margin: 1mm 0 2mm; }
+.site-map img { max-height: 52mm; object-fit: contain; }
+.site-map figcaption { color: #43605c; }
+.site-table { border-collapse: collapse; width: 100%; }
+.site-table tr { break-inside: avoid; border-bottom: 1px solid #e4eeeb; }
+.site-table th, .site-table td { padding: 1mm 2mm; text-align: left; vertical-align: top; }
+.site-table thead { background: #eef7f3; }
+.site-table th span { font-weight: normal; white-space: nowrap; }
+.site-table p { margin-bottom: .5mm; }

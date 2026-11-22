@@ -12,6 +12,9 @@ from tempfile import NamedTemporaryFile
 from app.contracts.geo import GeoBundle
 from app.contracts.report import Report
 
+# Cached PDFs must be rendered again when the document layout changes.
+_PDF_LAYOUT_VERSION = "grouped-retention"
+
 
 @dataclass(frozen=True, slots=True)
 class StoredReport:
@@ -67,7 +70,7 @@ class ReportStore:
         )
 
     def _pdf_path(self, report_id: str) -> Path:
-        return self.pdf_dir / f"{sha256(report_id.encode()).hexdigest()}.pdf"
+        return self.pdf_dir / _PDF_LAYOUT_VERSION / f"{sha256(report_id.encode()).hexdigest()}.pdf"
 
     def get_pdf(self, report_id: str) -> bytes | None:
         try:
@@ -76,8 +79,9 @@ class ReportStore:
             return None
 
     def save_pdf(self, report_id: str, pdf: bytes) -> None:
-        self.pdf_dir.mkdir(parents=True, exist_ok=True)
-        with NamedTemporaryFile(dir=self.pdf_dir, suffix=".pdf.tmp", delete=False) as stream:
+        path = self._pdf_path(report_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with NamedTemporaryFile(dir=path.parent, suffix=".pdf.tmp", delete=False) as stream:
             temporary = Path(stream.name)
             try:
                 stream.write(pdf)
@@ -86,6 +90,6 @@ class ReportStore:
                 temporary.unlink(missing_ok=True)
                 raise
         try:
-            temporary.replace(self._pdf_path(report_id))
+            temporary.replace(path)
         finally:
             temporary.unlink(missing_ok=True)
