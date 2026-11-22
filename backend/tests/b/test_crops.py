@@ -1,8 +1,9 @@
 import csv
 import re
+from datetime import date
 from itertools import product
 
-from app.analytics.crops import load, threshold
+from app.analytics.crops import load, threshold, threshold_source
 from app.config import CONFIG_DIR
 
 
@@ -30,6 +31,20 @@ def test_threshold_lookup_preserves_values_and_annex_markers():
     assert threshold("winter_cereals", "IV", 10) == "x"
     assert threshold("sugar_beet", "I", 14) == "-"
     assert threshold("legumes", "IV", 14) == -249.0
+
+
+def test_2017_annex_covers_historical_crops_and_selects_effective_dates():
+    # Entry into force of Dz.U. 2017 poz. 732 and Dz.U. 2019 poz. 739 from the corresponding ELI records.
+    first = date(2017, 4, 22)
+    last = date(2019, 4, 30)
+    current = date(2019, 5, 1)
+    assert threshold_source(first) == threshold_source(last)
+    assert threshold_source(first) != threshold_source(current)
+    assert threshold("spring_cereals", "II", 6, as_of=first) == -189.0
+    assert threshold("spring_cereals", "III", 6, as_of=last) == -219.0
+    assert threshold("winter_cereals", "I", 1, as_of=current) == -129.0
+    for crop, soil, period in product(load(), ("I", "II", "III", "IV"), range(1, 15)):
+        assert isinstance(threshold(crop, soil, period, as_of=first), (float, str))
 
 
 def test_crop_parameters_have_sources():

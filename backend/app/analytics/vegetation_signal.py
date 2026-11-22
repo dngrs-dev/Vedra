@@ -23,7 +23,7 @@ def _sensitive(crop: str, day: date, category: KbwSoilCategory | None) -> bool:
     if period is None:
         return False
     categories = (category,) if category else get_args(KbwSoilCategory)
-    return any(isinstance(crops.threshold(crop, soil, period.idx), float) for soil in categories)
+    return any(isinstance(crops.threshold(crop, soil, period.idx, as_of=day), float) for soil in categories)
 
 
 def interpret(

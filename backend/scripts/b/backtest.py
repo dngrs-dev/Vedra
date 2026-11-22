@@ -55,6 +55,14 @@ def _number(value: float | None) -> str:
     return "—" if value is None else f"{value:.1f}".replace(".", ",")
 
 
+def _matches(cases: list[tuple[KbwResult, int | None, str | None]]) -> list[bool]:
+    return [
+        result.verdict == official
+        for result, _, official in cases
+        if result.verdict in {"drought", "no_drought"} and official in {"drought", "no_drought"}
+    ]
+
+
 def _metrics(cases: list[tuple[KbwResult, int | None, str | None]]) -> list[str]:
     lines = []
     for label, field in (("Doroszewski–Górski", "kbw_mm"), ("FAO-56", "kbw_et0_mm")):
@@ -66,11 +74,7 @@ def _metrics(cases: list[tuple[KbwResult, int | None, str | None]]) -> list[str]
             lines.append(f"- {label}, n = {len(errors)}, średni błąd bezwzględny {_number(mean(map(abs, errors)))} mm, średnia różnica {_number(mean(errors))} mm.")
         else:
             lines.append(f"- {label}, n = 0. Brak podstaw do obliczenia błędu.")
-    decisions = [
-        result.verdict == official
-        for result, _, official in cases
-        if result.verdict in {"drought", "no_drought"} and official in {"drought", "no_drought"}
-    ]
+    decisions = _matches(cases)
     lines.append(
         f"- Zgodne werdykty, {sum(decisions)} z {len(decisions)} porównywalnych przypadków."
         if decisions else "- Brak porównywalnych rozstrzygnięć susza / brak suszy."
@@ -93,7 +97,8 @@ async def build(table: pd.DataFrame, fixtures: Path, crop: str, offline_reason: 
             if imgw_only else "Porównanie korzysta z doboru pogody i obliczeń KBW stosowanych przez aplikację."
         ),
         "Podana różnica to KBW Vedry minus KBW MRiRW. Wynik z obwieszczenia dotyczy gminy. Vedra wykorzystuje komórkę modelu lub pomiary stacji przypisanej do działki.",
-        "Ocena Vedry używa progów z 2019 r. Dla 2018 r. zgodność werdyktów ma charakter orientacyjny ze względu na wcześniejsze przepisy.",
+        "Dla 2018 r. stosujemy progi obowiązujące od 22.04.2017, a dla 2023 r. progi obowiązujące od 01.05.2019.",
+        "Osobno sprawdzamy, czy urzędowa wartość KBW po porównaniu z progiem odtwarza opublikowany werdykt. Dane urzędowe służą tutaj do weryfikacji i nie zasilają obliczeń działki.",
         "[Progi dla 2018 r.](https://eli.gov.pl/eli/DU/2017/732/ogl), [progi od 2019 r.](https://eli.gov.pl/eli/DU/2019/739/ogl)",
         "",
         "## Odtworzenie lokalne",
@@ -110,15 +115,18 @@ async def build(table: pd.DataFrame, fixtures: Path, crop: str, offline_reason: 
     ]
     if offline_reason:
         lines.extend((f"**Wynik niepełny.** {offline_reason} Tabele pokazują odczytane wartości urzędowe i dostępność porównania.", ""))
+    all_cases = []
+    all_threshold_checks = []
     for day in sorted(set(table.period_end)):
         source = table.loc[table.period_end == day, "source"].iloc[0]
         lines.extend((
             f"## {day}", "",
             f"[Obwieszczenie MRiRW]({source})", "",
-            "| Działka | Gmina | Gleba | KBW MRiRW, mm | Werdykt MRiRW | KBW Vedry, mm | KBW FAO-56, mm | Werdykt Vedry |",
-            "| --- | --- | --- | ---: | --- | ---: | ---: | --- |",
+            "| Działka | Gmina | Gleba | Próg KBW, mm | KBW MRiRW, mm | Werdykt MRiRW | KBW Vedry, mm | KBW FAO-56, mm | Werdykt Vedry |",
+            "| --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- |",
         ))
         cases = []
+        threshold_checks = []
         for parcel in parcels:
             bundle = await provider.collect(GeoRequest(parcel=parcel, analysis_date=day))
             category: KbwSoilCategory | None = bundle.soil.data.kbw_category if bundle.soil.data else None
@@ -137,13 +145,29 @@ async def build(table: pd.DataFrame, fixtures: Path, crop: str, offline_reason: 
                 fetched = await weather_provider.fetch_weather(parcel.centroid_lat, parcel.centroid_lon, day)
             result = kbw.assess(fetched.data if fetched is not None else None, category, crop, day)
             cases.append((result, official, official_verdict))
+            threshold = result.threshold_mm
+            if official is not None and isinstance(threshold, float) and official_verdict in {"drought", "no_drought"}:
+                threshold_checks.append(kbw.numeric_verdict(official, threshold) == official_verdict)
             fields = (
-                parcel.parcel_id, parcel.commune, category or "—", _number(official),
+                parcel.parcel_id, parcel.commune, category or "—",
+                _number(threshold) if isinstance(threshold, float) else threshold or "—", _number(official),
                 LABELS.get(official_verdict, "—"), _number(result.kbw_mm), _number(result.kbw_et0_mm),
                 LABELS[result.verdict],
             )
             lines.append("| " + " | ".join(fields) + " |")
         lines.extend(("", *_metrics(cases), ""))
+        if threshold_checks:
+            lines.extend((f"- Odtworzenie werdyktu po podstawieniu urzędowego KBW: {sum(threshold_checks)} z {len(threshold_checks)}.", ""))
+        all_cases.extend(cases)
+        all_threshold_checks.extend(threshold_checks)
+
+    weather_checks = _matches(all_cases)
+    lines.extend(("## Podsumowanie", ""))
+    if weather_checks:
+        lines.append(f"- Zgodność niezależnych szacunków KBW Vedry z werdyktami MRiRW: **{sum(weather_checks)} z {len(weather_checks)}**.")
+    if all_threshold_checks:
+        lines.append(f"- Zgodność reguły progowej przy urzędowym KBW gminy: **{sum(all_threshold_checks)} z {len(all_threshold_checks)}**.")
+    lines.append("")
     return "\n".join(lines)
 
 
