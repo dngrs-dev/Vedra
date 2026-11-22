@@ -6,10 +6,14 @@ import { CROPS } from '@/constants/crops';
 import { MONTHS_PL, pl } from '@/constants/pl';
 import { AnalysisError, AnalysisJobState } from '@/features/analysis/components/AnalysisJobState';
 import { BackendReportCards } from '@/features/analysis/components/BackendReportCards';
+import { ScenarioSimulator } from '@/features/analysis/components/ScenarioSimulator';
 import { ConfidenceBadge } from '@/features/analysis/components/Badges';
+import { PdfDownloadButton } from '@/features/analysis/components/PdfDownloadButton';
 import { useAnalysis } from '@/features/analysis/hooks/useAnalysis';
 import { useAnalysisStore } from '@/features/analysis/store';
-import { reportPdfUrl } from '@/services/analysisApi';
+import { combinedReportPdfUrl, reportPdfUrl } from '@/services/analysisApi';
+import { NO_ACTION, useScenarioStore } from '@/features/analysis/scenarioStore';
+import { ScenarioToggle } from '@/features/analysis/components/ScenarioToggle';
 import type { Analysis, Recommendation } from '@/types/analysis';
 import type { Parcel } from '@/types/parcel';
 import { fmtDate, fmtDateTime } from '@/utils/format';
@@ -34,14 +38,26 @@ export function ReportPage() {
   const parcel = useAnalysisStore((s) => s.confirmed);
   const cropIds = useAnalysisStore((s) => s.cropIds);
   const { demo, demoMode, jobs, selectionError } = useAnalysis();
+  const showScenarios = useScenarioStore((s) => s.showScenarios);
 
   if (!parcel) return <Navigate to="/map" replace />;
   if (demoMode && demo.data) return <DemoReport parcel={parcel} cropIds={cropIds} data={demo.data} />;
+
+  // Several crops give one analysis each. Once none is still running, offer the ready ones as one PDF;
+  // a failed crop can be retried below and is then included as well.
+  const readyIds = jobs.flatMap((job) => (job.report && job.analysisId ? [job.analysisId] : []));
+  const pending = jobs.some((job) => !job.report && !job.error);
+  const combinedLabel = readyIds.length === jobs.length ? pl.report.downloadAll : pl.report.downloadReady;
 
   return (
     <div className="report-wrap">
       <div className="report-toolbar no-print">
         <Link to="/map" className="btn-secondary"><ArrowLeftIcon /> {pl.report.back}</Link>
+        {jobs.length > 1 && (pending
+          ? <button type="button" className="btn-primary" disabled><PrinterIcon /> {pl.report.downloadAllPending}</button>
+          : readyIds.length > 1 && (
+            <PdfDownloadButton href={combinedReportPdfUrl(readyIds)} label={combinedLabel} fileName="vedra-raport.pdf" />
+          ))}
       </div>
       {selectionError && <AnalysisError message={selectionError} />}
       {demoMode && (
@@ -67,16 +83,17 @@ export function ReportPage() {
                 <h1>{pl.report.title}</h1>
                 <p className="muted">{report.crop_name_pl} · {fmtDate(report.analysis_date)}</p>
               </div>
-              <a className="btn-primary no-print" href={reportPdfUrl(job.analysisId)}><PrinterIcon /> {pl.report.download}</a>
+              <PdfDownload analysisId={job.analysisId} fileName={`vedra-${job.code}-${report.analysis_date}.pdf`} />
             </header>
             <Card title={pl.report.parcel}>
               <dl className="factors">
                 <div><dt>Identyfikator działki</dt><dd>{parcel.parcel_id}</dd></div>
                 <div><dt>Powierzchnia</dt><dd>{parcel.area_ha.toLocaleString('pl-PL')} ha</dd></div>
-                <div><dt>Lokalizacja</dt><dd>{[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(', ') || '—'}</dd></div>
+                <div><dt>Lokalizacja</dt><dd>{[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(', ') || '-'}</dd></div>
               </dl>
             </Card>
             <BackendReportCards report={report} />
+            {showScenarios && <ScenarioSimulator analysisId={job.analysisId} />}
             <p className="muted small">{pl.report.disclaimer}</p>
           </article>
         );
@@ -184,6 +201,22 @@ function DemoReport({ parcel, cropIds, data }: { parcel: Parcel; cropIds: string
         <ul>{data.limitations.map((l) => <li key={l}>{l}</li>)}</ul>
         <p className="muted small">{pl.report.disclaimer}</p>
       </article>
+    </div>
+  );
+}
+
+/**
+ * «Pobierz PDF» + галочка: dołączyć symulację „Co jeśli?” z aktualnymi suwakami.
+ * PdfDownloadButton pobiera plik przez fetch i pokazuje błąd API zamiast strony z JSON.
+ */
+function PdfDownload({ analysisId, fileName }: { analysisId: string; fileName: string }) {
+  const include = useScenarioStore((s) => s.showScenarios);
+  const levers = useScenarioStore((s) => s.levers[analysisId] ?? NO_ACTION);
+  return (
+    <div className="pdf-download no-print">
+      <PdfDownloadButton href={reportPdfUrl(analysisId, include ? levers : undefined)} label={pl.report.download}
+        fileName={fileName} />
+      <ScenarioToggle compact />
     </div>
   );
 }

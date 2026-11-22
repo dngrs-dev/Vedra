@@ -13,7 +13,7 @@ const MIN_DRAG_PX = 8;
 
 /**
  * Свободное выделение делянки: Ctrl (⌘ на Mac) + зажатая ЛКМ + перетаскивание.
- * Пока зажат Ctrl, перетаскивание карты отключено, курсор — крестик.
+ * Пока зажат Ctrl, перетаскивание карты отключено, курсор - крестик.
  */
 export function AreaSelect({ onSelect }: AreaSelectProps) {
   const map = useMap();

@@ -138,7 +138,7 @@
      "live": false,
      "data_period": "2016-06-25..2018-06-27",
      "resolution": "10 m",
-     "licence": "Copernicus Sentinel data – free, full and open access",
+     "licence": "Copernicus Sentinel data - free, full and open access",
      "attribution_pl": "Contains modified Copernicus Sentinel data 2016 · Contains modified Copernicus Sentinel data 2018"
     }
    ],
@@ -6714,7 +6714,7 @@
    "provenance": [
     {
      "source_id": "bdot10k_water",
-     "name": "BDOT10k (GUGiK) – sieć wodna, usługa WMS",
+     "name": "BDOT10k (GUGiK) - sieć wodna, usługa WMS",
      "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/kompozycja_BDOT10k_WMS/MapServer/WMSServer",
      "fetched_at": "2026-11-21T19:03:08.601000Z",
      "live": false,

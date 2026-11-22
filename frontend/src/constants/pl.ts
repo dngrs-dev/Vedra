@@ -34,8 +34,9 @@ export const pl = {
     showWholeParcel: 'Pokaż całą działkę',
     locateFailed: 'Nie udało się pobrać lokalizacji',
     locateUnavailable: 'Geolokalizacja niedostępna w tej przeglądarce',
-    boundariesFailed: 'Granice działek są chwilowo niedostępne — wybór kliknięciem nadal działa',
+    boundariesFailed: 'Granice działek są chwilowo niedostępne - wybór kliknięciem nadal działa',
     hintSelected: 'Zaznaczono. Potwierdź działkę w panelu po prawej',
+    hintResults: 'Wyniki są gotowe',
     regionsFailed: 'granice województw niedostępne'
   },
 
@@ -175,14 +176,16 @@ export const pl = {
     noSources: 'Brak dostępnych źródeł.'
   },
 
-  footer: {
-    lastUpdate: 'Ostatnia Aktualizacja Danych:',
-    report: 'Generuj Raport PDF',
-    region: 'Region'
+  panel: {
+    openReport: 'Zobacz pełny raport i pobierz PDF',
+    toScenarios: 'Symulacja „Co jeśli?” i analiza AI',
+    toScenariosShort: 'Co jeśli? i analiza AI',
+    scenariosTitle: 'Symulacja „Co jeśli?” i analiza AI',
+    scenariosLead: 'Sprawdź, jak działania na polu (retencja, próchnica, międzyplony, nawadnianie) zmienią zapas wody w glebie i ryzyko suszy.'
   },
 
   report: {
-    title: 'Raport — ocena sytuacji wodnej działki',
+    title: 'Raport - ocena sytuacji wodnej działki',
     parcel: 'Dane działki',
     assessment: 'Ocena wilgotności i ryzyka suszy',
     recommendations: 'Zalecenia',
@@ -190,6 +193,10 @@ export const pl = {
     limitations: 'Ograniczenia raportu',
     print: 'Drukuj / Zapisz jako PDF',
     download: 'Pobierz PDF',
+    downloadAll: 'Pobierz PDF dla wszystkich upraw',
+    downloadReady: 'Pobierz wspólny PDF gotowych raportów',
+    downloadAllPending: 'Trwa przygotowanie raportów…',
+    downloading: 'Przygotowanie pliku PDF…',
     back: 'Wróć do mapy',
     disclaimer:
       'Raport ma charakter pomocniczy i nie zastępuje oceny agronomicznej. Wynik obarczony jest niepewnością wynikającą z jakości i aktualności danych źródłowych.'

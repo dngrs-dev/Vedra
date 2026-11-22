@@ -1,4 +1,4 @@
-"""Monthly Doroszewski–Górski potential evapotranspiration estimates."""
+"""Monthly Doroszewski-Górski potential evapotranspiration estimates."""
 from __future__ import annotations
 
 from calendar import monthrange

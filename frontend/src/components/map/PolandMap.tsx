@@ -16,7 +16,7 @@ export type BaseLayer = 'satellite' | 'terrain';
 const TILES: Record<BaseLayer, { url: string; attribution: string; maxZoom: number }> = {
   satellite: {
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics',
+    attribution: 'Tiles © Esri - Source: Esri, Maxar, Earthstar Geographics',
     maxZoom: 19
   },
   terrain: {
@@ -40,7 +40,7 @@ interface PolandMapProps {
   onReady: (map: LeafletMap | null) => void;
   /** Текущий зум карты (толщина линий выбранной делянки) */
   zoom: number;
-  /** Уровень детализации слоя границ; null — слой выключен или зум слишком мелкий */
+  /** Уровень детализации слоя границ; null - слой выключен или зум слишком мелкий */
   boundaryKind: BoundaryKind | null;
   /** Контуры видимой области для boundaryKind */
   boundaries: BoundaryFeature[];
@@ -65,7 +65,7 @@ export function PolandMap({
   const selectedWeight = zoom >= PICK_MIN_ZOOM ? boundaryWeight(zoom) + 1.6 : 2.5;
 
   // Маска «всё кроме Польши»: внешнее кольцо = мир, «дыры» = внешние контуры воеводств.
-  // Пока границы не загрузились — упрощённый контур страны.
+  // Пока границы не загрузились - упрощённый контур страны.
   const maskPositions: LatLng[][] = regions?.length
     ? [WORLD_RING, ...regions.flatMap((v) => v.polygons.map((p) => p[0]!).filter(Boolean))]
     : [WORLD_RING, POLAND_OUTLINE];
@@ -102,9 +102,9 @@ export function PolandMap({
         </Pane>
       )}
 
-      {/* выбранная делянка — над сеткой границ; панель «прозрачна» для мыши, чтобы не перекрывать canvas границ */}
+      {/* выбранная делянка - над сеткой границ; панель «прозрачна» для мыши, чтобы не перекрывать canvas границ */}
       <Pane name={PANE_SELECTED} style={{ zIndex: '430', pointerEvents: 'none' }}>
-        {/* key: при смене делянки полигон и постоянная подпись создаются заново — подпись встаёт в центр НОВОЙ
+        {/* key: при смене делянки полигон и постоянная подпись создаются заново - подпись встаёт в центр НОВОЙ
             делянки (react-leaflet только меняет координаты полигона, а тултип остаётся на старом месте) */}
         {/* групповой выбор: один общий (объединённый) контур + подпись в центре */}
         {parcel?.parts && (

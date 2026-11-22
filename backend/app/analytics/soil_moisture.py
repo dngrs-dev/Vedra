@@ -13,7 +13,7 @@ from app.contracts.report import Metric, Signal
 from app.recommendations import texts_pl as text
 
 # Open-Meteo Historical Weather API soil moisture layers in cm, backed by ERA5-Land.
-LAYERS = {"0_to_7cm": "0–7", "7_to_28cm": "7–28", "28_to_100cm": "28–100"}
+LAYERS = {"0_to_7cm": "0-7", "7_to_28cm": "7-28", "28_to_100cm": "28-100"}
 # Same date in the preceding ten years, docs/PART_B_ANALYTICS_PRODUCT.md §3.
 HISTORY_YEARS = 10
 

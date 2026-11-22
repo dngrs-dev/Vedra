@@ -258,7 +258,7 @@ async def _collect(parcel: Parcel, req: GeoRequest, budget_s: float) -> SourceRe
         # exclude pixels, so the note does not blame clouds alone.
         notes.append(f"Brak bezchmurnych zdjęć Sentinel-2 działki od {window[0].isoformat()} "
                      f"do {window[1].isoformat()} (na zdjęciach z tego okresu za mało pikseli z roślinnością lub "
-                     "odsłoniętą glebą – przesłaniały je chmury, cienie, śnieg lub woda).")
+                     "odsłoniętą glebą - przesłaniały je chmury, cienie, śnieg lub woda).")
     elif extended and current:
         notes.append(f"W ostatnich {req.current_window_days} dniach brak bezchmurnych zdjęć; okno bieżące "
                      f"rozszerzono do {(window[1] - window[0]).days} dni.")

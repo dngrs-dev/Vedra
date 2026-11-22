@@ -2,26 +2,26 @@ nwrm:
   title_pl: Europejski katalog działań na rzecz naturalnej retencji wody
   url: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=celex%3A52019SC0078
 buffer_strips:
-  title_pl: NWRM – pasy buforowe i żywopłoty
+  title_pl: NWRM - pasy buforowe i żywopłoty
   url: https://www.nwrm.eu/measure/buffer-strips-and-hedges
 cover_crops:
-  title_pl: NWRM – okrywa roślinna i międzyplony
+  title_pl: NWRM - okrywa roślinna i międzyplony
   url: https://www.nwrm.eu/measure/green-cover
 mulching:
-  title_pl: NWRM – ściółkowanie
+  title_pl: NWRM - ściółkowanie
   url: https://www.nwrm.eu/measure/mulching
 fao_conservation:
-  title_pl: FAO – zasady rolnictwa konserwującego
+  title_pl: FAO - zasady rolnictwa konserwującego
   url: https://www.fao.org/conservation-agriculture/overview/conservation-agriculture-principles/en
 fao_organic_matter:
-  title_pl: FAO – materia organiczna i rolnictwo konserwujące
+  title_pl: FAO - materia organiczna i rolnictwo konserwujące
   url: https://www.fao.org/4/a0100e/a0100e0a.htm
 fao_water_balance:
-  title_pl: FAO-56 – bilans wody w strefie korzeniowej
+  title_pl: FAO-56 - bilans wody w strefie korzeniowej
   url: https://www.fao.org/4/x0490e/x0490e0e.htm
 saxton_rawls:
-  title_pl: Saxton i Rawls – szacowanie właściwości wodnych gleby
+  title_pl: Saxton i Rawls - szacowanie właściwości wodnych gleby
   url: https://doi.org/10.2136/sssaj2005.0117
 som_scenario:
-  title_pl: Minasny i McBratney – materia organiczna a dostępność wody w glebie
+  title_pl: Minasny i McBratney - materia organiczna a dostępność wody w glebie
   url: https://doi.org/10.1111/ejss.12475

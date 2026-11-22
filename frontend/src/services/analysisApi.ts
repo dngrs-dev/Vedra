@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { pl } from '@/constants/pl';
 import { BackendReportSchema } from '@/types/backendReport';
+import type { Levers } from '@/types/scenario';
 import { API_URL, request } from './http';
 
 // Job response fields from backend/app/api/routes_analyses.py and app/jobs/runner.py.
@@ -37,6 +38,17 @@ export async function getAnalysisStatus(analysisId: string, signal: AbortSignal)
   return result.data;
 }
 
-export function reportPdfUrl(analysisId: string): string {
-  return `${API_URL}/analyses/${encodeURIComponent(analysisId)}/report.pdf`;
+/** scenario - dołącz do PDF symulację „Co jeśli?” z tymi wartościami suwaków */
+export function reportPdfUrl(analysisId: string, scenario?: Levers): string {
+  const base = `${API_URL}/analyses/${encodeURIComponent(analysisId)}/report.pdf`;
+  if (!scenario) return base;
+  const params = new URLSearchParams({ scenarios: 'true' });
+  for (const [key, value] of Object.entries(scenario)) params.set(key, String(value));
+  return `${base}?${params}`;
+}
+
+/** One PDF with a section per analysis, e.g. for every crop selected on the parcel. */
+export function combinedReportPdfUrl(analysisIds: readonly string[]): string {
+  const query = new URLSearchParams(analysisIds.map((id) => ['analysis_id', id]));
+  return `${API_URL}/analyses/report.pdf?${query}`;
 }

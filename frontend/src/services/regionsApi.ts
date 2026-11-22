@@ -4,7 +4,7 @@ import { boundsOfRings, ringCentroid } from '@/utils/geo';
 
 /**
  * Границы województw (GeoJSON, WGS84). Порядок загрузки:
- *  1) локальный файл public/data/wojewodztwa.geojson (если положили — работает офлайн и быстрее),
+ *  1) локальный файл public/data/wojewodztwa.geojson (если положили - работает офлайн и быстрее),
  *  2) CDN jsDelivr с репозитория ppatrzyk/polska-geojson (лицензия MIT).
  */
 const LOCAL_URL = '/data/wojewodztwa.geojson';
@@ -54,7 +54,7 @@ export function parseVoivodeships(json: unknown): Voivodeship[] {
 async function tryFetch(url: string): Promise<unknown> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json(); // если dev-сервер вернул index.html — здесь бросит и мы пойдём на CDN
+  return res.json(); // если dev-сервер вернул index.html - здесь бросит и мы пойдём на CDN
 }
 
 export async function loadVoivodeships(): Promise<Voivodeship[]> {
