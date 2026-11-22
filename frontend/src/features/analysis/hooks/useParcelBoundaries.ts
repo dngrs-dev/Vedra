@@ -92,6 +92,16 @@ function want(jobs: Job[]) {
   pump();
 }
 
+/** Фоновые ячейки делянок: новые — в начало очереди (свежий вид / выбор важнее старого фона). */
+function enqueueBackground(jobs: Job[]) {
+  const fresh = jobs.filter((j) => !cellCache.has(j.key) && !running.has(j.key));
+  const keys = new Set(fresh.map((j) => j.key));
+  const rest = background.filter((b) => !keys.has(b.key));
+  background.length = 0;
+  background.push(...fresh, ...rest.slice(0, Math.max(0, MAX_VISIBLE_CELLS - fresh.length)));
+  pump();
+}
+
 /** Загрузить в фоне 3 × 3 ячейки делянок вокруг точки (обычно — вокруг только что выбранной делянки). */
 export function prefetchAround(lat: number, lng: number) {
   const grid = GRIDS.parcels;
@@ -101,15 +111,17 @@ export function prefetchAround(lat: number, lng: number) {
   for (const [di, dj] of [[0, 0], [0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [-1, 1], [1, -1], [1, 1]] as const) {
     const i = ci + di;
     const j = cj + dj;
-    const key = cellKey('parcels', i, j);
-    if (!cellCache.has(key) && !running.has(key) && !background.some((b) => b.key === key)) {
-      jobs.push({ key, kind: 'parcels', i, j });
-    }
+    jobs.push({ key: cellKey('parcels', i, j), kind: 'parcels', i, j });
   }
-  // свежий выбор важнее старого фона: его ячейки — в начало
-  background.unshift(...jobs);
-  background.length = Math.min(background.length, MAX_VISIBLE_CELLS);
-  pump();
+  enqueueBackground(jobs);
+}
+
+/**
+ * Загрузить в фоне ячейки делянок видимой области (от центра к краям) — на зуме выбора, ещё до первого клика:
+ * пока пользователь присматривается, контуры уже приходят, и клик выбирает делянку мгновенно.
+ */
+export function prefetchView(map: LeafletMap) {
+  enqueueBackground(visibleJobs(map, 'parcels'));
 }
 
 const toLatLng = (ring: [number, number][]): LatLng[] => ring.map(([lon, lat]) => [lat, lon]);
