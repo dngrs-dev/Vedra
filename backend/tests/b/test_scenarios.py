@@ -306,6 +306,35 @@ def test_pdf_can_include_the_what_if_section(api, monkeypatch):
     assert len(calls) == 3
 
 
+def test_builtin_pdf_renderer_prints_the_what_if_section(api):
+    """Without WeasyPrint (plain Windows Python) the built-in renderer prints the same "Co jeśli?" section."""
+    import asyncio
+    import re
+
+    from app.api.routes_scenarios import build
+    from app.reports import pdf_basic
+    from app.storage.db import ReportStore
+
+    analysis_id = _finished_analysis(api)
+    saved = ReportStore(settings.db_path).by_analysis(analysis_id)
+    with_action = asyncio.run(build(saved, analysis_id, ScenarioLevers(cover_pct=60)))
+
+    def document(scenario_report):
+        figures = list(pdf_basic.pages([(saved.report, None)], scenario_report))
+        content = re.sub(r"\s+", " ", " ".join(item.get_text() for figure in figures for item in figure.texts))
+        return content, sum(len(axis.images) for figure in figures for axis in figure.axes)
+
+    content, images = document(with_action)
+    assert "Co jeśli? Symulacja działań" in content
+    assert "Twój wariant: międzyplony/mulcz na 60% powierzchni" in content
+    assert "Wszystkie działania razem" in content and "Założenia modelu" in content
+    assert "Dni ze stresem wodnym" in content and "Bilans wody (mm)" in content
+    plain, plain_images = document(None)
+    assert "Co jeśli?" not in plain
+    assert images == plain_images + 1  # the soil water reserve chart
+    assert pdf_basic.render(saved.report, None, with_action).startswith(b"%PDF-")
+
+
 def test_pdf_html_shows_the_farmer_variant_only_when_an_action_is_set(api):
     import asyncio
     from app.api.routes_scenarios import build

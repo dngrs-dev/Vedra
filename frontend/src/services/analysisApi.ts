@@ -46,3 +46,9 @@ export function reportPdfUrl(analysisId: string, scenario?: Levers): string {
   for (const [key, value] of Object.entries(scenario)) params.set(key, String(value));
   return `${base}?${params}`;
 }
+
+/** One PDF with a section per analysis, e.g. for every crop selected on the parcel. */
+export function combinedReportPdfUrl(analysisIds: readonly string[]): string {
+  const query = new URLSearchParams(analysisIds.map((id) => ['analysis_id', id]));
+  return `${API_URL}/analyses/report.pdf?${query}`;
+}

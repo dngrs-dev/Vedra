@@ -239,6 +239,7 @@ SOM_SCENARIO_CHANGE = "Modelowana zmiana ilości wody dostępnej w strefie korze
 PERCENTAGE_POINTS = "p.p."
 REPORT_SAVED_SUMMARY = "Zapisany raport"
 REPORT_PDF_SUMMARY = "Pobranie raportu w formacie PDF"
+REPORT_COMBINED_PDF_SUMMARY = "Pobranie kilku raportów, np. dla wszystkich wybranych upraw, w jednym pliku PDF"
 REPORT_NOT_FOUND = "Nie znaleziono raportu."
 REPORT_PENDING = "Raport jest jeszcze przygotowywany."
 REPORT_PDF_UNAVAILABLE = "Tworzenie pliku PDF jest chwilowo niedostępne. Raport można otworzyć w aplikacji."
@@ -253,3 +254,38 @@ PDF_CATEGORY_LABELS = {
 }
 PDF_CONFIDENCE_LABELS = {"low": "niska", "medium": "umiarkowana", "high": "wysoka"}
 PDF_STATUS_LABELS = {"ok": "Dostępny", "partial": "Dostępny częściowo", "missing": "Brak danych"}
+PDF_VERDICT_LABELS = {
+    "drought": "Susza rolnicza",
+    "no_drought": "Brak suszy rolniczej",
+    "not_applicable": "Brak progu dla uprawy w tym okresie",
+    "not_recommended": "Uprawa niewskazana na tej glebie",
+    "off_season": "Poza okresem monitoringu suszy",
+    "unavailable": "Brak oceny",
+}
+PDF_PART_GENERAL = "Informacje ogólne o działce"
+PDF_PART_APPENDIX = "Dane, ograniczenia i źródła"
+PDF_COMBINED_OVERVIEW = (
+    "Raport obejmuje kilka upraw na tej samej działce. Ta część opisuje działkę i działania wspólne "
+    "dla wszystkich upraw. Kolejne części zawierają ocenę i działania właściwe dla każdej uprawy, "
+    "a ostatnia część ograniczenia oceny i źródła danych."
+)
+PDF_CROP_NO_EXTRA_ACTIONS = "Dla tej uprawy obowiązują działania wspólne opisane w części ogólnej raportu."
+PDF_CROP_VALUES_NOTE = "Wartości zależne od uprawy podano w części raportu dla każdej uprawy."
+PDF_CROP_VALUES_HEADING = "Wartości właściwe dla uprawy"
+PDF_CROP_VALUES_INTRO = "Uzupełniają wskaźniki, przyczyny i działania opisane w części ogólnej raportu."
+PDF_CROP_VALUES_APPLIES = "Dotyczy: {items}"
+# Grouped actions with numbered sites (reports/grouping.plan_actions), as in the web report.
+PDF_SITE_MAP_CAPTION = "Zielony obrys oznacza działkę. Numery na mapie odpowiadają pozycjom w tabeli."
+PDF_SITE_NOT_ON_MAP = "Brak położenia na mapie"
+PDF_SITE_SHARED_EVIDENCE = "Wspólne przesłanki dla działania podano powyżej."
+PDF_SITE_COLUMNS = ("Miejsce", "Przesłanki i uwagi", "Sprawdzone")
+PDF_FIELD_PLAN_HEADING = "Plan wizji w terenie"
+PDF_FIELD_PLAN_START = "Od czego zacząć:"
+PDF_FIELD_PLAN_COUNT = "Miejsca do sprawdzenia: {count}. Po obejrzeniu miejsca zaznacz pole w tabeli."
+PDF_KBW_DEFINITION = (
+    "Klimatyczny bilans wodny (KBW) to różnica między opadem a szacowanym parowaniem gleby i roślin "
+    "przy dostatecznej ilości wody."
+)
+PDF_YES_NO = {True: "tak", False: "nie"}
+PDF_SOURCE_LIVE = {True: "Pobrano podczas analizy", False: "Źródło zapisane wcześniej"}
+PDF_NO_DROUGHT_YEARS = "Nie stwierdzono suszy w ocenionych latach"

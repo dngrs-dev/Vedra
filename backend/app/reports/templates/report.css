@@ -28,6 +28,17 @@ a { color: #175d57; overflow-wrap: anywhere; }
 .map { max-height: 56mm; object-fit: contain; }
 .limitations li { margin-bottom: .25mm; }
 .small { font-size: 8.5pt; }
+/* A combined report starts each crop part and the appendix on a new page. */
+.next-report { break-before: page; }
+.note { color: #43605c; }
+.overview { border-collapse: collapse; margin: 1mm 0 3mm; width: 100%; }
+.overview th { border-bottom: 1px solid #c5d9d4; color: #43605c; font-size: 8.5pt; text-align: left; }
+.overview td { border-bottom: 1px solid #e4eeeb; }
+.overview th, .overview td { padding: .8mm 1mm; }
+.overview .number { text-align: right; white-space: nowrap; }
+.overview .right { text-align: right; }
+.category { margin-top: 3mm; }
+/* Grouped actions: site maps, the site table and the field verification plan. */
 .action { margin-bottom: 4mm; }
 .site-map { break-inside: avoid; margin: 1mm 0 2mm; }
 .site-map img { max-height: 52mm; object-fit: contain; }
