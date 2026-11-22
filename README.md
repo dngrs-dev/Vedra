@@ -1,5 +1,11 @@
 # Vedra
 
+**Zespół Ardev** · Vedra – asystent rolnika do oceny niedoboru wody i planowania retencji
+na działce ewidencyjnej.
+
+> **Dokumentacja techniczna zgodna z wymaganiami zadania KOWR (pkt 4.1, 4.2, 5.1–5.6):
+> [DOKUMENTACJA.md](DOKUMENTACJA.md).**
+
 Vedra pomaga rolnikowi ocenić niedobór wody na działce i zdecydować, jak zwiększyć retencję
 oraz ograniczyć straty wilgoci. Prototyp powstał na HackNation 2026 dla zadania KOWR
 „Zatrzymaj wodę, chroń plony”.
@@ -56,6 +62,7 @@ Frontend React prezentuje mapę i wyniki. Backend FastAPI pobiera dane, wykonuje
 na żądanie, zapisuje wyniki w SQLite i generuje PDF. Archiwum pomiarów IMGW-PIB jest dołączone
 jako zapasowe źródło pogody. Podkład mapy korzysta z usług dostępnych przez Internet.
 
+- [Pełna dokumentacja techniczna według wymagań zadania](DOKUMENTACJA.md)
 - [Backend: uruchomienie, źródła i zakresy danych, licencje, ograniczenia](backend/README.md)
 - [Frontend: obsługa, konfiguracja i komponenty](frontend/README.md)
 - [Metodyka obliczeń i rekomendacji](backend/docs/METHODOLOGY.md)
