@@ -10,6 +10,7 @@ import { CropSelect } from './CropSelect';
 import { DateField } from './DateField';
 import { MoistureCard } from './MoistureCard';
 import { RecommendationsCard } from './RecommendationsCard';
+import { ScenarioSimulator } from './ScenarioSimulator';
 
 /**
  * Правая панель. Состояния:
@@ -95,6 +96,7 @@ export function AnalysisPanel() {
         <section key={job.code} className="results">
           <h2 className="analysis-crop">{job.report?.crop_name_pl ?? job.names.join(', ')}</h2>
           {job.report ? <BackendReportCards report={job.report} /> : <AnalysisJobState job={job} />}
+          {job.report && job.analysisId && <ScenarioSimulator analysisId={job.analysisId} />}
         </section>
       ))}
     </aside>

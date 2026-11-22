@@ -3,3 +3,5 @@ tzdata; platform_system == "Windows"  # Python zoneinfo needs an IANA time zone 
 pandas  # Monthly time series for SPI (docs/PART_B_ANALYTICS_PRODUCT.md §3).
 Jinja2  # Report HTML templates (docs/PART_B_ANALYTICS_PRODUCT.md §3).
 WeasyPrint  # Converts the report HTML to PDF (docs/PART_B_ANALYTICS_PRODUCT.md §3).
+google-genai>=3.6  # Default AI commentary on scenarios via Gemini (app/ai/insight.py); rule fallback without a key.
+anthropic>=2.12  # Optional Claude provider for the same commentary (AI_PROVIDER=anthropic).

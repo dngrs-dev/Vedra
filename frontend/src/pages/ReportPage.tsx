@@ -6,6 +6,7 @@ import { CROPS } from '@/constants/crops';
 import { MONTHS_PL, pl } from '@/constants/pl';
 import { AnalysisError, AnalysisJobState } from '@/features/analysis/components/AnalysisJobState';
 import { BackendReportCards } from '@/features/analysis/components/BackendReportCards';
+import { ScenarioSimulator } from '@/features/analysis/components/ScenarioSimulator';
 import { ConfidenceBadge } from '@/features/analysis/components/Badges';
 import { useAnalysis } from '@/features/analysis/hooks/useAnalysis';
 import { useAnalysisStore } from '@/features/analysis/store';
@@ -77,6 +78,7 @@ export function ReportPage() {
               </dl>
             </Card>
             <BackendReportCards report={report} />
+            <ScenarioSimulator analysisId={job.analysisId} />
             <p className="muted small">{pl.report.disclaimer}</p>
           </article>
         );

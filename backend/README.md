@@ -54,6 +54,8 @@ i odczytuje postęp zadania. Grupy i własne obszary korzystają z wyników demo
 | `GET /api/analyses/{id}` | Stan, postęp i raport po zakończeniu. |
 | `GET /api/analyses/{id}/report.pdf` | Pobranie raportu w formacie PDF. |
 | `GET /api/reports/{id}` | Odczyt zapisanego raportu po `report_id`. |
+| `POST /api/analyses/{id}/scenarios` | Symulacja „co jeśli”: retencja, próchnica, międzyplony/mulcz, nawadnianie wobec wariantu bez działań. |
+| `POST /api/analyses/{id}/ai-insight` | Prognoza i porada AI: Gemini (`GEMINI_API_KEY`, darmowy limit) lub Claude (`AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`); bez klucza podsumowanie z reguł. |
 
 Docelowa forma odpowiedzi to [model raportu](app/contracts/report.py).
 [Przykład JSON](tests/fixtures/sample_report.json).
