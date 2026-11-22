@@ -50,6 +50,8 @@ button { font: inherit; cursor: pointer; }
 .leaflet-control-attribution { font-size: 10px; }
 .parcel-label { background: rgba(255, 255, 255, 0.92); border: 0; border-radius: 4px; box-shadow: none; color: var(--green-900); font-size: 11px; font-weight: 600; padding: 2px 6px; }
 .parcel-label::before { display: none; }
+.parcel-hover-label { background: rgba(255, 255, 255, 0.9); border: 0; border-radius: 4px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); color: var(--green-900); font-size: 10.5px; font-weight: 600; padding: 1px 5px; white-space: nowrap; }
+.parcel-hover-label::before { display: none; }
 
 .map-search { position: absolute; z-index: 500; top: 12px; left: 58px; width: 230px; max-width: calc(100% - 330px); display: flex; align-items: center; background: #fff; border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
 .map-search__btn { border: 0; background: transparent; padding: 0 0 0 10px; height: 36px; display: grid; place-items: center; color: var(--muted); }
@@ -66,10 +68,32 @@ button { font: inherit; cursor: pointer; }
 .map-type button + button { border-left: 1px solid var(--line); }
 .map-type button.is-active { background: var(--green-100); font-weight: 600; color: var(--green-800); }
 
-.map-side-btns { position: absolute; z-index: 500; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 8px; }
+.map-side-btns { position: absolute; z-index: 500; top: 12px; right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .sq-btn { width: 36px; height: 36px; border: 0; border-radius: 8px; background: #fff; box-shadow: var(--shadow); display: grid; place-items: center; color: var(--ink); }
 .sq-btn:hover { background: #f0f4f2; }
 .sq-btn.is-off { color: #9aa7a2; }
+.sq-btn.is-active { color: #1a73e8; }
+
+/* переключатель «Granice działek» */
+.map-toggle { display: flex; align-items: center; gap: 8px; width: 200px; min-height: 36px; padding: 6px 10px; border: 0; border-radius: 8px; background: #fff; box-shadow: var(--shadow); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.map-toggle:hover { background: #f0f4f2; }
+.map-toggle:focus-visible { outline: 2px solid var(--green-700); outline-offset: 2px; }
+.map-toggle > svg { flex: none; color: var(--muted); }
+.map-toggle.is-on > svg { color: var(--green-700); }
+.map-toggle__text { display: flex; flex-direction: column; min-width: 0; }
+.map-toggle__label { font-size: 13px; font-weight: 600; line-height: 1.2; }
+.map-toggle__sub { font-size: 11px; color: var(--muted); line-height: 1.25; }
+.map-toggle__track { flex: none; position: relative; width: 30px; height: 18px; border-radius: 9px; background: #c9d3cf; transition: background 0.15s; }
+.map-toggle__thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.15s; }
+.map-toggle.is-on .map-toggle__track { background: var(--green-700); }
+.map-toggle.is-on .map-toggle__thumb { transform: translateX(12px); }
+
+/* местоположение пользователя: синяя точка + мягкая пульсация */
+.user-location { position: relative; }
+.user-location__dot { position: absolute; inset: 2px; border-radius: 50%; background: #1a73e8; border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
+.user-location__pulse { position: absolute; inset: -6px; border-radius: 50%; background: rgba(26, 115, 232, 0.28); animation: user-location-pulse 2s ease-out infinite; }
+@keyframes user-location-pulse { from { transform: scale(0.5); opacity: 0.9; } to { transform: scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .user-location__pulse { animation: none; opacity: 0.35; } }
 .map-zoom { position: absolute; z-index: 500; top: 12px; left: 12px; display: flex; flex-direction: column; background: #fff; border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
 .map-zoom button { width: 36px; height: 36px; border: 0; background: #fff; font-size: 20px; line-height: 1; color: var(--ink); }
 .map-zoom button + button { border-top: 1px solid var(--line); }
@@ -293,6 +317,8 @@ button { font: inherit; cursor: pointer; }
 .map-region button:hover { background: rgba(255, 255, 255, 0.28); }
 .map-hint { max-width: min(560px, calc(100% - 32px)); text-align: center; }
 .map-hint__warn { color: #ffd27a; }
+.map-hint__btn { pointer-events: auto; margin-left: 10px; padding: 2px 10px; border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 999px; background: transparent; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.map-hint__btn:hover { background: rgba(255, 255, 255, 0.15); }
 
 .brand { text-decoration: none; color: inherit; }
 .empty__tip { font-size: 12px; margin-top: 4px; }

@@ -212,5 +212,17 @@ export function useParcelSelect() {
     [setParcel]
   );
 
-  return { loading, found, selectById, selectByIds, selectByLatLng, selectArea };
+  // Select a loaded parcel outline and cancel any lookup still in progress.
+  const selectParcel = useCallback(
+    (parcel: Parcel) => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setLoading(false);
+      setFound(null);
+      setParcel(parcel);
+    },
+    [setParcel]
+  );
+
+  return { loading, found, selectById, selectByIds, selectByLatLng, selectArea, selectParcel };
 }
