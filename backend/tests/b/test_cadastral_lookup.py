@@ -1,9 +1,12 @@
+import sqlite3
+from contextlib import closing
 from unittest.mock import AsyncMock
 
 import httpx
 import pytest
+from shapely import from_wkt
 
-from app.api import cadastral
+from app.api import cadastral, egib_snapshot
 from app.contracts.errors import UpstreamUnavailable
 from app.fakes.fake_geo import FakeGeoProvider
 
@@ -57,3 +60,47 @@ async def test_wfs_unavailability_keeps_existing_provider_as_fallback(monkeypatc
 
     assert await provider.find_parcels(PARCEL_ID) == expected
     assert await provider.parcel_at_point(*POINT) == await legacy.parcel_at_point(*POINT)
+
+
+@pytest.mark.asyncio
+async def test_local_snapshot_resolves_by_point_and_id_without_network(monkeypatch, tmp_path):
+    path = tmp_path / "egib.sqlite"
+    source = FakeGeoProvider()
+    (parcel,) = await source.find_parcels(PARCEL_ID)
+    polygon = from_wkt(parcel.geometry_2180_wkt)
+    min_x, min_y, max_x, max_y = polygon.bounds
+    with closing(sqlite3.connect(path)) as db, db:
+        db.executescript(egib_snapshot.SCHEMA)
+        row = (PARCEL_ID, parcel.commune, parcel.region, parcel.parcel_number, polygon.wkb)
+        ident = db.execute("INSERT INTO parcels VALUES (NULL, ?, ?, ?, ?, ?)", row).lastrowid
+        db.execute("INSERT INTO parcel_bounds VALUES (?, ?, ?, ?, ?)", (ident, min_x, max_x, min_y, max_y))
+
+    remote = AsyncMock(side_effect=AssertionError("A covered parcel should be resolved locally"))
+    monkeypatch.setattr(cadastral.http, "get", remote)
+    legacy = AsyncMock(spec=FakeGeoProvider)
+    provider = cadastral.CadastralProvider(legacy, snapshot_path=path)
+    selected = await provider.parcel_at_point(parcel.centroid_lat, parcel.centroid_lon)
+
+    assert selected is not None
+    assert selected.parcel_id == PARCEL_ID
+    assert selected.geometry_2180_wkt == parcel.geometry_2180_wkt
+    assert await provider.find_parcels(PARCEL_ID) == [selected]
+    remote.assert_not_awaited()
+    legacy.find_parcels.assert_not_awaited()
+    legacy.parcel_at_point.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_local_snapshot_miss_preserves_live_fallback(monkeypatch, tmp_path):
+    path = tmp_path / "egib.sqlite"
+    with closing(sqlite3.connect(path)) as db, db:
+        db.executescript(egib_snapshot.SCHEMA)
+        # No regional export has been installed for the requested TERYT.
+    remote = AsyncMock(side_effect=UpstreamUnavailable("Simulated WFS outage"))
+    monkeypatch.setattr(cadastral.http, "get", remote)
+    legacy = FakeGeoProvider()
+    provider = cadastral.CadastralProvider(legacy, snapshot_path=path)
+
+    assert await provider.find_parcels(PARCEL_ID) == await legacy.find_parcels(PARCEL_ID)
+    assert await provider.parcel_at_point(*POINT) == await legacy.parcel_at_point(*POINT)
+    assert remote.await_count == 2

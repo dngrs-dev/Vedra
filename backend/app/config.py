@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     """Read settings from the environment, with defaults from README.md §5."""
 
     geo_provider: Literal["real", "fake", "fixtures"] = "real"
+    egib_snapshot_path: Path | None = None
     cache_dir: Path = Path(".cache")
     db_path: Path = Path("data/vedra.sqlite")
     cors_origins: str = "http://localhost:5173"
