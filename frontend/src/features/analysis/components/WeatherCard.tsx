@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { describeWeather, getCurrentWeather, type WeatherKind } from '@/services/weatherApi';
+import { ringCenter } from '@/utils/geo';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useAnalysisStore } from '../store';
 
@@ -34,8 +35,9 @@ function WeatherIcon({ kind }: { kind: WeatherKind }) {
 export function WeatherCard() {
   const selected = useAnalysisStore((s) => s.confirmed ?? s.parcel);
   const region = useAnalysisStore((s) => s.region);
-  const { demo, jobs } = useAnalysis({ active: false });
-  const point = selected?.center ?? null;
+  const { demo, resultParcelId, visibleJobs } = useAnalysis({ active: false });
+  const part = selected?.parts?.find((parcel) => parcel.id === resultParcelId) ?? selected?.parts?.[0];
+  const point = part ? ringCenter(part.ring) : selected?.center;
   const lat = point ? +point.lat.toFixed(4) : null;
   const lng = point ? +point.lng.toFixed(4) : null;
   const weather = useQuery({
@@ -50,10 +52,10 @@ export function WeatherCard() {
   if (lat === null || lng === null) return null;
 
   // Miejsce: gmina i województwo z raportu, inaczej region analizy demo albo województwo na mapie
-  const parcel = jobs.find((job) => job.report)?.report?.parcel;
+  const parcel = visibleJobs.find((job) => job.report)?.report?.parcel;
   const place = parcel
     ? [...new Set([parcel.commune, parcel.voivodeship].filter(Boolean))].join(', ')
-    : demo.data?.region || region;
+    : demo.data?.region || (!part ? region : null);
   const label = place || `${lat.toFixed(3)}° N, ${lng.toFixed(3)}° E`;
   const maps = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   const current = weather.data;

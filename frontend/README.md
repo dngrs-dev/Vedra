@@ -56,9 +56,11 @@ Komponenty korzystają z API przez `services/` i hooki. `types/backendReport.ts`
 
 Uruchom backend z tego samego drzewa repozytorium na `127.0.0.1:8000` zgodnie z [instrukcją uruchomienia](../README.md#uruchomienie-lokalne). Vite domyślnie przekazuje żądania `/api` na ten adres. Do lokalnej próby z `GEO_PROVIDER=fixtures` wybierz zapisaną działkę, np. `040704_2.0012.63/1` z datą `2023-05-31`. Do hostingu ustaw `VITE_API_URL` na publiczny adres zakończony `/api` lub skonfiguruj reverse proxy.
 
-Dla jednej potwierdzonej działki ewidencyjnej frontend przesyła `parcel_id`, `crop_code` i `analysis_date` do `POST /api/analyses`. Po przyjęciu zadania odczytuje jego stan przez `GET /api/analyses/{analysis_id}` co dwie sekundy. Po zakończeniu używa odebranego raportu i udostępnia plik z `GET /api/analyses/{analysis_id}/report.pdf`. Każda wybrana kategoria uprawy otrzymuje osobny raport. Przypisanie opcji formularza do kategorii backendu znajduje się w `src/constants/crops.ts`.
+Dla każdej pary działka–uprawa frontend przesyła `parcel_id`, `crop_code` i `analysis_date` do `POST /api/analyses`. Po przyjęciu zadania odczytuje jego stan przez `GET /api/analyses/{analysis_id}` co dwie sekundy. Pełny raport umożliwia pobranie PDF dla jednej uprawy (z opcjonalną symulacją) lub jednego PDF dla wszystkich gotowych upraw na wybranej działce. Przypisanie opcji formularza do kategorii backendu znajduje się w `src/constants/crops.ts`.
 
-Grupy działek, własne obszary i zastępcze obrysy demo korzystają z jawnie oznaczonych danych demonstracyjnych. `VITE_USE_MOCK=true` uruchamia tryb demo dla każdego wyboru. Błąd analizy działki ewidencyjnej jest widoczny w panelu i można ponowić próbę.
+Użyj **Wiele ID** lub inteligentnego zaznaczenia na mapie, aby wybrać grupę działek ewidencyjnych. Jeśli wyszukiwanie w ramce się nie powiedzie, komunikat wskaże opcję **Wiele ID**. Data i wybrane uprawy dotyczą każdej działki. Interfejs kolejkuje do 12 par działka–uprawa w serii i pokazuje porównanie, gdy wyniki KBW dla tej samej uprawy i okresu się różnią. Wybór działki w wynikach określa, dla której działki pokazuje się symulacja i pobiera PDF. Nieudaną analizę można ponowić osobno.
+
+Własne obszary i zastępcze obrysy korzystają z jawnie oznaczonych danych demonstracyjnych. `VITE_USE_MOCK=true` włącza tryb demo dla każdego wyboru.
 
 ## Co jest wymagane przez ZT, a gdzie to jest w UI
 

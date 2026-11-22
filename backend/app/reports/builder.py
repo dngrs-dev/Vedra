@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from uuid import uuid4
 
-from app.analytics import uncertainty
+from app.analytics import crops, uncertainty
 from app.analytics.models import AnalysisContext
 from app.contracts.common import Provenance, SourceStatus
 from app.contracts.geo import GeoBundle
@@ -40,6 +40,7 @@ def build(ctx: AnalysisContext) -> Report:
                               summary_pl=text.IRRIGATION_BALANCE_SUMMARY, metrics=ctx.irrigation_metrics))
     ids = dict.fromkeys(reference for recommendation in ctx.recommendations for reference in recommendation.reference_ids)
     recommendations_refs = [references.load()[reference_id] for reference_id in ids]
+    rules = crops.threshold_source(ctx.request.analysis_date)
     return Report(
         report_id=str(uuid4()),
         parcel=ctx.parcel,
@@ -64,7 +65,7 @@ def build(ctx: AnalysisContext) -> Report:
         limitations_pl=limitations,
         data_sources=_sources(ctx),
         references=[
-            Reference(id="kbw_regulation", title_pl=text.KBW_REGULATION_TITLE, url=ctx.crop.source),
+            Reference(id="kbw_regulation", title_pl=text.KBW_REGULATION_TITLE.format(journal=rules.journal), url=rules.url),
             Reference(id="iung_kbw", title_pl=text.IUNG_KBW_TITLE, url=IUNG_KBW_URL),
             # Sources for the report's SPI and satellite interpretation (docs/METHODOLOGY.md).
             Reference(id="wmo_spi", title_pl=text.SPI_REFERENCE_TITLE,

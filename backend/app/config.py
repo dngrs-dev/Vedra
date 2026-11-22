@@ -7,11 +7,14 @@ from pathlib import Path
 from typing import Literal
 from zoneinfo import ZoneInfo
 
+from pydantic import PositiveInt
 from pydantic_settings import BaseSettings
 
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "config"
 # Analysis dates use the task's Polish civil time zone.
 ANALYSIS_TIMEZONE = "Europe/Warsaw"
+# The integrated live smoke test ran two independent analyses concurrently within the 30 s budget.
+DEFAULT_ANALYSIS_CONCURRENCY = 2
 
 
 def analysis_today() -> date:
@@ -29,6 +32,7 @@ class Settings(BaseSettings):
 
     geo_provider: Literal["real", "fake", "fixtures"] = "real"
     egib_snapshot_path: Path | None = None
+    analysis_concurrency: PositiveInt = DEFAULT_ANALYSIS_CONCURRENCY
     cache_dir: Path = Path(".cache")
     db_path: Path = Path("data/vedra.sqlite")
     cors_origins: str = "http://localhost:5173"

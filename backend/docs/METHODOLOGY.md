@@ -33,8 +33,18 @@ Vedra odejmuje szacowaną ewapotranspirację potencjalną od sumy opadów. Wynik
 zakończonego okresu sześciodekadowego porównuje z progiem dla uprawy i kategorii gleby.
 Susza w tym okresie wymaga wartości niższej od progu. Znaki `x` i `-` oznaczają odpowiednio
 brak progu dla uprawy w danym okresie i niewskazaną uprawę na danej kategorii gleby.
+Daty analizy od 22.04.2017 do 30.04.2019 korzystają z tabeli Dz.U. 2017 poz. 732.
+Dla pozostałych dat punktem odniesienia jest tabela Dz.U. 2019 poz. 739. W obliczeniu
+podatności wieloletniej całą serię oceniamy według tabeli wybranej dla daty analizy.
+[Dz.U. 2017 poz. 732](https://eli.gov.pl/eli/DU/2017/732/ogl),
 [Dz.U. 2019 poz. 739](https://eli.gov.pl/api/acts/DU/2019/739/text.pdf),
 [art. 3 ust. 2 pkt 10 ustawy, Dz.U. 2019 poz. 477](https://eli.gov.pl/api/acts/DU/2019/477/text/I/D20190477.pdf).
+
+Porównanie z obwieszczeniami sprawdza zgodność niezależnego szacunku działki z wynikiem dla
+gminy. System IUNG-PIB interpoluje pomiary z większej sieci, uwzględnia opad radarowy i stosuje
+w obliczeniu ETP również wilgotność względną i wiatr. Skrypt osobno sprawdza samą regułę progową
+z urzędowym KBW jako wejściem. [Metodyka IUNG-PIB](https://doi.org/10.26114/sir.iung.2023.71.02),
+[wyniki porównania](VALIDATION.md).
 
 Miesięczne ETP Doroszewskiego–Górskiego w mm wynosi
 

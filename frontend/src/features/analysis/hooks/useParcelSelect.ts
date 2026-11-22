@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
+import { latLngBounds } from 'leaflet';
+import { GROUP_JOB_LIMIT } from '@/constants/groupAnalysis';
 import { pl } from '@/constants/pl';
 import { POLAND_BOUNDS, POLAND_OUTLINE } from '@/constants/poland';
 import { toast } from '@/components/ui/toastStore';
@@ -13,6 +15,20 @@ import { useAnalysisStore } from '../store';
 /** Максимальная площадь самостоятельно выделенной области (защита от «выделил пол-Польши»). */
 const MAX_CUSTOM_AREA_HA = 5000;
 
+function groupParcels(parcels: Parcel[], ring: LatLng[], center: Parcel['center'], boundary?: LatLng[][][]): Parcel {
+  const parts = parcels.map((parcel) => ({ id: parcel.id, ring: parcel.ring, areaHa: parcel.areaHa }));
+  const areaHa = +parts.reduce((sum, parcel) => sum + parcel.areaHa, 0).toFixed(2);
+  const outline = boundary ?? unionRings(parts.map((parcel) => parcel.ring));
+  return {
+    id: `GRUPA_${parts.length}_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`,
+    ring,
+    areaHa,
+    center,
+    parts,
+    outline: outline.length ? outline : parts.map((parcel) => [parcel.ring])
+  };
+}
+
 /** Выбор участка: по ID (поиск), по клику на карте или своим прямоугольником (Ctrl + перетаскивание). Кладёт результат в store. */
 export function useParcelSelect() {
   const setParcel = useAnalysisStore((s) => s.setParcel);
@@ -22,7 +38,8 @@ export function useParcelSelect() {
   const abortRef = useRef<AbortController | null>(null);
 
   const run = useCallback(
-    async (loader: (signal: AbortSignal) => Promise<Parcel>, fallback?: () => Parcel) => {
+    async (loader: (signal: AbortSignal) => Promise<Parcel>, fallback?: () => Parcel,
+      onError?: (error: unknown) => void) => {
       abortRef.current?.abort();
       const ctrl = new AbortController();
       abortRef.current = ctrl;
@@ -32,20 +49,59 @@ export function useParcelSelect() {
         try {
           parcel = await loader(ctrl.signal);
         } catch (e) {
-          if (e instanceof DOMException && e.name === 'AbortError') return;
+          if (ctrl.signal.aborted) return false;
           if (e instanceof ParcelNotFoundError || !fallback) throw e;
           parcel = fallback(); // An unavailable register leaves a labeled demonstration outline.
           toast(pl.search.demoFallback);
         }
-        if (!ctrl.signal.aborted) setParcel(parcel);
+        if (ctrl.signal.aborted) return false;
+        setParcel(parcel);
+        return true;
       } catch (e) {
-        toast(e instanceof ParcelNotFoundError ? pl.search.notFound : pl.search.unavailable, 'error');
+        if (!ctrl.signal.aborted) {
+          if (onError) onError(e);
+          else toast(e instanceof ParcelNotFoundError ? pl.search.notFound : pl.search.unavailable, 'error');
+        }
+        return false;
       } finally {
         if (abortRef.current === ctrl) setLoading(false);
       }
     },
     [setParcel]
   );
+
+  const selectByIds = useCallback(async (raw: string) => {
+    const ids = [...new Map(raw.trim().split(/[\s,;]+/).filter(Boolean)
+      .map((id) => [id.toLowerCase(), id])).values()];
+    if (!ids.length || ids.some((id) => !isParcelId(id))) {
+      toast(pl.batch.invalidList, 'error');
+      return false;
+    }
+    if (ids.length > GROUP_JOB_LIMIT) {
+      toast(pl.batch.tooManyIds(GROUP_JOB_LIMIT), 'error');
+      return false;
+    }
+
+    return run(async (signal) => {
+      const parcels: Parcel[] = [];
+      for (const id of ids) {
+        try {
+          parcels.push(await getParcelById(id, signal));
+        } catch (error) {
+          if (signal.aborted) throw error;
+          throw new Error(pl.batch.lookupFailed(id));
+        }
+      }
+      if (parcels.length === 1) return parcels[0]!;
+      const boundary = parcels.flatMap((parcel) => parcel.outline ?? [[parcel.ring]]);
+      const extent = latLngBounds(boundary.flatMap((rings) => rings[0] ?? []));
+      const { lat, lng } = extent.getCenter();
+      const south = extent.getSouth(), north = extent.getNorth();
+      const west = extent.getWest(), east = extent.getEast();
+      return groupParcels(parcels, [[south, west], [south, east], [north, east], [north, west], [south, west]],
+        { lat, lng }, boundary);
+    }, undefined, (error) => toast(error instanceof Error ? error.message : pl.search.unavailable, 'error'));
+  }, [run]);
 
   const selectById = useCallback(
     (raw: string) => {
@@ -86,10 +142,7 @@ export function useParcelSelect() {
     [run]
   );
 
-  /**
-   * Ctrl + ЛКМ рамка → выбираются ВСЕ делянки из ewidencji, которые попали в рамку (групповой выбор).
-   * Одна делянка → обычный выбор. Ни одной (дорога, вода) или ULDK недоступен → рамка = «własny obszar».
-   */
+  // Ctrl-drag in smart mode selects registered parcels. Simple mode selects the drawn area.
   const selectArea = useCallback(
     async (ring: LatLng[]) => {
       const areaHa = +polygonAreaHa(ring).toFixed(2);
@@ -104,20 +157,17 @@ export function useParcelSelect() {
         return;
       }
 
-      const customArea: Parcel = {
-        id: `OBSZAR_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`,
-        ring,
-        areaHa,
-        center,
-        isCustom: true
-      };
-
-      // «Zwykły wybór» - просто прямоугольник, без поиска делянок
       if (useAnalysisStore.getState().selectMode === 'simple') {
         abortRef.current?.abort();
         setLoading(false);
         setFound(null);
-        setParcel(customArea);
+        setParcel({
+          id: `OBSZAR_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`,
+          ring,
+          areaHa,
+          center,
+          isCustom: true
+        });
         return;
       }
 
@@ -133,39 +183,25 @@ export function useParcelSelect() {
         if (res.parcels.length === 1) {
           setParcel(res.parcels[0]!);
         } else if (res.parcels.length > 1) {
-          const parts = res.parcels.map((p) => ({ id: p.id, ring: p.ring, areaHa: p.areaHa }));
-          const total = +parts.reduce((sum, p) => sum + p.areaHa, 0).toFixed(2);
-          // объединяем делянки в один общий контур (без внутренних границ)
-          let outline = unionRings(parts.map((p) => p.ring));
-          if (!outline.length) outline = parts.map((p) => [p.ring]); // на всякий случай - показываем как есть
-          setParcel({
-            id: `GRUPA_${parts.length}_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`,
-            ring,
-            areaHa: total,
-            center,
-            parts,
-            outline
-          });
+          const group = groupParcels(res.parcels, ring, center);
+          setParcel(group);
+          const total = group.areaHa;
+          const outline = group.outline!;
           toast(
             outline.length > 1
-              ? `Połączono ${dzialki(parts.length)} (${total} ha) w ${outline.length} części - rozdziela je np. droga lub rów.`
-              : `Połączono ${dzialki(parts.length)} w jeden obszar (${total} ha).`
+              ? `Połączono ${dzialki(res.parcels.length)} (${total} ha) w ${outline.length} części — rozdziela je np. droga lub rów.`
+              : `Połączono ${dzialki(res.parcels.length)} w jeden obszar (${total} ha).`
           );
         } else {
-          setParcel(customArea);
-          toast(
-            res.serviceDown
-              ? 'Usługa ULDK niedostępna - zaznaczony prostokąt użyto jako własny obszar.'
-              : 'W zaznaczeniu nie ma działki ewidencyjnej - użyto zaznaczonego obszaru.'
-          );
+          toast(res.serviceDown ? pl.batch.areaLookupFailed : pl.batch.areaNoParcels, 'error');
+          return;
         }
         if (res.skippedEdge > 0 && res.parcels.length > 0 && !res.truncated) {
           setTimeout(() => toast(`Pominięto ${dzialki(res.skippedEdge)}, które tylko zahaczają o ramkę.`), 2500);
         }
-        if (res.truncated) toast('Zaznaczenie jest bardzo duże - pokazano tylko część działek. Zaznacz mniejszy obszar.', 'error');
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') return;
-        setParcel(customArea);
+        if (res.truncated) toast('Zaznaczenie jest bardzo duże — pokazano tylko część działek. Zaznacz mniejszy obszar.', 'error');
+      } catch {
+        if (!ctrl.signal.aborted) toast(pl.batch.areaLookupFailed, 'error');
       } finally {
         if (abortRef.current === ctrl) {
           setLoading(false);
@@ -176,7 +212,7 @@ export function useParcelSelect() {
     [setParcel]
   );
 
-  /** Готовая делянка (из загруженного слоя границ): мгновенно, без сети; идущий запрос отменяется. */
+  // Select a loaded parcel outline and cancel any lookup still in progress.
   const selectParcel = useCallback(
     (parcel: Parcel) => {
       abortRef.current?.abort();
@@ -188,5 +224,5 @@ export function useParcelSelect() {
     [setParcel]
   );
 
-  return { loading, found, selectById, selectByLatLng, selectArea, selectParcel };
+  return { loading, found, selectById, selectByIds, selectByLatLng, selectArea, selectParcel };
 }

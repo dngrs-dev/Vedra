@@ -11,6 +11,7 @@ interface AnalysisState {
   parcel: Parcel | null;
   /** Подтверждённая делянка - только для неё запускается расчёт на бэкенде */
   confirmed: Parcel | null;
+  resultParcelId: string | null;
   /** Активное воеводство (на него приближена карта) */
   region: string | null;
   selectMode: SelectMode;
@@ -20,6 +21,7 @@ interface AnalysisState {
   setParcel: (p: Parcel | null) => void;
   confirm: () => void;
   unconfirm: () => void;
+  setResultParcelId: (id: string) => void;
   setRegion: (r: string | null) => void;
   toggleCrop: (id: string) => void;
   setDate: (d: string) => void;
@@ -33,14 +35,16 @@ interface AnalysisState {
 export const useAnalysisStore = create<AnalysisState>((set) => ({
   parcel: null,
   confirmed: null,
+  resultParcelId: null,
   region: null,
   selectMode: 'smart',
   cropIds: DEFAULT_CROP_IDS,
   date: toISODate(new Date()),
   // новый выбор сбрасывает подтверждение: расчёт нужно запустить заново кнопкой
-  setParcel: (parcel) => set({ parcel, confirmed: null }),
+  setParcel: (parcel) => set({ parcel, confirmed: null, resultParcelId: null }),
   confirm: () => set((s) => (s.parcel ? { confirmed: s.parcel } : s)),
   unconfirm: () => set({ confirmed: null }),
+  setResultParcelId: (resultParcelId) => set({ resultParcelId }),
   setRegion: (region) => set({ region }),
   toggleCrop: (id) =>
     set((s) => {

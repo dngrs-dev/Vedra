@@ -8,6 +8,7 @@ import { AnalysisError, AnalysisJobState } from '@/features/analysis/components/
 import { BackendReportCards } from '@/features/analysis/components/BackendReportCards';
 import { ScenarioSimulator } from '@/features/analysis/components/ScenarioSimulator';
 import { ConfidenceBadge } from '@/features/analysis/components/Badges';
+import { GroupAnalysisResults } from '@/features/analysis/components/GroupAnalysisResults';
 import { PdfDownloadButton } from '@/features/analysis/components/PdfDownloadButton';
 import { useAnalysis } from '@/features/analysis/hooks/useAnalysis';
 import { useAnalysisStore } from '@/features/analysis/store';
@@ -37,27 +38,32 @@ function RecoBlock({ title, items }: { title: string; items: Recommendation[] })
 export function ReportPage() {
   const parcel = useAnalysisStore((s) => s.confirmed);
   const cropIds = useAnalysisStore((s) => s.cropIds);
-  const { demo, demoMode, jobs, selectionError } = useAnalysis();
+  const { demo, demoMode, isGroup, jobs, resultParcelId, visibleJobs, selectionError } = useAnalysis();
   const showScenarios = useScenarioStore((s) => s.showScenarios);
 
   if (!parcel) return <Navigate to="/map" replace />;
   if (demoMode && demo.data) return <DemoReport parcel={parcel} cropIds={cropIds} data={demo.data} />;
 
-  // Several crops give one analysis each. Once none is still running, offer the ready ones as one PDF;
-  // a failed crop can be retried below and is then included as well.
-  const readyIds = jobs.flatMap((job) => (job.report && job.analysisId ? [job.analysisId] : []));
-  const pending = jobs.some((job) => !job.report && !job.error);
-  const combinedLabel = readyIds.length === jobs.length ? pl.report.downloadAll : pl.report.downloadReady;
+  const readyIds = visibleJobs.flatMap((job) => (job.report && job.analysisId ? [job.analysisId] : []));
+  const pending = visibleJobs.some((job) => !job.report && !job.error);
+  const combinedLabel = readyIds.length === visibleJobs.length ? pl.report.downloadAll : pl.report.downloadReady;
+  const parcelFilename = resultParcelId?.replace(/\//g, '-');
+  const combinedDownload = visibleJobs.length > 1 && (pending
+    ? <button type="button" className="btn-primary" disabled><PrinterIcon /> {pl.report.downloadAllPending}</button>
+    : readyIds.length > 1 && (
+      <PdfDownloadButton
+        key={resultParcelId}
+        href={combinedReportPdfUrl(readyIds)}
+        label={combinedLabel}
+        fileName={parcelFilename ? `vedra-${parcelFilename}.pdf` : 'vedra-raport.pdf'}
+      />
+    ));
 
   return (
     <div className="report-wrap">
       <div className="report-toolbar no-print">
         <Link to="/map" className="btn-secondary"><ArrowLeftIcon /> {pl.report.back}</Link>
-        {jobs.length > 1 && (pending
-          ? <button type="button" className="btn-primary" disabled><PrinterIcon /> {pl.report.downloadAllPending}</button>
-          : readyIds.length > 1 && (
-            <PdfDownloadButton href={combinedReportPdfUrl(readyIds)} label={combinedLabel} fileName="vedra-raport.pdf" />
-          ))}
+        {!isGroup && combinedDownload}
       </div>
       {selectionError && <AnalysisError message={selectionError} />}
       {demoMode && (
@@ -65,11 +71,13 @@ export function ReportPage() {
           ? <AnalysisError message={demo.error.message} retry={() => void demo.refetch()} />
           : <p role="status">{pl.backend.preparing}</p>
       )}
-      {jobs.map((job) => {
+      {isGroup && <GroupAnalysisResults jobs={jobs} parcelId={resultParcelId} />}
+      {isGroup && combinedDownload && <div className="report-toolbar no-print">{combinedDownload}</div>}
+      {visibleJobs.map((job) => {
         const report = job.report;
         if (!report || !job.analysisId) {
           return (
-            <div className="backend-report results" key={job.code}>
+            <div className="backend-report results" key={`${job.parcelId}:${job.code}`}>
               <h2 className="analysis-crop">{job.names.join(', ')}</h2>
               <AnalysisJobState job={job} />
             </div>
@@ -77,7 +85,7 @@ export function ReportPage() {
         }
         const { parcel } = report;
         return (
-          <article className="report backend-report results" key={job.code}>
+          <article className="report backend-report results" key={`${job.parcelId}:${job.code}`}>
             <header className="report__head">
               <div>
                 <h1>{pl.report.title}</h1>

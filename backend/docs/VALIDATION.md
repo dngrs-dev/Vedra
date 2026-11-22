@@ -3,7 +3,8 @@
 Uprawa porównawcza to **zboża jare**. Klasa gleby pochodzi z zapisu części A dla danej działki i daty.
 Porównanie korzysta z dobowych pomiarów stacji IMGW-PIB oraz tych samych obliczeń KBW co aplikacja.
 Podana różnica to KBW Vedry minus KBW MRiRW. Wynik z obwieszczenia dotyczy gminy. Vedra wykorzystuje komórkę modelu lub pomiary stacji przypisanej do działki.
-Ocena Vedry używa progów z 2019 r. Dla 2018 r. zgodność werdyktów ma charakter orientacyjny ze względu na wcześniejsze przepisy.
+Dla 2018 r. stosujemy progi obowiązujące od 22.04.2017, a dla 2023 r. progi obowiązujące od 01.05.2019.
+Osobno sprawdzamy, czy urzędowa wartość KBW po porównaniu z progiem odtwarza opublikowany werdykt. Dane urzędowe służą tutaj do weryfikacji i nie zasilają obliczeń działki.
 [Progi dla 2018 r.](https://eli.gov.pl/eli/DU/2017/732/ogl), [progi od 2019 r.](https://eli.gov.pl/eli/DU/2019/739/ogl)
 
 ## Odtworzenie lokalne
@@ -21,36 +22,45 @@ python -m scripts.b.backtest --imgw-only
 
 [Obwieszczenie MRiRW](https://edziennik.minrol.gov.pl/DUM_MRIRW/2018/13/akt.pdf)
 
-| Działka | Gmina | Gleba | KBW MRiRW, mm | Werdykt MRiRW | KBW Vedry, mm | KBW FAO-56, mm | Werdykt Vedry |
-| --- | --- | --- | ---: | --- | ---: | ---: | --- |
-| 040704_2.0012.63/1 | Inowrocław | III | -212,0 | brak suszy | -216,4 | — | susza |
-| 060406_2.0136.AR_5.1077/6 | Trzeszczany | III | -140,0 | brak suszy | -188,4 | — | brak suszy |
-| 100206_2.0008.273/23 | Kutno | II | -170,0 | brak suszy | -182,9 | — | susza |
-| 121405_5.0016.480/3 | Proszowice | III | -111,0 | brak suszy | -101,5 | — | brak suszy |
-| 142513_2.0039.102 | Zakrzew | II | -159,0 | brak suszy | -149,6 | — | brak suszy |
-| 200605_5.0002.143 | Stawiski | I | -184,0 | susza | -204,5 | — | susza |
-| 280803_2.0028.78/40 | Kętrzyn | IV | -192,0 | brak suszy | -174,1 | — | brak suszy |
-| 303005_5.0323.25/7 | Września | I | -224,0 | susza | -254,1 | — | susza |
+| Działka | Gmina | Gleba | Próg KBW, mm | KBW MRiRW, mm | Werdykt MRiRW | KBW Vedry, mm | KBW FAO-56, mm | Werdykt Vedry |
+| --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- |
+| 040704_2.0012.63/1 | Inowrocław | III | -219,0 | -212,0 | brak suszy | -216,4 | — | brak suszy |
+| 060406_2.0136.AR_5.1077/6 | Trzeszczany | III | -219,0 | -140,0 | brak suszy | -188,4 | — | brak suszy |
+| 100206_2.0008.273/23 | Kutno | II | -189,0 | -170,0 | brak suszy | -182,9 | — | brak suszy |
+| 121405_5.0016.480/3 | Proszowice | III | -219,0 | -111,0 | brak suszy | -101,5 | — | brak suszy |
+| 142513_2.0039.102 | Zakrzew | II | -189,0 | -159,0 | brak suszy | -149,6 | — | brak suszy |
+| 200605_5.0002.143 | Stawiski | I | -170,0 | -184,0 | susza | -204,5 | — | susza |
+| 280803_2.0028.78/40 | Kętrzyn | IV | -241,0 | -192,0 | brak suszy | -174,1 | — | brak suszy |
+| 303005_5.0323.25/7 | Września | I | -170,0 | -224,0 | susza | -254,1 | — | susza |
 
 - Doroszewski–Górski, n = 8, średni błąd bezwzględny 19,1 mm, średnia różnica -10,0 mm.
 - FAO-56, n = 0. Brak podstaw do obliczenia błędu.
-- Zgodne werdykty, 6 z 8 porównywalnych przypadków.
+- Zgodne werdykty, 8 z 8 porównywalnych przypadków.
+
+- Odtworzenie werdyktu po podstawieniu urzędowego KBW: 8 z 8.
 
 ## 2023-05-31
 
 [Obwieszczenie MRiRW](https://edziennik.minrol.gov.pl/DUM_MRIRW/2023/25/oryginal/akt.pdf)
 
-| Działka | Gmina | Gleba | KBW MRiRW, mm | Werdykt MRiRW | KBW Vedry, mm | KBW FAO-56, mm | Werdykt Vedry |
-| --- | --- | --- | ---: | --- | ---: | ---: | --- |
-| 040704_2.0012.63/1 | Inowrocław | III | -140,0 | brak suszy | -128,2 | — | brak suszy |
-| 060406_2.0136.AR_5.1077/6 | Trzeszczany | III | -119,0 | brak suszy | -58,4 | — | brak suszy |
-| 100206_2.0008.273/23 | Kutno | II | -114,0 | brak suszy | -135,8 | — | brak suszy |
-| 121405_5.0016.480/3 | Proszowice | III | -20,0 | brak suszy | -29,7 | — | brak suszy |
-| 142513_2.0039.102 | Zakrzew | II | -71,0 | brak suszy | -96,0 | — | brak suszy |
-| 200605_5.0002.143 | Stawiski | I | -119,0 | brak suszy | -146,6 | — | susza |
-| 280803_2.0028.78/40 | Kętrzyn | IV | -152,0 | brak suszy | -166,8 | — | brak suszy |
-| 303005_5.0323.25/7 | Września | I | -143,0 | susza | -114,9 | — | brak suszy |
+| Działka | Gmina | Gleba | Próg KBW, mm | KBW MRiRW, mm | Werdykt MRiRW | KBW Vedry, mm | KBW FAO-56, mm | Werdykt Vedry |
+| --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- |
+| 040704_2.0012.63/1 | Inowrocław | III | -176,0 | -140,0 | brak suszy | -128,2 | — | brak suszy |
+| 060406_2.0136.AR_5.1077/6 | Trzeszczany | III | -176,0 | -119,0 | brak suszy | -58,4 | — | brak suszy |
+| 100206_2.0008.273/23 | Kutno | II | -146,0 | -114,0 | brak suszy | -135,8 | — | brak suszy |
+| 121405_5.0016.480/3 | Proszowice | III | -176,0 | -20,0 | brak suszy | -29,7 | — | brak suszy |
+| 142513_2.0039.102 | Zakrzew | II | -146,0 | -71,0 | brak suszy | -96,0 | — | brak suszy |
+| 200605_5.0002.143 | Stawiski | I | -127,0 | -119,0 | brak suszy | -146,6 | — | susza |
+| 280803_2.0028.78/40 | Kętrzyn | IV | -196,0 | -152,0 | brak suszy | -166,8 | — | brak suszy |
+| 303005_5.0323.25/7 | Września | I | -127,0 | -143,0 | susza | -114,9 | — | brak suszy |
 
 - Doroszewski–Górski, n = 8, średni błąd bezwzględny 24,9 mm, średnia różnica 0,2 mm.
 - FAO-56, n = 0. Brak podstaw do obliczenia błędu.
 - Zgodne werdykty, 6 z 8 porównywalnych przypadków.
+
+- Odtworzenie werdyktu po podstawieniu urzędowego KBW: 8 z 8.
+
+## Podsumowanie
+
+- Zgodność niezależnych szacunków KBW Vedry z werdyktami MRiRW: **14 z 16**.
+- Zgodność reguły progowej przy urzędowym KBW gminy: **16 z 16**.

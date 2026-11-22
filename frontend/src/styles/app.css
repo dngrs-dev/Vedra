@@ -57,6 +57,11 @@ button { font: inherit; cursor: pointer; }
 .map-search__btn { border: 0; background: transparent; padding: 0 0 0 10px; height: 36px; display: grid; place-items: center; color: var(--muted); }
 .map-search input { flex: 1; min-width: 0; border: 0; outline: 0; height: 36px; padding: 0 10px; font: inherit; background: transparent; }
 .map-search:focus-within { box-shadow: 0 0 0 2px var(--green-700), var(--shadow); }
+.map-search__batch { flex: none; align-self: stretch; padding: 0 8px; border: 0; border-left: 1px solid var(--line); background: var(--green-100); color: var(--green-800); font-size: 12px; font-weight: 600; }
+.map-batch-search:not([hidden]) { display: grid; }
+.map-batch-search { position: absolute; z-index: 510; top: 55px; left: 58px; width: min(330px, calc(100% - 112px)); gap: 8px; padding: 12px; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); }
+.map-batch-search label { font-weight: 600; }
+.map-batch-search textarea { width: 100%; min-height: 84px; resize: vertical; }
 
 .map-type { position: absolute; z-index: 500; top: 12px; left: 50%; transform: translateX(-30%); display: flex; background: #fff; border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
 .map-type button { border: 0; background: #fff; padding: 0 16px; height: 36px; color: var(--ink); }
@@ -133,6 +138,14 @@ button { font: inherit; cursor: pointer; }
 .kbw-latest h3 { margin: 0 0 6px; font-size: 14px; }
 .results { display: flex; flex-direction: column; gap: 12px; transition: opacity 0.2s; }
 .analysis-crop { margin: 0; font-size: 16px; }
+.batch-summary { margin-bottom: 12px; }
+.batch-parcel { display: grid; gap: 4px; margin-bottom: 8px; font-weight: 600; }
+.batch-parcel select { width: 100%; font-weight: 400; }
+.batch-summary summary { cursor: pointer; color: var(--green-700); font-weight: 600; }
+.batch-table-wrap { overflow-x: auto; }
+.batch-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.batch-table th, .batch-table td { padding: 6px 5px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.batch-table button { text-align: left; overflow-wrap: anywhere; }
 .backend-report + .backend-report { margin-top: 16px; }
 
 .status-line { display: flex; gap: 6px; font-weight: 600; margin-bottom: 8px; }

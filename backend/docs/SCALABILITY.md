@@ -7,6 +7,12 @@ odczytu postępu korzysta z pamięci procesu. Po ukończeniu raport trafia do SQ
 go odczytać po restarcie. Renderowanie PDF następuje przy pierwszym pobraniu, a późniejsze
 pobrania korzystają z zapisanego pliku.
 
+W jednej serii frontend dopuszcza 12 par działka–uprawa i utrzymuje do dwóch aktywnych analiz.
+To limit interfejsu prototypu, odpowiadający sześciu rundom przy docelowych 30 s na zadanie.
+Dwa równoległe zadania sprawdzono w lokalnym teście rzeczywistych danych. Osobny limit procesu
+API ustawia `ANALYSIS_CONCURRENCY`. Limit czasu dotyczy wykonania pojedynczej analizy po wejściu
+do kolejki wykonawczej. Raport dla danej pary jest dostępny po jej ukończeniu.
+
 Pogoda i źródła geo są pobierane równolegle po ustaleniu działki. Kompletne archiwum pogody
 jest buforowane dla komórki 0,1°. Okres opóźnienia publikacji uzupełnia bieżący model
 pogodowy. Lokalne archiwum IMGW-PIB może dostarczyć dane potrzebne do KBW przy niedostępności

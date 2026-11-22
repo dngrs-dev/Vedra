@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import replace
 from datetime import date, timedelta
+from typing import Literal
 
 from app.analytics import crops, periods, season
 from app.analytics.evapotranspiration import etp_period
@@ -13,13 +14,19 @@ from app.contracts.geo import KbwSoilCategory
 from app.recommendations import texts_pl as text
 
 
+def numeric_verdict(balance: float, threshold: float) -> Literal["drought", "no_drought"]:
+    # Art. 3(2)(10) of the crop insurance act specifies strictly below.
+    # https://eli.gov.pl/api/acts/DU/2019/477/text/I/D20190477.pdf
+    return "drought" if balance < threshold else "no_drought"
+
+
 def _period_balance(
-    weather: WeatherData | None, soil_category: KbwSoilCategory | None, crop: str, period: Period
+    weather: WeatherData | None, soil_category: KbwSoilCategory | None, crop: str, period: Period, as_of: date
 ) -> KbwResult:
     if soil_category is None:
         return KbwResult("unavailable", text.KBW_SOIL_MISSING, period)
 
-    threshold = crops.threshold(crop, soil_category, period.idx)
+    threshold = crops.threshold(crop, soil_category, period.idx, as_of=as_of)
     if threshold == "x":
         return KbwResult("not_applicable", text.KBW_NOT_APPLICABLE, period, soil_category, threshold_mm=threshold)
     if threshold == "-":
@@ -46,17 +53,15 @@ def _period_balance(
 
     balance = precipitation - etp
     distance = balance - threshold
-    # Art. 3(2)(10) of the crop insurance act (Dz.U. 2019 poz. 477) specifies strictly below.
-    # https://eli.gov.pl/api/acts/DU/2019/477/text/I/D20190477.pdf
-    drought = distance < 0
+    verdict = numeric_verdict(balance, threshold)
     near = distance == 0 or (
         et0_balance is not None and min(balance, et0_balance) <= threshold <= max(balance, et0_balance)
     )
-    explanation = text.KBW_DROUGHT if drought else text.KBW_NO_DROUGHT
+    explanation = text.KBW_DROUGHT if verdict == "drought" else text.KBW_NO_DROUGHT
     if near:
         explanation = f"{explanation} {text.KBW_NEAR_THRESHOLD}"
     return KbwResult(
-        "drought" if drought else "no_drought",
+        verdict,
         explanation,
         period,
         soil_category,
@@ -78,7 +83,7 @@ def assess(
         first_end = periods.for_year(analysis_date.year)[0].end.strftime("%d.%m.%Y")
         explanation = text.KBW_NO_COMPLETED_PERIOD.format(first_period_end=first_end)
         return KbwResult("unavailable", explanation, soil_category=soil_category)
-    return _period_balance(weather, soil_category, crop, period)
+    return _period_balance(weather, soil_category, crop, period, analysis_date)
 
 
 def history(
@@ -90,7 +95,8 @@ def history(
 ) -> KbwHistory:
     cutoff = years_before(analysis_date, years)
     results = tuple(
-        _period_balance(weather, soil_category, crop, period)
+        # Use the assessment edition for all years so the risk series uses one definition of drought.
+        _period_balance(weather, soil_category, crop, period, analysis_date)
         for year in range(cutoff.year, analysis_date.year + 1)
         for period in periods.for_year(year)
         if cutoff < period.end <= analysis_date

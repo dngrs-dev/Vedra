@@ -44,8 +44,11 @@ przez dostawcę części A. Tryb `fixtures` korzysta z zapisanych przypadków, a
 demonstracji. Raport pokazuje dostępne wyniki oraz powody braków.
 [Źródła danych przestrzennych](docs/DATA_SOURCES.md).
 
-Frontend wyszukuje pojedynczą działkę przez API, uruchamia jej analizę przez `POST /api/analyses`
-i odczytuje postęp zadania. Grupy i własne obszary korzystają z wyników demonstracyjnych.
+Frontend uruchamia `POST /api/analyses` dla każdej pary działka–uprawa i odczytuje postęp zadania.
+Działki z listy identyfikatorów lub inteligentnego zaznaczenia można analizować w jednej serii.
+Porównanie pokazuje różniące się wyniki KBW dla tej samej uprawy i okresu.
+Dla każdej działki można pobrać PDF ze wszystkimi gotowymi uprawami albo raport dla jednej uprawy.
+Własne obszary i zastępcze obrysy korzystają z wyników demonstracyjnych.
 [Uruchomienie frontendu](../frontend/README.md).
 
 ## 4. API
@@ -125,12 +128,14 @@ backend korzysta z dołączonego archiwum dobowego IMGW-PIB i wskazuje stację w
 | --- | --- | --- |
 | `GEO_PROVIDER` | `real` | `real` pobiera dane części A, `fixtures` czyta zapisy części A, `fake` zwraca dane demonstracyjne. |
 | `EGIB_SNAPSHOT_PATH` | brak | Ścieżka do opcjonalnej lokalnej bazy granic działek dla trybu `real`. |
+| `ANALYSIS_CONCURRENCY` | `2` | Maksymalna liczba analiz wykonywanych równolegle przez proces API. |
 | `CACHE_DIR` | `.cache` | Pamięć podręczna źródeł. |
 | `DB_PATH` | `data/vedra.sqlite` | Baza raportów. |
 | `CORS_ORIGINS` | `http://localhost:5173` | Dozwolone adresy frontendu, rozdzielone przecinkami. |
 | `LOG_LEVEL` | `INFO` | Poziom logowania. |
 
-Jeden proces API obsługuje kolejkę i odpytywanie w toku zadania. Zapisane raporty przeżywają restart.
+Jeden proces API obsługuje kolejkę i odpytywanie w toku zadania. Limit czasu analizy zaczyna się
+po zwolnieniu miejsca w kolejce. Zapisane raporty przeżywają restart.
 W Dockerze można oddzielić dane raportów od dołączonych danych źródłowych przez
 `-e DB_PATH=/app/state/vedra.sqlite -v vedra-state:/app/state`.
 
@@ -143,7 +148,7 @@ W Dockerze można oddzielić dane raportów od dołączonych danych źródłowyc
 | EGiB, PRG i mapa glebowo-rolnicza | Tryb `real` pobiera granice działki po identyfikatorze lub punkcie z krajowego EGiB WFS. Nazwy województw i powiatów pochodzą z dołączonego zestawienia PRG. Przy braku wyniku backend próbuje ULDK i krajowego eksportu GeoParquet. Kategoria gleby pochodzi z odrębnych źródeł glebowych. | [EGiB WFS](https://mapy.geoportal.gov.pl/wss/service/PZGIK/EGIB/WFS/UslugaZbiorcza), [PRG](https://www.geoportal.gov.pl/pl/dane/panstwowy-rejestr-granic-prg/), [ULDK GUGiK](https://uldk.gugik.gov.pl/), [informacja o usłudze WMS](https://www.geoportal.gov.pl/aktualnosci/usluga-wms-prezentujaca-mape-glebowo-rolnicza-dostepna-w-serwisie-www-geoportal-gov-pl/). |
 | SoilGrids 2.0 | Profil glebowy o rozdzielczości 250 m. Dla działek kontrolnych część A korzysta także z odpowiedzi pobranych 21.11.2026. | CC BY 4.0, ISRIC. [Warunki SoilGrids](https://isric.org/explore/soilgrids/). |
 | Sentinel-2, NMT, hydrografia, pokrycie terenu, EDO i IMGW | Część A pobiera obserwacje Sentinel-2 przez Planetary Computer lub Earth Search, model terenu GUGiK lub Copernicus DEM, dane hydrograficzne BDOT10k lub OSM, ESA WorldCover, Copernicus EDO oraz bieżące dane IMGW. Raport wskazuje, które źródła zwróciły dane dla danej działki i daty. | [Źródła przestrzenne, zakresy i warunki](docs/DATA_SOURCES.md), [konfiguracja źródeł](config/geo_sources.yaml). |
-| MRiRW, obwieszczenia KBW | Załączniki dla okresów kończących się 10.07.2018 i 31.05.2023 pobrano 21.11.2026. Parquet i sumy kontrolne dokumentują walidację. Progi z Dz.U. 2019 poz. 739 i współczynniki literaturowe są w wersjonowanej konfiguracji. | Dokumenty urzędowe. [Manifest](data/b/manifest.json), [porównanie z obwieszczeniami](docs/VALIDATION.md), [progi](https://eli.gov.pl/eli/DU/2019/739/ogl). |
+| MRiRW, obwieszczenia KBW | Załączniki dla okresów kończących się 10.07.2018 i 31.05.2023 pobrano 21.11.2026. Parquet i sumy kontrolne dokumentują walidację. Progi z Dz.U. 2017 poz. 732 i Dz.U. 2019 poz. 739 oraz współczynniki literaturowe są w wersjonowanej konfiguracji. | Dokumenty urzędowe. [Manifest](data/b/manifest.json), [porównanie z obwieszczeniami](docs/VALIDATION.md), [progi 2017](https://eli.gov.pl/eli/DU/2017/732/ogl), [progi 2019](https://eli.gov.pl/eli/DU/2019/739/ogl). |
 
 Zapisane odpowiedzi geo z 21.11.2026 służą lokalnym testom oraz demonstracji powtarzalnych przypadków.
 Potok za każdym uruchomieniem oblicza wynik i zalecenia na podstawie wejściowych danych.

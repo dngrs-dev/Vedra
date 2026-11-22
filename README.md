@@ -46,7 +46,9 @@ Po zakończeniu analizy wybierz **Generuj Raport PDF**, a następnie **Pobierz P
 
 Tryb `real` wyszukuje działki w krajowej ewidencji. Dostępność poszczególnych wskaźników zależy
 od daty, pokrycia danymi oraz dostępności usług źródłowych. KBW ma sezonowy okres oceny.
-Wybór grup działek i obszarów rysowanych na mapie pokazuje oznaczone wyniki demonstracyjne.
+Przycisk **Wiele ID** umożliwia analizę kilku działek ewidencyjnych w jednej serii i porównanie
+różniących się wyników KBW dla tej samej uprawy i okresu. Dla każdej działki można pobrać jeden PDF obejmujący wybrane uprawy.
+Własne obszary rysowane na mapie pokazują oznaczone wyniki demonstracyjne.
 
 ## Dokumentacja techniczna
 

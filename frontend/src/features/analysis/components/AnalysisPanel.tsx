@@ -10,6 +10,7 @@ import { BackendReportCards } from './BackendReportCards';
 import { BasisCard } from './BasisCard';
 import { CropSelect } from './CropSelect';
 import { DateField } from './DateField';
+import { GroupAnalysisResults } from './GroupAnalysisResults';
 import { MoistureCard } from './MoistureCard';
 import { scrollToMapResults } from './MapResults';
 import { RecommendationsCard } from './RecommendationsCard';
@@ -28,10 +29,10 @@ export function AnalysisPanel() {
   const confirmed = useAnalysisStore((s) => s.confirmed);
   const confirm = useAnalysisStore((s) => s.confirm);
   const unconfirm = useAnalysisStore((s) => s.unconfirm);
-  const { demo, demoMode, jobs, selectionError } = useAnalysis();
+  const { demo, demoMode, isGroup, jobs, resultParcelId, visibleJobs, selectionError } = useAnalysis();
   const navigate = useNavigate();
-  const backendReady = jobs.some((job) => job.report);
-  const reportReady = backendReady || !!(confirmed && demo.data);
+  const scenariosReady = visibleJobs.some((job) => job.report);
+  const reportReady = jobs.some((job) => job.report) || !!(confirmed && demo.data);
 
   return (
     <aside className="panel" aria-label="Wyniki analizy">
@@ -76,8 +77,11 @@ export function AnalysisPanel() {
 
       {parcel && !confirmed && (
         <div className="confirm">
-          <button type="button" className="btn-primary btn-block" onClick={confirm}>{pl.confirm.button}</button>
+          <button type="button" className="btn-primary btn-block" onClick={confirm}>
+            {parcel.parts ? pl.batch.confirm : pl.confirm.button}
+          </button>
           <p className="muted small">{pl.confirm.tip}</p>
+          {parcel.parts && <p className="muted small">{pl.batch.commonInputs}</p>}
         </div>
       )}
 
@@ -103,8 +107,9 @@ export function AnalysisPanel() {
         </div>
       )}
 
-      {jobs.map((job) => (
-        <section key={job.code} className="results">
+      {isGroup && <GroupAnalysisResults jobs={jobs} parcelId={resultParcelId} />}
+      {visibleJobs.map((job) => (
+        <section key={`${job.parcelId}:${job.code}`} className="results">
           <h2 className="analysis-crop">{job.report?.crop_name_pl ?? job.names.join(', ')}</h2>
           {job.report ? <BackendReportCards report={job.report} /> : <AnalysisJobState job={job} />}
         </section>
@@ -115,7 +120,7 @@ export function AnalysisPanel() {
           <button type="button" className="btn-primary btn-block" onClick={() => navigate('/report')}>
             {pl.panel.openReport}
           </button>
-          {backendReady && (
+          {scenariosReady && (
             <button type="button" className="btn-secondary btn-block" onClick={scrollToMapResults}>
               ↓ {pl.panel.toScenarios}
             </button>

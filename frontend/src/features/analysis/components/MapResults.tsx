@@ -16,8 +16,8 @@ export function scrollToMapResults() {
  * Расчёт уже идёт в правой панели - здесь только читаем результат из кэша (active: false).
  */
 export function MapResults() {
-  const { jobs } = useAnalysis({ active: false });
-  const ready = jobs.filter((job) => job.report && job.analysisId);
+  const { visibleJobs } = useAnalysis({ active: false });
+  const ready = visibleJobs.filter((job) => job.report && job.analysisId);
   const show = useScenarioStore((s) => s.showScenarios);
   if (!ready.length) return null;
 
@@ -29,7 +29,7 @@ export function MapResults() {
       </header>
       <ScenarioToggle />
       {show && ready.map((job) => (
-        <div key={job.code} className="map-results__crop">
+        <div key={job.analysisId} className="map-results__crop">
           {ready.length > 1 && <h2 className="analysis-crop">{job.report!.crop_name_pl}</h2>}
           <ScenarioSimulator analysisId={job.analysisId!} />
         </div>
