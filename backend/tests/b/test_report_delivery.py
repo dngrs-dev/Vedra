@@ -90,8 +90,11 @@ def test_several_crops_share_one_combined_pdf(monkeypatch):
     def render_many(items):
         combined_calls.append([report.crop_code for report, _ in items])
         html = pdf.render_many_html(items)
-        assert html.count('<article class="report') == len(items)
-        assert html.count("next-report") == len(items) - 1
+        # General part, one part per crop and the appendix, each part after the first from a new page.
+        assert html.count('<article class="report') == len(items) + 2
+        assert html.count("next-report") == len(items) + 1
+        assert html.count('class="visual map"') == 1
+        assert html.count("<h2>Źródła danych</h2>") == 1
         for report, map_png in items:
             assert report.crop_name_pl in html
             assert map_png == b"\x89PNG-map"
@@ -143,8 +146,16 @@ def test_builtin_renderer_needs_no_native_libraries():
     single = pdf_basic.render(report)
     combined = pdf_basic.render_many([(report, None), (other, None)])
     assert single.startswith(b"%PDF-") and combined.startswith(b"%PDF-")
-    # Each report starts on a new page.
-    assert _page_count(combined) >= 2 * _page_count(single) >= 2
+    # The general part, each crop and the appendix start on a new page; shared content is not repeated.
+    assert _page_count(combined) >= 4 and _page_count(single) >= 1
+
+    page_texts = [" ".join(item.get_text() for item in figure.texts)
+                  for figure in pdf_basic.pages([(report, None), (other, None)])]
+    document = " ".join(page_texts)
+    assert document.count("Źródła danych") == 1
+    assert document.count("Położenie działki") == 1
+    assert any("UPRAWA 1 Z 2" in page and report.crop_name_pl in page for page in page_texts)
+    assert any("UPRAWA 2 Z 2" in page and "Kukurydza na ziarno" in page for page in page_texts)
 
 
 def test_pdf_endpoints_fall_back_to_builtin_renderer(monkeypatch):

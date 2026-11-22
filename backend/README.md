@@ -53,6 +53,7 @@ i odczytuje postęp zadania. Grupy i własne obszary korzystają z wyników demo
 | `POST /api/analyses` | Uruchomienie zadania i zwrot `analysis_id` z kodem 202. |
 | `GET /api/analyses/{id}` | Stan, postęp i raport po zakończeniu. |
 | `GET /api/analyses/{id}/report.pdf` | Pobranie raportu w formacie PDF. |
+| `GET /api/analyses/report.pdf?analysis_id=&analysis_id=` | Jeden PDF dla kilku upraw działki: część ogólna, część dla każdej uprawy i wspólne źródła danych, bez powtórzeń. |
 | `GET /api/reports/{id}` | Odczyt zapisanego raportu po `report_id`. |
 
 Docelowa forma odpowiedzi to [model raportu](app/contracts/report.py).

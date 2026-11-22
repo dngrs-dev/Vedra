@@ -18,6 +18,7 @@ from app.contracts.report import Report
 from app.recommendations import texts_pl as text
 from app.reports import pdf_basic
 from app.reports.charts import monthly_risk_svg
+from app.reports.combined import combine
 from app.reports.formatting import display_value, source_time
 
 TEMPLATES = Path(__file__).with_name("templates")
@@ -45,13 +46,39 @@ def _entry(report: Report, map_png: bytes | None) -> dict:
     }
 
 
+def _labels() -> dict:
+    return {
+        "category_labels": text.PDF_CATEGORY_LABELS,
+        "status_labels": text.PDF_STATUS_LABELS,
+        "confidence_labels": text.PDF_CONFIDENCE_LABELS,
+        "verdict_labels": text.PDF_VERDICT_LABELS,
+        "crop_values_note_text": text.PDF_CROP_VALUES_NOTE,
+        "missing": text.PDF_MISSING,
+    }
+
+
 def render_many_html(items: Sequence[tuple[Report, bytes | None]]) -> str:
-    """Render one HTML document with a section for each report, in the given order."""
-    return _environment().get_template("report.html.j2").render(
-        entries=[_entry(report, map_png) for report, map_png in items],
-        category_labels=text.PDF_CATEGORY_LABELS,
-        status_labels=text.PDF_STATUS_LABELS,
-        confidence_labels=text.PDF_CONFIDENCE_LABELS,
+    """Render one HTML document.
+
+    Several crops of one parcel share a general part and an appendix, with a part per crop between them.
+    Otherwise each report is rendered whole, in the given order.
+    """
+    document = combine(items)
+    if document is None:
+        return _environment().get_template("report.html.j2").render(
+            entries=[_entry(report, map_png) for report, map_png in items], **_labels(),
+        )
+    return _environment().get_template("combined.html.j2").render(
+        document=document,
+        map_url=_data_url(document.map_png, "image/png") if document.map_png else None,
+        crops=[{"part": part, "chart_url": _entry(part.report, None)["chart_url"]} for part in document.crops],
+        part_general=text.PDF_PART_GENERAL,
+        part_appendix=text.PDF_PART_APPENDIX,
+        overview_text=text.PDF_COMBINED_OVERVIEW,
+        crop_values_heading=text.PDF_CROP_VALUES_HEADING,
+        crop_values_intro=text.PDF_CROP_VALUES_INTRO,
+        no_extra_actions=text.PDF_CROP_NO_EXTRA_ACTIONS,
+        **_labels(),
     )
 
 

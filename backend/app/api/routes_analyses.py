@@ -27,6 +27,7 @@ ANALYSIS_HISTORY_YEARS = 10
 MAP_TIMEOUT_S = 3.0
 # Upper bound for one combined PDF; the crop list in config/crops.yaml is shorter.
 MAX_COMBINED_REPORTS = 20
+COMBINED_LAYOUT_VERSION = 2
 logger = logging.getLogger(__name__)
 
 
@@ -67,7 +68,9 @@ async def get_combined_pdf(
         maps = dict(zip(by_parcel, await asyncio.gather(*(_map_png(item, geo) for item in by_parcel.values()))))
         return await asyncio.to_thread(pdf.render_many, [(report, maps[report.parcel.parcel_id]) for report in reports])
 
-    content = await _cached_pdf(store, "combined:" + ",".join(report.report_id for report in reports), build)
+    # The version names the combined layout, so PDFs cached with an earlier layout are not reused.
+    cache_key = f"combined-{COMBINED_LAYOUT_VERSION}:" + ",".join(report.report_id for report in reports)
+    content = await _cached_pdf(store, cache_key, build)
     return _pdf_response(content, f"vedra-{reports[0].analysis_date}-{len(reports)}.pdf")
 
 

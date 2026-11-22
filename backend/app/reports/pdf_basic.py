@@ -18,9 +18,13 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 
-from app.contracts.report import Metric, Report
+from app.contracts.common import Provenance
+from app.contracts.report import (
+    Cause, IrrigationAdvice, Metric, Recommendation, Reference, Report, Signal,
+)
 from app.recommendations import texts_pl as text
 from app.reports.charts import monthly_risk_png
+from app.reports.combined import CombinedReport, CropDetail, combine
 from app.reports.formatting import display_value, source_time
 
 # A4 in PostScript points (ISO 216) and the margins from report.css (16 / 17 / 18 mm).
@@ -252,6 +256,10 @@ def _boxed(rows: list[Row]) -> list[Row]:
 class Block:
     rows: list[Row]
     keep: int = 0  # Number of leading rows that must share a page.
+    new_page: bool = False
+
+
+PAGE_BREAK = Block([], new_page=True)
 
 
 def _item(rows: list[Row]) -> Block:
@@ -270,104 +278,240 @@ def _section(heading: str, *blocks: Block | list[Row]) -> list[Block]:
     return [Block(title + first.rows, keep=lead), *items[1:]]
 
 
-def _report_blocks(report: Report, map_png: bytes | None) -> list[Block]:
-    kbw = report.assessment.kbw
+def _masthead(title: str, identity: list[tuple[str, str]], overline: str = "VEDRA") -> Block:
+    return Block([*_lines(overline, 8, bold=True, color=ACCENT, after=0), *_heading(title, 1), *_pairs(identity)])
+
+
+def _numeric_threshold(report: Report) -> bool:
+    threshold = report.assessment.kbw.threshold_mm
+    return isinstance(threshold, (int, float)) and not isinstance(threshold, bool)
+
+
+def _last_kbw(report: Report) -> tuple[Metric | None, Metric | None]:
     history = report.assessment.vulnerability.metrics if report.assessment.vulnerability else []
     by_code = {metric.code: metric for metric in history}
-    last_period, last_balance = by_code.get("kbw_last_period"), by_code.get("kbw_last_balance")
-    show_last = last_period is not None and last_balance is not None
+    return by_code.get("kbw_last_period"), by_code.get("kbw_last_balance")
 
-    blocks = [Block([
-        *_lines("VEDRA", 8, bold=True, color=ACCENT, after=0),
-        *_heading(TITLE, 1),
-        *_pairs([
-            ("Działka ewidencyjna", report.parcel.parcel_id),
-            ("Obręb", display_value(report.parcel.region)),
-            ("Uprawa", report.crop_name_pl),
-            ("Data analizy", str(report.analysis_date)),
-        ]),
-    ])]
 
-    summary = [_gap(1 * MM), *_heading("Sytuacja wodna działki", 2, SUMMARY)[1:], *_lines(report.summary, frame=SUMMARY)]
+def _assessment(report: Report, heading: str) -> list[Block]:
+    """The KBW assessment for a crop in the shaded summary box."""
+    kbw = report.assessment.kbw
+    last_period, last_balance = _last_kbw(report)
+    summary = [_gap(1 * MM), *_heading(heading, 2, SUMMARY)[1:], *_lines(report.summary, frame=SUMMARY)]
     if kbw.period:
         summary += _lines(f"Okres oceny: {kbw.period.start} – {kbw.period.end}", frame=SUMMARY)
     pairs = []
     if kbw.kbw_mm is not None or (kbw.period and kbw.verdict == "unavailable"):
         pairs.append(("Klimatyczny bilans wodny",
                       display_value(kbw.kbw_mm) + (" mm" if kbw.kbw_mm is not None else "")))
-    if isinstance(kbw.threshold_mm, (int, float)) and not isinstance(kbw.threshold_mm, bool):
+    if _numeric_threshold(report):
         pairs.append(("Próg dla uprawy i gleby", f"{display_value(kbw.threshold_mm)} mm"))
     if report.assessment.confidence:
         pairs.append(("Pewność oceny", text.PDF_CONFIDENCE_LABELS[report.assessment.confidence]))
     summary += _pairs(pairs, frame=SUMMARY)
-    if show_last:
+    if last_period and last_balance:
         summary += _heading("Ostatnia dostępna ocena KBW", 3, SUMMARY)
         summary += _pairs([("Okres oceny", display_value(last_period.value)),
                            ("Wynik", _metric_value(last_balance))], frame=SUMMARY)
     summary.append(_gap(2 * MM))
-    blocks += [Block([_gap(4 * MM)]), Block(_boxed(summary), keep=min(len(summary), 8))]
+    return [Block([_gap(4 * MM)]), Block(_boxed(summary), keep=min(len(summary), 8))]
 
+
+def _map(map_png: bytes | None) -> list[Block]:
     location = _image(map_png, MAP_MAX_H) if map_png else []
-    blocks += _section("Położenie działki",
-                       location or _lines("Mapa była niedostępna podczas tworzenia raportu."))
+    return _section("Położenie działki", location or _lines("Mapa była niedostępna podczas tworzenia raportu."))
 
-    blocks += _section("Wskaźniki", *(
+
+Varies = Callable[[Signal | Cause | Recommendation], bool]
+
+
+def _never(_: Signal | Cause | Recommendation) -> bool:
+    return False
+
+
+def _crop_values_note(item: Signal | Cause | Recommendation, varies: Varies) -> list[Row]:
+    return _lines(text.PDF_CROP_VALUES_NOTE, 8.5, color=MUTED, after=1 * MM) if varies(item) else []
+
+
+def _signals(signals: Sequence[Signal], heading: str = "Wskaźniki", varies: Varies = _never) -> list[Block]:
+    if not signals:
+        return []
+    return _section(heading, *(
         _item(_lines(signal.summary_pl, lead=f"{text.PDF_STATUS_LABELS[signal.status.value]}.")
-              + _metrics(signal.metrics) + [_gap(1 * MM)])
-        for signal in report.assessment.signals
+              + _metrics(signal.metrics) + _crop_values_note(signal, varies) + [_gap(1 * MM)])
+        for signal in signals
     ))
 
-    if report.assessment.vulnerability:
-        chart = monthly_risk_png(report)
-        shown = [metric for metric in history
-                 if not show_last or metric.code not in {"kbw_last_period", "kbw_last_balance"}]
-        blocks += _section("Podatność w poprzednich latach",
-                           _lines(report.assessment.vulnerability.summary_pl),
-                           Block(_image(chart, CHART_MAX_H) if chart else []),
-                           _metrics(shown))
 
-    if report.causes:
-        blocks += _section("Przyczyny niedoboru wody", *(
-            _item(_heading(cause.title_pl, 3) + _lines(cause.explanation_pl) + _metrics(cause.evidence))
-            for cause in report.causes
-        ))
+def _vulnerability(report: Report) -> list[Block]:
+    if not report.assessment.vulnerability:
+        return []
+    last_period, last_balance = _last_kbw(report)
+    hidden = {"kbw_last_period", "kbw_last_balance"} if last_period and last_balance else set()
+    chart = monthly_risk_png(report)
+    return _section("Podatność w poprzednich latach",
+                    _lines(report.assessment.vulnerability.summary_pl),
+                    Block(_image(chart, CHART_MAX_H) if chart else []),
+                    _metrics(metric for metric in report.assessment.vulnerability.metrics if metric.code not in hidden))
 
-    references = {reference.id: reference for reference in report.references}
-    recommendations = []
-    for item in report.recommendations:
+
+def _causes(causes: Sequence[Cause], heading: str = "Przyczyny niedoboru wody", varies: Varies = _never) -> list[Block]:
+    if not causes:
+        return []
+    return _section(heading, *(
+        _item(_heading(cause.title_pl, 3) + _lines(cause.explanation_pl) + _metrics(cause.evidence)
+              + _crop_values_note(cause, varies))
+        for cause in causes
+    ))
+
+
+def _recommendations(items: Sequence[Recommendation], references: Sequence[Reference], heading: str,
+                     empty: str | None, varies: Varies = _never) -> list[Block]:
+    by_id = {reference.id: reference for reference in references}
+    blocks = []
+    for item in items:
         rows = _lines(text.PDF_CATEGORY_LABELS[item.category], 8, bold=True, color=ACCENT, after=0)
         rows += _heading(item.title_pl, 3) + _lines(item.action_pl) + _lines(item.why_pl) + _metrics(item.evidence)
+        rows += _crop_values_note(item, varies)
         for reference_id in item.reference_ids:
-            if reference := references.get(reference_id):
+            if reference := by_id.get(reference_id):
                 rows += _lines(reference.title_pl, 8.5, color=LINK, url=reference.url, after=0)
-        recommendations.append(_item(rows + [_gap(3 * MM)]))
-    blocks += _section("Zalecane działania", *(
-        recommendations or [_lines("Dostępne dane nie pozwalają wskazać działań dla działki.")]
-    ))
+        blocks.append(_item(rows + [_gap(3 * MM)]))
+    if not blocks and empty is None:
+        return []
+    return _section(heading, *(blocks or [_lines(empty)]))
 
-    if report.irrigation:
-        irrigation = _lines(report.irrigation.why_pl)
-        if report.irrigation.suggested_date:
-            irrigation += _lines(f"Szacowany termin: {report.irrigation.suggested_date}")
-        if report.irrigation.net_dose_mm:
-            irrigation += _lines(f"Dawka netto: {display_value(report.irrigation.net_dose_mm)} mm")
-        blocks += _section("Ocena nawadniania", irrigation)
 
-    if report.limitations_pl:
-        blocks += _section("Ograniczenia oceny", _bullets((note, None) for note in report.limitations_pl))
+def _irrigation(irrigation: IrrigationAdvice | None) -> list[Block]:
+    if not irrigation:
+        return []
+    rows = _lines(irrigation.why_pl)
+    if irrigation.suggested_date:
+        rows += _lines(f"Szacowany termin: {irrigation.suggested_date}")
+    if irrigation.net_dose_mm:
+        rows += _lines(f"Dawka netto: {display_value(irrigation.net_dose_mm)} mm")
+    return _section("Ocena nawadniania", rows)
 
-    sources = []
-    for source in report.data_sources:
+
+def _appendix(limitations: Sequence[str], sources: Sequence[Provenance],
+              references: Sequence[Reference]) -> list[Block]:
+    blocks = _section("Ograniczenia oceny", _bullets((note, None) for note in limitations)) if limitations else []
+    items = []
+    for source in sources:
         first = source.name + (f" · Okres danych: {source.data_period}" if source.data_period else "")
         second = f"Pobranie: {source_time(source.fetched_at)}" + (
             f" · Rozdzielczość: {source.resolution}" if source.resolution else "")
         third = f"Licencja: {source.licence}" + (f" · {source.attribution_pl}" if source.attribution_pl else "")
-        sources.append(_item(_lines(first, 8.5, bold=True, color=LINK, url=source.url, after=0)
-                             + _lines(second, 8.5, after=0) + _lines(third, 8.5, after=3 * MM)))
+        items.append(_item(_lines(first, 8.5, bold=True, color=LINK, url=source.url, after=0)
+                           + _lines(second, 8.5, after=0) + _lines(third, 8.5, after=3 * MM)))
     blocks += _section("Źródła danych", *(
-        sources or [_lines("Źródła danych przestrzennych i pogodowych były niedostępne.", 8.5)]
+        items or [_lines("Źródła danych przestrzennych i pogodowych były niedostępne.", 8.5)]
     ))
-    blocks += _section("Odniesienia", _bullets(((ref.title_pl, ref.url) for ref in report.references), 8.5))
+    blocks += _section("Odniesienia", _bullets(((ref.title_pl, ref.url) for ref in references), 8.5))
+    return blocks
+
+
+def _report_blocks(report: Report, map_png: bytes | None) -> list[Block]:
+    return [
+        _masthead(TITLE, [
+            ("Działka ewidencyjna", report.parcel.parcel_id),
+            ("Obręb", display_value(report.parcel.region)),
+            ("Uprawa", report.crop_name_pl),
+            ("Data analizy", str(report.analysis_date)),
+        ]),
+        *_assessment(report, "Sytuacja wodna działki"),
+        *_map(map_png),
+        *_signals(report.assessment.signals),
+        *_vulnerability(report),
+        *_causes(report.causes),
+        *_recommendations(report.recommendations, report.references, "Zalecane działania",
+                          "Dostępne dane nie pozwalają wskazać działań dla działki."),
+        *_irrigation(report.irrigation),
+        *_appendix(report.limitations_pl, report.data_sources, report.references),
+    ]
+
+
+def _table(columns: Sequence[tuple[str, float, str]], rows: Sequence[Sequence[str]], size: float = 9.5) -> list[Row]:
+    """A simple table: ``columns`` are (header, share of the text width, horizontal alignment)."""
+    pad = 2 * MM
+    widths = [share * TEXT_W for _, share, _ in columns]
+    lefts = [MARGIN_X + sum(widths[:index]) for index in range(len(widths))]
+    line_h = size * LINE_HEIGHT
+
+    def row(cells: Sequence[str], font: FontProperties, color: str, rule: str) -> Row:
+        wrapped = [_wrap(cell, font, width - pad) for cell, width in zip(cells, widths)]
+        height = max(len(lines) for lines in wrapped) * line_h + 1.6 * MM
+
+        def draw(figure: Figure, top: float) -> None:
+            for lines, left, width, (_, _, align) in zip(wrapped, lefts, widths, columns):
+                x = left + width - pad / 2 if align == "right" else left
+                for index, line in enumerate(lines):
+                    _text(figure, x, top - 0.8 * MM - size * 1.1 - index * line_h, line, font, color, ha=align)
+            figure.add_artist(_rule(top - height + 0.3, rule))
+        return Row(height, draw)
+
+    header = row([name for name, _, _ in columns], _font(size - 1, True), MUTED, RULE)
+    return [_gap(1 * MM), header, *(row(cells, _font(size), INK, RULE_LIGHT) for cells in rows), _gap(3 * MM)]
+
+
+def _overview(document: CombinedReport) -> list[Row]:
+    """Each crop's KBW verdict against its own threshold."""
+    rows = []
+    for part in document.crops:
+        kbw = part.report.assessment.kbw
+        rows.append([
+            part.report.crop_name_pl,
+            text.PDF_VERDICT_LABELS[kbw.verdict],
+            f"{display_value(kbw.kbw_mm)} mm" if kbw.kbw_mm is not None else text.PDF_MISSING,
+            f"{display_value(kbw.threshold_mm)} mm" if _numeric_threshold(part.report) else "—",
+        ])
+    return _table([("Uprawa", 0.3, "left"), ("Ocena", 0.34, "left"), ("KBW", 0.18, "right"),
+                   ("Próg uprawy", 0.18, "right")], rows)
+
+
+def _crop_details(details: Sequence[CropDetail]) -> list[Block]:
+    if not details:
+        return []
+    return _section(text.PDF_CROP_VALUES_HEADING, _lines(text.PDF_CROP_VALUES_INTRO), *(
+        _item(_heading(detail.title, 3) + _metrics(detail.metrics)) for detail in details
+    ))
+
+
+def _part_title(overline: str, title: str) -> Block:
+    rows = [*_lines(overline, 8, bold=True, color=ACCENT, after=0), *_heading(title, 1)]
+    return Block(rows, keep=len(rows))
+
+
+def _combined_blocks(document: CombinedReport) -> list[Block]:
+    """General part, one part per crop from a new page, then the shared appendix."""
+    parcel, crops = document.parcel, document.crop_names
+    blocks = [
+        _masthead(TITLE, [
+            ("Działka ewidencyjna", parcel.parcel_id),
+            ("Obręb", display_value(parcel.region)),
+            ("Uprawy", ", ".join(crops)),
+            ("Data analizy", str(document.analysis_date)),
+        ], overline=f"VEDRA · {text.PDF_PART_GENERAL.upper()}"),
+        *_section("Podsumowanie dla upraw", _lines(text.PDF_COMBINED_OVERVIEW), _overview(document)),
+        *_map(document.map_png),
+        *_signals(document.signals, "Wskaźniki dla działki", document.has_crop_values),
+        *_causes(document.causes, "Przyczyny niedoboru wody wspólne dla upraw", document.has_crop_values),
+        *_recommendations(document.recommendations, document.references,
+                          "Działania zalecane dla wszystkich upraw", None, document.has_crop_values),
+        *_irrigation(document.irrigation),
+    ]
+    for index, part in enumerate(document.crops, start=1):
+        blocks += [PAGE_BREAK, _part_title(f"VEDRA · UPRAWA {index} Z {len(crops)}", part.report.crop_name_pl)]
+        blocks += _assessment(part.report, "Ocena dla uprawy")
+        blocks += _vulnerability(part.report)
+        blocks += _crop_details(part.details)
+        blocks += _signals(part.signals, "Wskaźniki dla uprawy")
+        blocks += _causes(part.causes, "Przyczyny dotyczące uprawy")
+        blocks += _recommendations(part.recommendations, document.references, "Działania dla uprawy",
+                                   text.PDF_CROP_NO_EXTRA_ACTIONS)
+        blocks += _irrigation(part.irrigation)
+    blocks += [PAGE_BREAK, _part_title(f"VEDRA · {text.PDF_PART_APPENDIX.upper()}", text.PDF_PART_APPENDIX)]
+    blocks += _appendix(document.limitations, document.data_sources, document.references)
     return blocks
 
 
@@ -390,6 +534,10 @@ class _Layout:
         return height <= self.y - MARGIN_BOTTOM + 0.01
 
     def add(self, block: Block) -> None:
+        if block.new_page:
+            if not self.at_top:
+                self.new_page()
+            return
         keep = sum(row.height for row in block.rows[:block.keep])
         if block.keep and not self._fits(keep) and not self.at_top and keep <= CONTENT_H:
             self.new_page()
@@ -420,14 +568,23 @@ def _draw_page(figure: Figure, rows: list[tuple[Row, float]], number: int, total
     _text(figure, MARGIN_X + TEXT_W, footer_y, f"{number} / {total}", _font(8), MUTED, ha="right")
 
 
-def pages(items: Sequence[tuple[Report, bytes | None]]) -> Iterator[Figure]:
-    """Lay out the reports, each from a new page, and yield one figure per A4 page."""
-    layout = _Layout()
+def _document_blocks(items: Sequence[tuple[Report, bytes | None]]) -> list[Block]:
+    document = combine(items)
+    if document is not None:
+        return _combined_blocks(document)
+    # Reports of different parcels or dates are kept whole, each from a new page.
+    blocks: list[Block] = []
     for index, (report, map_png) in enumerate(items):
-        if index:
-            layout.new_page()
-        for block in _report_blocks(report, map_png):
-            layout.add(block)
+        blocks += [PAGE_BREAK] if index else []
+        blocks += _report_blocks(report, map_png)
+    return blocks
+
+
+def pages(items: Sequence[tuple[Report, bytes | None]]) -> Iterator[Figure]:
+    """Lay out the reports and yield one figure per A4 page."""
+    layout = _Layout()
+    for block in _document_blocks(items):
+        layout.add(block)
     total = len(layout.pages)
     for number, rows in enumerate(layout.pages, start=1):
         figure = Figure(figsize=(PAGE_W / 72, PAGE_H / 72))
@@ -436,7 +593,7 @@ def pages(items: Sequence[tuple[Report, bytes | None]]) -> Iterator[Figure]:
 
 
 def render_many(items: Sequence[tuple[Report, bytes | None]]) -> bytes:
-    """Render reports, each from a new page, into one PDF."""
+    """Render reports into one PDF; several crops of one parcel share the general part and appendix."""
     output = BytesIO()
     with PdfPages(output, metadata={"Title": f"Vedra | {TITLE}", "Creator": "Vedra"}) as document:
         for figure in pages(items):

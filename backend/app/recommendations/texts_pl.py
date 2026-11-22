@@ -254,3 +254,22 @@ PDF_CATEGORY_LABELS = {
 }
 PDF_CONFIDENCE_LABELS = {"low": "niska", "medium": "umiarkowana", "high": "wysoka"}
 PDF_STATUS_LABELS = {"ok": "Dostępny", "partial": "Dostępny częściowo", "missing": "Brak danych"}
+PDF_VERDICT_LABELS = {
+    "drought": "Susza rolnicza",
+    "no_drought": "Brak suszy rolniczej",
+    "not_applicable": "Brak progu dla uprawy w tym okresie",
+    "not_recommended": "Uprawa niewskazana na tej glebie",
+    "off_season": "Poza okresem monitoringu suszy",
+    "unavailable": "Brak oceny",
+}
+PDF_PART_GENERAL = "Informacje ogólne o działce"
+PDF_PART_APPENDIX = "Dane, ograniczenia i źródła"
+PDF_COMBINED_OVERVIEW = (
+    "Raport obejmuje kilka upraw na tej samej działce. Ta część opisuje działkę i działania wspólne "
+    "dla wszystkich upraw. Kolejne części zawierają ocenę i działania właściwe dla każdej uprawy, "
+    "a ostatnia część ograniczenia oceny i źródła danych."
+)
+PDF_CROP_NO_EXTRA_ACTIONS = "Dla tej uprawy obowiązują działania wspólne opisane w części ogólnej raportu."
+PDF_CROP_VALUES_NOTE = "Wartości zależne od uprawy podano w części raportu dla każdej uprawy."
+PDF_CROP_VALUES_HEADING = "Wartości właściwe dla uprawy"
+PDF_CROP_VALUES_INTRO = "Uzupełniają wskaźniki, przyczyny i działania opisane w części ogólnej raportu."
