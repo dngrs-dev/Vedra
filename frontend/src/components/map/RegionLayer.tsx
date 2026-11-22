@@ -10,6 +10,9 @@ interface RegionLayerProps {
   onSelect: (v: Voivodeship) => void;
 }
 
+/** Цвет контура выбранного воеводства */
+const ACTIVE_COLOR = '#8fd5b9';
+
 /** Подписи исчезают при приближении — тогда они только мешают. */
 const LABEL_MAX_ZOOM = 8;
 
@@ -39,8 +42,10 @@ export function RegionLayer({ regions, active, onSelect }: RegionLayerProps) {
             key={v.id}
             positions={v.polygons}
             pathOptions={{
-              color: isActive ? '#8fd5b9' : '#ffffff',
-              weight: isActive ? 2.5 : 1.2,
+              // контур активного рисуется отдельным полигоном поверх соседей (см. ниже)
+              stroke: !isActive,
+              color: '#ffffff',
+              weight: 1.2,
               fillColor: dim ? '#0f2620' : '#ffffff',
               fillOpacity: baseOpacity
             }}
@@ -61,6 +66,18 @@ export function RegionLayer({ regions, active, onSelect }: RegionLayerProps) {
           />
         );
       })}
+
+      {/* Контур активного воеводства — последним: иначе белые линии соседей, нарисованные позже,
+          перекрывают общую границу, и она получается «наполовину белой» */}
+      {regions
+        .filter((v) => v.name === active)
+        .map((v) => (
+          <Polygon
+            key={`active-${v.id}`}
+            positions={v.polygons}
+            pathOptions={{ color: ACTIVE_COLOR, weight: 2.5, fill: false, interactive: false }}
+          />
+        ))}
 
       {showLabels &&
         regions
