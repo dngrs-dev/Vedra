@@ -21,8 +21,7 @@ export const pl = {
     selectedParcel: 'Działka w wynikach',
     compare: 'Porównaj działki',
     result: 'Wynik KBW',
-    waiting: 'W kolejce',
-    running: 'W trakcie',
+    offSeason: 'Wybrana data przypada poza okresem oceny KBW.',
     failed: 'Błąd analizy',
     queued: 'Analiza oczekuje na wolne miejsce w kolejce.',
     multipleRegions: 'Wiele regionów'

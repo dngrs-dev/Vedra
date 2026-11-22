@@ -46,8 +46,8 @@ demonstracji. Raport pokazuje dostępne wyniki oraz powody braków.
 
 Frontend uruchamia `POST /api/analyses` dla każdej pary działka–uprawa i odczytuje postęp zadania.
 Działki z listy identyfikatorów lub inteligentnego zaznaczenia można analizować w jednej serii.
-Porównanie pokazuje osobne wyniki KBW, a każda analiza ma własny PDF. Własne obszary i zastępcze
-obrysy korzystają z wyników demonstracyjnych.
+Porównanie pokazuje różniące się wyniki KBW dla tej samej uprawy i okresu. Każda analiza ma własny PDF.
+Własne obszary i zastępcze obrysy korzystają z wyników demonstracyjnych.
 [Uruchomienie frontendu](../frontend/README.md).
 
 ## 4. API

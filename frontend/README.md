@@ -58,7 +58,7 @@ Uruchom backend z tego samego drzewa repozytorium na `127.0.0.1:8000` zgodnie z 
 
 Dla jednej potwierdzonej działki ewidencyjnej frontend przesyła `parcel_id`, `crop_code` i `analysis_date` do `POST /api/analyses`. Po przyjęciu zadania odczytuje jego stan przez `GET /api/analyses/{analysis_id}` co dwie sekundy. Po zakończeniu używa odebranego raportu i udostępnia plik z `GET /api/analyses/{analysis_id}/report.pdf`. Każda wybrana kategoria uprawy otrzymuje osobny raport. Przypisanie opcji formularza do kategorii backendu znajduje się w `src/constants/crops.ts`.
 
-Użyj **Wiele ID** lub inteligentnego zaznaczenia na mapie, aby wybrać grupę działek ewidencyjnych. Data i wybrane uprawy dotyczą każdej działki. Interfejs kolejkuje do 12 par działka–uprawa w serii, pokazuje porównanie KBW i udostępnia osobny PDF dla każdej analizy. Nieudaną analizę można ponowić osobno.
+Użyj **Wiele ID** lub inteligentnego zaznaczenia na mapie, aby wybrać grupę działek ewidencyjnych. Data i wybrane uprawy dotyczą każdej działki. Interfejs kolejkuje do 12 par działka–uprawa w serii, pokazuje porównanie, gdy wyniki KBW dla tej samej uprawy i okresu się różnią, i udostępnia osobny PDF dla każdej analizy. Nieudaną analizę można ponowić osobno.
 
 Własne obszary i zastępcze obrysy korzystają z jawnie oznaczonych danych demonstracyjnych. `VITE_USE_MOCK=true` włącza tryb demo dla każdego wyboru.
 
