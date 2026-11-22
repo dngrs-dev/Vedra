@@ -1,30 +1,36 @@
-import { useRef, type CSSProperties } from 'react';
+import { useRef, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRightIcon, CalendarIcon, DropIcon, FileIcon, KowrLogo, PinIcon, ShieldIcon, SproutIcon
+  ArrowRightIcon, CalendarIcon, ChevronIcon, DropIcon, FileIcon, HistoryIcon, KowrLogo, LeafIcon, MapIcon, PinIcon,
+  SlidersIcon, SparkIcon, SproutIcon
 } from '@/components/ui/Icons';
 import { pl } from '@/constants/pl';
+import {
+  FEATURES, HERO_LEAD, HERO_STATS, QUESTIONS, SOURCE_GROUPS, STEPS, type LandingFeature
+} from '@/constants/landing';
 import { useReveal } from '@/components/landing/useReveal';
 
 /** Задержка анимации для «лесенки» элементов */
 const delay = (i: number) => ({ '--d': `${i * 90}ms` }) as CSSProperties;
 
-const STEPS = [
-  { icon: <PinIcon />, title: 'Wskaż działkę', text: 'Wybierz województwo na mapie, a potem kliknij działkę albo zaznacz własny obszar.' },
-  { icon: <SproutIcon />, title: 'Wybierz uprawę', text: 'Powiedz, co rośnie na polu i na jaki dzień ma być analiza - dziś lub z ostatnich 10 lat.' },
-  { icon: <FileIcon />, title: 'Odbierz zalecenia', text: 'Dostajesz prostą ocenę suszy, zalecenia i gotowy raport do wydruku lub zapisu w PDF.' }
-];
+const STEP_ICONS: ReactNode[] = [<PinIcon key="pin" />, <SproutIcon key="sprout" />, <FileIcon key="file" />];
 
-const BENEFITS = [
-  { icon: <DropIcon size={26} />, title: 'Ocena wilgotności i suszy', text: 'Aktualny stan gleby i ryzyko suszy na tle ostatnich 10 lat.' },
-  { icon: <ShieldIcon size={26} />, title: 'Retencja wody', text: 'Co zrobić, żeby woda została na polu: międzyplony, resztki, spowolnienie odpływu.' },
-  { icon: <CalendarIcon size={26} />, title: 'Termin nawadniania', text: 'Czy nawadniać i kiedy - jasno i bez zbędnej statystyki.' },
-  { icon: <FileIcon size={26} />, title: 'Uczciwy raport', text: 'Źródła, daty i ograniczenia. Gdy brakuje danych, mówimy to wprost.' }
-];
+const FEATURE_ICONS: Record<LandingFeature['icon'], ReactNode> = {
+  drop: <DropIcon size={26} />,
+  history: <HistoryIcon />,
+  pin: <PinIcon size={26} />,
+  leaf: <LeafIcon />,
+  calendar: <CalendarIcon size={26} />,
+  sliders: <SlidersIcon />,
+  spark: <SparkIcon />,
+  file: <FileIcon size={26} />,
+  map: <MapIcon />
+};
 
-const SOURCES = ['Sentinel-2', 'IMGW-PIB', 'Open-Meteo', 'IUNG-PIB', 'GUGiK / Geoportal', 'Wody Polskie'];
-
-/** Главная «/» - короткий лендинг: hero на фото поля, 3 шага, польза, источники, CTA → /map. */
+/**
+ * Главная «/»: hero на фото поля, 3 шага, что умеет Vedra, источники данных с пояснениями, вопросы и ответы, CTA → /map.
+ * Тексты - в constants/landing.ts (для фермера: просто, без жаргона).
+ */
 export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
   useReveal(rootRef);
@@ -41,8 +47,9 @@ export function LandingPage() {
         </Link>
         <nav className="l-nav__links" aria-label="Nawigacja">
           <a href="#how">Jak to działa</a>
-          <a href="#benefits">Co dostajesz</a>
+          <a href="#features">Co potrafi</a>
           <a href="#data">Dane</a>
+          <a href="#faq">Pytania</a>
         </nav>
         <Link to="/map" className="btn-primary">Zobacz mapę</Link>
       </header>
@@ -51,30 +58,25 @@ export function LandingPage() {
       <section className="l-hero">
         <div className="l-hero__text">
           <h2 className="l-hero__title anim-in" style={delay(1)}>Zatrzymaj wodę,<br />chroń swoje plony</h2>
-          <p className="l-hero__lead anim-in" style={delay(2)}>
-            Wskaż działkę, a my zamienimy dane satelitarne i pogodowe w jasne decyzje:
-            czy grozi susza, jak zatrzymać wodę na polu i kiedy warto nawadniać.
-          </p>
+          <p className="l-hero__lead anim-in" style={delay(2)}>{HERO_LEAD}</p>
           <div className="l-hero__cta anim-in" style={delay(3)}>
-            <Link to="/map" className="btn-primary btn-lg">Zobacz mapę <ArrowRightIcon /></Link>
+            <Link to="/map" className="btn-primary btn-lg">Sprawdź swoją działkę <ArrowRightIcon /></Link>
             <a href="#how" className="btn-ghost btn-lg">Jak to działa</a>
           </div>
           <ul className="l-stats anim-in" style={delay(4)}>
-            <li><b>10 lat</b><span>danych historycznych</span></li>
-            <li><b>Cała Polska</b><span>dowolna działka</span></li>
-            <li><b>PDF</b><span>raport do wydruku</span></li>
+            {HERO_STATS.map((s) => <li key={s.value}><b>{s.value}</b><span>{s.label}</span></li>)}
           </ul>
         </div>
       </section>
 
       <section className="l-section" id="how">
         <h2 className="l-h2" data-reveal>Trzy kroki do decyzji o wodzie</h2>
-        <p className="l-sub" data-reveal>Bez map GIS, bez tabel i specjalistycznej wiedzy.</p>
+        <p className="l-sub" data-reveal>Bez map GIS, tabel i specjalistycznej wiedzy - wystarczy przeglądarka.</p>
         <ol className="l-steps">
           {STEPS.map((s, i) => (
             <li key={s.title} className="l-step" data-reveal style={delay(i + 1)}>
               <span className="l-step__num">{i + 1}</span>
-              <span className="l-step__icon">{s.icon}</span>
+              <span className="l-step__icon">{STEP_ICONS[i]}</span>
               <h3>{s.title}</h3>
               <p>{s.text}</p>
             </li>
@@ -82,31 +84,60 @@ export function LandingPage() {
         </ol>
       </section>
 
-      <section className="l-section l-section--tint" id="benefits">
-        <h2 className="l-h2" data-reveal>Co dostajesz</h2>
-        <div className="l-benefits">
-          {BENEFITS.map((b, i) => (
-            <article key={b.title} className="l-benefit" data-reveal style={delay(i)}>
-              <span className="l-benefit__icon">{b.icon}</span>
-              <div>
-                <h3>{b.title}</h3>
-                <p>{b.text}</p>
-              </div>
+      <section className="l-section l-section--tint" id="features">
+        <h2 className="l-h2" data-reveal>Co potrafi Vedra</h2>
+        <p className="l-sub" data-reveal>Wszystko, czego dowiesz się o wodzie na swoim polu - na ekranie i w raporcie.</p>
+        <div className="l-features">
+          {FEATURES.map((f, i) => (
+            <article key={f.title} className="l-feature" data-reveal style={delay(i % 3)}>
+              <span className="l-feature__icon">{FEATURE_ICONS[f.icon]}</span>
+              <h3>{f.title}</h3>
+              <p>{f.text}</p>
             </article>
           ))}
         </div>
       </section>
 
       <section className="l-section" id="data">
-        <h2 className="l-h2" data-reveal>Oparte na otwartych danych</h2>
-        <p className="l-sub" data-reveal>Łączymy dane z oficjalnych, publicznych źródeł.</p>
-        <ul className="l-sources">
-          {SOURCES.map((s, i) => <li key={s} data-reveal style={delay(i)}>{s}</li>)}
-        </ul>
+        <h2 className="l-h2" data-reveal>Skąd bierzemy dane</h2>
+        <p className="l-sub" data-reveal>
+          Tylko oficjalne, publiczne źródła. Każdy raport podaje, z czego i z jakiego dnia pochodzą dane.
+        </p>
+        <div className="l-sourcegroups">
+          {SOURCE_GROUPS.map((g, i) => (
+            <section key={g.title} className="l-sourcegroup" data-reveal style={delay(i % 3)} aria-labelledby={`src-${i}`}>
+              <h3 id={`src-${i}`}>{g.title}</h3>
+              <ul>
+                {g.sources.map((s) => (
+                  <li key={s.name}>
+                    <a href={s.url} target="_blank" rel="noreferrer">{s.name}<span aria-hidden="true"> ↗</span></a>
+                    <p>{s.what}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </section>
+
+      <section className="l-section l-section--tint" id="faq">
+        <h2 className="l-h2" data-reveal>Pytania i odpowiedzi</h2>
+        <div className="l-faq">
+          {QUESTIONS.map((item) => (
+            <details key={item.q} className="l-faq__item" data-reveal>
+              <summary>
+                <span>{item.q}</span>
+                <ChevronIcon size={20} />
+              </summary>
+              <p>{item.a}</p>
+            </details>
+          ))}
+        </div>
       </section>
 
       <section className="l-cta" data-reveal>
-        <h2>Sprawdź swoją działkę w minutę</h2>
+        <h2>Sprawdź swoją działkę - zajmie to minutę</h2>
+        <p>Bez rejestracji. Wystarczy wskazać pole na mapie.</p>
         <Link to="/map" className="btn-light btn-lg">Zobacz mapę <ArrowRightIcon /></Link>
       </section>
 
