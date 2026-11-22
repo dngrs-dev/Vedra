@@ -176,5 +176,17 @@ export function useParcelSelect() {
     [setParcel]
   );
 
-  return { loading, found, selectById, selectByLatLng, selectArea };
+  /** Готовая делянка (из загруженного слоя границ): мгновенно, без сети; идущий запрос отменяется. */
+  const selectParcel = useCallback(
+    (parcel: Parcel) => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setLoading(false);
+      setFound(null);
+      setParcel(parcel);
+    },
+    [setParcel]
+  );
+
+  return { loading, found, selectById, selectByLatLng, selectArea, selectParcel };
 }

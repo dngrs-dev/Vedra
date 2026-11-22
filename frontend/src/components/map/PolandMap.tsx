@@ -1,12 +1,15 @@
-import { useEffect } from 'react';
-import L, { type LatLngTuple, type Map as LeafletMap } from 'leaflet';
-import { MapContainer, Polygon, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import L, { type Map as LeafletMap } from 'leaflet';
+import { MapContainer, Pane, Polygon, TileLayer, Tooltip, useMapEvents } from 'react-leaflet';
+import { PANE_BOUNDARIES, PANE_SELECTED, PICK_MIN_ZOOM, boundaryWeight, type BoundaryKind } from '@/constants/map';
 import { POLAND_BOUNDS, POLAND_OUTLINE, WORLD_RING } from '@/constants/poland';
+import type { BoundaryFeature } from '@/services/parcelApi';
 import type { LatLng, Parcel } from '@/types/parcel';
 import type { Voivodeship } from '@/types/region';
 import { dzialki } from '@/utils/format';
 import { AreaSelect } from './AreaSelect';
+import { ParcelBoundaries } from './ParcelBoundaries';
 import { RegionLayer } from './RegionLayer';
+import { UserLocation, type UserPosition } from './UserLocation';
 
 export type BaseLayer = 'satellite' | 'terrain';
 
@@ -29,13 +32,23 @@ const MAX_BOUNDS = L.latLngBounds(POLAND_BOUNDS).pad(0.05);
 interface PolandMapProps {
   parcel: Parcel | null;
   layer: BaseLayer;
-  showParcels: boolean;
   regions: Voivodeship[] | undefined;
   activeRegion: string | null;
-  onRegionSelect: (v: Voivodeship) => void;
+  onRegionSelect: (v: Voivodeship, fit: boolean) => void;
   onPick: (lat: number, lng: number) => void;
   onArea: (ring: LatLng[]) => void;
   onReady: (map: LeafletMap | null) => void;
+  /** Текущий зум карты (толщина линий выбранной делянки) */
+  zoom: number;
+  /** Уровень детализации слоя границ; null — слой выключен или зум слишком мелкий */
+  boundaryKind: BoundaryKind | null;
+  /** Контуры видимой области для boundaryKind */
+  boundaries: BoundaryFeature[];
+  /** Делянка, по которой только что кликнули (запрос ещё идёт) */
+  pendingId: string | null;
+  onBoundaryClick: (feature: BoundaryFeature) => void;
+  /** Местоположение пользователя (кнопка «Moja lokalizacja») */
+  userPosition: UserPosition | null;
 }
 
 function ClickHandler({ onPick }: { onPick: PolandMapProps['onPick'] }) {
@@ -43,20 +56,13 @@ function ClickHandler({ onPick }: { onPick: PolandMapProps['onPick'] }) {
   return null;
 }
 
-function FitParcel({ parcel }: { parcel: Parcel | null }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!parcel || parcel.isCustom) return; // свою область не «перепрыгиваем» — пользователь её только что нарисовал
-    const pts = parcel.outline ? parcel.outline.flatMap((poly) => poly[0] ?? []) : parcel.parts ? parcel.parts.flatMap((p) => p.ring) : parcel.ring;
-    map.fitBounds(pts as LatLngTuple[], { maxZoom: 17, padding: [60, 60] });
-  }, [map, parcel]);
-  return null;
-}
-
 export function PolandMap({
-  parcel, layer, showParcels, regions, activeRegion, onRegionSelect, onPick, onArea, onReady
+  parcel, layer, regions, activeRegion, onRegionSelect, onPick, onArea, onReady,
+  zoom, boundaryKind, boundaries, pendingId, onBoundaryClick, userPosition
 }: PolandMapProps) {
   const tiles = TILES[layer];
+  // выбранная делянка заметно толще сетки границ
+  const selectedWeight = zoom >= PICK_MIN_ZOOM ? boundaryWeight(zoom) + 1.6 : 2.5;
 
   // Маска «всё кроме Польши»: внешнее кольцо = мир, «дыры» = внешние контуры воеводств.
   // Пока границы не загрузились — упрощённый контур страны.
@@ -83,38 +89,59 @@ export function PolandMap({
 
       {regions && <RegionLayer regions={regions} active={activeRegion} onSelect={onRegionSelect} />}
 
-      {/* групповой выбор: один общий (объединённый) контур + подпись в центре */}
-      {showParcels && parcel?.parts && (
-        <Polygon
-          positions={parcel.outline ?? parcel.parts.map((p) => [p.ring])}
-          pathOptions={{ color: '#ffffff', weight: 3, fillColor: '#4fa183', fillOpacity: 0.45, interactive: false }}
-        >
-          <Tooltip permanent direction="center" className="parcel-label">
-            {dzialki(parcel.parts.length)} · {parcel.areaHa} ha
-          </Tooltip>
-        </Polygon>
+      {boundaryKind && (
+        <Pane name={PANE_BOUNDARIES} style={{ zIndex: '420' }}>
+          <ParcelBoundaries
+            key={boundaryKind}
+            kind={boundaryKind}
+            features={boundaries}
+            selectedId={parcel && !parcel.parts && !parcel.isCustom ? parcel.id : null}
+            pendingId={pendingId}
+            onFeatureClick={onBoundaryClick}
+          />
+        </Pane>
       )}
 
-      {showParcels && parcel && !parcel.parts && (
-        <Polygon
-          positions={parcel.outline ?? parcel.ring}
-          pathOptions={{
-            color: parcel.isCustom ? '#ffe27a' : '#ffffff',
-            weight: 2.5,
-            fillColor: parcel.isCustom ? '#ffe27a' : '#4fa183',
-            fillOpacity: 0.4,
-            interactive: false
-          }}
-        >
-          <Tooltip permanent direction="center" className="parcel-label">
-            {parcel.isCustom ? `Własny obszar · ${parcel.areaHa} ha` : parcel.id}
-          </Tooltip>
-        </Polygon>
-      )}
+      {/* выбранная делянка — над сеткой границ; панель «прозрачна» для мыши, чтобы не перекрывать canvas границ */}
+      <Pane name={PANE_SELECTED} style={{ zIndex: '430', pointerEvents: 'none' }}>
+        {/* key: при смене делянки полигон и постоянная подпись создаются заново — подпись встаёт в центр НОВОЙ
+            делянки (react-leaflet только меняет координаты полигона, а тултип остаётся на старом месте) */}
+        {/* групповой выбор: один общий (объединённый) контур + подпись в центре */}
+        {parcel?.parts && (
+          <Polygon
+            key={parcel.id}
+            positions={parcel.outline ?? parcel.parts.map((p) => [p.ring])}
+            pathOptions={{ color: '#ffffff', weight: selectedWeight + 0.5, fillColor: '#4fa183', fillOpacity: 0.5, interactive: false }}
+          >
+            <Tooltip permanent direction="center" className="parcel-label">
+              {dzialki(parcel.parts.length)} · {parcel.areaHa} ha
+            </Tooltip>
+          </Polygon>
+        )}
+
+        {parcel && !parcel.parts && (
+          <Polygon
+            key={parcel.id}
+            positions={parcel.outline ?? parcel.ring}
+            pathOptions={{
+              color: parcel.isCustom ? '#ffe27a' : '#ffffff',
+              weight: selectedWeight,
+              fillColor: parcel.isCustom ? '#ffe27a' : '#4fa183',
+              fillOpacity: parcel.isCustom ? 0.4 : 0.5,
+              interactive: false
+            }}
+          >
+            <Tooltip permanent direction="center" className="parcel-label">
+              {parcel.isCustom ? `Własny obszar · ${parcel.areaHa} ha` : parcel.id}
+            </Tooltip>
+          </Polygon>
+        )}
+      </Pane>
+
+      <UserLocation position={userPosition} />
 
       <ClickHandler onPick={onPick} />
       <AreaSelect onSelect={onArea} />
-      <FitParcel parcel={parcel} />
     </MapContainer>
   );
 }
