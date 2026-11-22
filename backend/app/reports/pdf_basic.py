@@ -50,6 +50,7 @@ TITLE = "Raport gospodarowania wodą"
 FOOTER = "Vedra · Raport gospodarowania wodą"
 MAP_MAX_H = 56 * MM  # .map max-height in report.css
 CHART_MAX_H = 80 * MM
+MEASURE_DPI = 720  # text measurement resolution, see _renderer
 SCENARIO_CHART_MAX_H = 60 * MM
 SITE_MAP_MAX_H = 52 * MM  # .site-map img max-height in report.css
 
@@ -62,13 +63,15 @@ def _font(size: float, bold: bool = False) -> FontProperties:
 
 @cache
 def _renderer() -> RendererAgg:
-    # At 72 dpi one pixel equals one point, so measurements match the page coordinates.
-    return RendererAgg(1, 1, 72)
+    # Measured at 720 dpi: at 72 dpi Agg hints glyphs and reads about 2 % narrower than the PDF backend draws
+    # (488 vs 498 pt for a full line), so long lines ran past the right margin.
+    return RendererAgg(1, 1, MEASURE_DPI)
 
 
 @lru_cache(maxsize=8192)
 def _width(value: str, font: FontProperties) -> float:
-    return _renderer().get_text_width_height_descent(value, font, ismath=False)[0]
+    """Width in points, as drawn by the PDF backend."""
+    return _renderer().get_text_width_height_descent(value, font, ismath=False)[0] * 72 / MEASURE_DPI
 
 
 @lru_cache(maxsize=64)
