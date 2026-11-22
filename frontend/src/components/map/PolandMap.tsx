@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import L, { type LatLngTuple, type Map as LeafletMap } from 'leaflet';
 import { MapContainer, Pane, Polygon, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
-import { PANE_BOUNDARIES, PANE_SELECTED, PICK_MIN_ZOOM, boundaryWeight } from '@/constants/map';
+import { PANE_BOUNDARIES, PANE_SELECTED, PICK_MIN_ZOOM, boundaryWeight, type BoundaryKind } from '@/constants/map';
 import { POLAND_BOUNDS, POLAND_OUTLINE, WORLD_RING } from '@/constants/poland';
 import type { BoundaryFeature } from '@/services/parcelApi';
 import type { LatLng, Parcel } from '@/types/parcel';
@@ -10,6 +10,7 @@ import { dzialki } from '@/utils/format';
 import { AreaSelect } from './AreaSelect';
 import { ParcelBoundaries } from './ParcelBoundaries';
 import { RegionLayer } from './RegionLayer';
+import { UserLocation, type UserPosition } from './UserLocation';
 
 export type BaseLayer = 'satellite' | 'terrain';
 
@@ -32,7 +33,6 @@ const MAX_BOUNDS = L.latLngBounds(POLAND_BOUNDS).pad(0.05);
 interface PolandMapProps {
   parcel: Parcel | null;
   layer: BaseLayer;
-  showParcels: boolean;
   regions: Voivodeship[] | undefined;
   activeRegion: string | null;
   onRegionSelect: (v: Voivodeship) => void;
@@ -41,11 +41,15 @@ interface PolandMapProps {
   onReady: (map: LeafletMap | null) => void;
   /** Текущий зум карты (толщина линий выбранной делянки) */
   zoom: number;
-  /** Контуры всех делянок вокруг видимой области; null — слой границ скрыт (мелкий зум) */
-  boundaries: BoundaryFeature[] | null;
+  /** Уровень детализации слоя границ; null — слой выключен или зум слишком мелкий */
+  boundaryKind: BoundaryKind | null;
+  /** Контуры видимой области для boundaryKind */
+  boundaries: BoundaryFeature[];
   /** Делянка, по которой только что кликнули (запрос ещё идёт) */
   pendingId: string | null;
-  onBoundaryClick: (id: string) => void;
+  onBoundaryClick: (feature: BoundaryFeature) => void;
+  /** Местоположение пользователя (кнопка «Moja lokalizacja») */
+  userPosition: UserPosition | null;
 }
 
 function ClickHandler({ onPick }: { onPick: PolandMapProps['onPick'] }) {
@@ -67,8 +71,8 @@ function FitParcel({ parcel }: { parcel: Parcel | null }) {
 }
 
 export function PolandMap({
-  parcel, layer, showParcels, regions, activeRegion, onRegionSelect, onPick, onArea, onReady,
-  zoom, boundaries, pendingId, onBoundaryClick
+  parcel, layer, regions, activeRegion, onRegionSelect, onPick, onArea, onReady,
+  zoom, boundaryKind, boundaries, pendingId, onBoundaryClick, userPosition
 }: PolandMapProps) {
   const tiles = TILES[layer];
   // выбранная делянка заметно толще сетки границ
@@ -99,9 +103,11 @@ export function PolandMap({
 
       {regions && <RegionLayer regions={regions} active={activeRegion} onSelect={onRegionSelect} />}
 
-      {showParcels && boundaries && (
+      {boundaryKind && (
         <Pane name={PANE_BOUNDARIES} style={{ zIndex: '420' }}>
           <ParcelBoundaries
+            key={boundaryKind}
+            kind={boundaryKind}
             features={boundaries}
             selectedId={parcel && !parcel.parts && !parcel.isCustom ? parcel.id : null}
             pendingId={pendingId}
@@ -115,7 +121,7 @@ export function PolandMap({
         {/* key: при смене делянки полигон и постоянная подпись создаются заново — подпись встаёт в центр НОВОЙ
             делянки (react-leaflet только меняет координаты полигона, а тултип остаётся на старом месте) */}
         {/* групповой выбор: один общий (объединённый) контур + подпись в центре */}
-        {showParcels && parcel?.parts && (
+        {parcel?.parts && (
           <Polygon
             key={parcel.id}
             positions={parcel.outline ?? parcel.parts.map((p) => [p.ring])}
@@ -127,7 +133,7 @@ export function PolandMap({
           </Polygon>
         )}
 
-        {showParcels && parcel && !parcel.parts && (
+        {parcel && !parcel.parts && (
           <Polygon
             key={parcel.id}
             positions={parcel.outline ?? parcel.ring}
@@ -145,6 +151,8 @@ export function PolandMap({
           </Polygon>
         )}
       </Pane>
+
+      <UserLocation position={userPosition} />
 
       <ClickHandler onPick={onPick} />
       <AreaSelect onSelect={onArea} />

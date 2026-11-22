@@ -24,8 +24,9 @@ WFS_URL = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/EGIB/WFS/UslugaZbiorc
 CRS_4326 = "urn:ogc:def:crs:EPSG::4326"
 PARCEL_LAYER = "ms:dzialki"
 FES_NAMESPACE = "http://www.opengis.net/fes/2.0"
-# CONTRACTS.md §1 budgets three seconds for a normal parcel lookup.
-LOOKUP_TIMEOUT_S = 3.0
+# CONTRACTS.md §1 parcel lookup budget. Measured 2026-11-22: one point query takes ~3.4 s, so the former
+# 3 s budget sent most lookups into the slow fallbacks (ULDK, then the GeoParquet export).
+LOOKUP_TIMEOUT_S = 6.0
 # The national EGiB export is refreshed daily (config/geo_sources.yaml: egib_parquet).
 CACHE_SECONDS = timedelta(days=1).total_seconds()
 CACHE_NAMESPACE = "an.cadastral_wfs"

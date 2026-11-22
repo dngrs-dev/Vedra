@@ -14,7 +14,7 @@ If something is not in this file, it is private to one part and the other part m
                  Part B                                   Part A
   POST /api/analyses ─► jobs.runner ─► pipeline.run_analysis(req, geo)
                                          │
-     1. parcel  ◄────────────────────────┼──── geo.find_parcels(parcel_id)          (≤ 3 s)
+     1. parcel  ◄────────────────────────┼──── geo.find_parcels(parcel_id)          (≤ 6 s)¹
                                          │
      2. in parallel (asyncio.gather):    │
           weather = open_meteo.fetch_weather(parcel centroid, dates)   [B]
@@ -25,6 +25,9 @@ If something is not in this file, it is private to one part and the other part m
      5. png = geo.render_static_map(parcel, bundle) ◄────────────────── [A]   (≤ 3 s, only for the PDF)
      6. pdf = pdf.render(report, png)                                    [B]
 ```
+
+¹ Was 3 s. Measured 2026-11-22: one EGiB WFS point query takes ~3.4 s, so the 3 s budget sent most
+lookups into the slow fallbacks (`LOOKUP_TIMEOUT_S` in `app/api/cadastral.py`).
 
 Direction of calls: **B calls A, never the other way round.** A does not import anything from
 `app/analytics`, `app/api`, `app/reports`, `app/recommendations`, `app/jobs`, `app/storage`, `app/fakes`.

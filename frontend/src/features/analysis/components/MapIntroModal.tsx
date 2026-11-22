@@ -26,7 +26,7 @@ const STEPS = [
   },
   {
     title: 'Kliknij działkę',
-    text: 'Kliknij lewym przyciskiem myszy na pole — zaznaczymy działkę ewidencyjną.',
+    text: 'Przybliż mapę (pierwsze kliknięcie przybliża) i kliknij pole — zaznaczymy działkę ewidencyjną. Przełącznik „Granice działek” pokaże granice i numery.',
     keys: <MouseLeft />
   },
   {
