@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
-import L, { type LatLngTuple, type Map as LeafletMap } from 'leaflet';
-import { MapContainer, Pane, Polygon, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import L, { type Map as LeafletMap } from 'leaflet';
+import { MapContainer, Pane, Polygon, TileLayer, Tooltip, useMapEvents } from 'react-leaflet';
 import { PANE_BOUNDARIES, PANE_SELECTED, PICK_MIN_ZOOM, boundaryWeight, type BoundaryKind } from '@/constants/map';
 import { POLAND_BOUNDS, POLAND_OUTLINE, WORLD_RING } from '@/constants/poland';
 import type { BoundaryFeature } from '@/services/parcelApi';
@@ -54,19 +53,6 @@ interface PolandMapProps {
 
 function ClickHandler({ onPick }: { onPick: PolandMapProps['onPick'] }) {
   useMapEvents({ click: (e) => onPick(e.latlng.lat, e.latlng.lng) });
-  return null;
-}
-
-function FitParcel({ parcel }: { parcel: Parcel | null }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!parcel || parcel.isCustom) return; // свою область не «перепрыгиваем» — пользователь её только что нарисовал
-    const pts = parcel.outline ? parcel.outline.flatMap((poly) => poly[0] ?? []) : parcel.parts ? parcel.parts.flatMap((p) => p.ring) : parcel.ring;
-    const bounds = L.latLngBounds(pts as LatLngTuple[]);
-    // делянку выбрали кликом на крупном зуме и она целиком видна — карту не дёргаем (раньше отдаляло до 17)
-    if (map.getZoom() >= PICK_MIN_ZOOM && map.getBounds().contains(bounds)) return;
-    map.fitBounds(bounds, { maxZoom: 17, padding: [60, 60] });
-  }, [map, parcel]);
   return null;
 }
 
@@ -156,7 +142,6 @@ export function PolandMap({
 
       <ClickHandler onPick={onPick} />
       <AreaSelect onSelect={onArea} />
-      <FitParcel parcel={parcel} />
     </MapContainer>
   );
 }
