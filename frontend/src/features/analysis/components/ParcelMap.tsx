@@ -15,7 +15,12 @@ import { POLAND_BOUNDS } from '@/constants/poland';
 import { parcelFromBoundary, type BoundaryFeature } from '@/services/parcelApi';
 import type { LatLng, Parcel } from '@/types/parcel';
 import type { Voivodeship } from '@/types/region';
-import { useParcelBoundaries, type BoundaryMode } from '../hooks/useParcelBoundaries';
+import {
+  findLoadedParcelAt,
+  prefetchAround,
+  useParcelBoundaries,
+  type BoundaryMode
+} from '../hooks/useParcelBoundaries';
 import { useParcelSelect } from '../hooks/useParcelSelect';
 import { useVoivodeships } from '../hooks/useVoivodeships';
 import { useAnalysisStore } from '../store';
@@ -25,6 +30,9 @@ function parcelBounds(p: Parcel): L.LatLngBounds {
   const rings = p.outline ? p.outline.map((poly) => poly[0] ?? []) : p.parts ? p.parts.map((x) => x.ring) : [p.ring];
   return L.latLngBounds(rings.flat());
 }
+
+/** Индикатор «Pobieram działkę…» — только если ответ дольше этого (быстрые ответы из кэша не мигают) */
+const LOADER_DELAY_MS = 400;
 
 /** Точность хуже этой (м) — показываем весь круг точности, а не приближаем к точке */
 const LOCATE_FIT_ACCURACY_M = 300;
@@ -91,6 +99,27 @@ export function ParcelMap() {
     if (!loading) setPendingId(null);
   }, [loading]);
 
+  // индикатор загрузки с задержкой; поиск в рамке (found !== null) показываем сразу — он заведомо долгий
+  const [showLoader, setShowLoader] = useState(false);
+  useEffect(() => {
+    if (!loading) {
+      setShowLoader(false);
+      return;
+    }
+    if (found !== null) {
+      setShowLoader(true);
+      return;
+    }
+    const t = setTimeout(() => setShowLoader(true), LOADER_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [loading, found]);
+
+  // после выбора — фоновая подгрузка контуров вокруг: следующий клик рядом выберет делянку мгновенно
+  useEffect(() => {
+    if (!parcel || parcel.isCustom || parcel.parts || parcel.isDemo) return;
+    prefetchAround(parcel.center.lat, parcel.center.lng);
+  }, [parcel]);
+
   useEffect(() => {
     if (!map || !parcel || parcel.isCustom) {
       setParcelOffscreen(false);
@@ -136,9 +165,9 @@ export function ParcelMap() {
   };
 
   const selectRegion = useCallback(
-    (v: Voivodeship) => {
+    (v: Voivodeship, fit: boolean) => {
       setRegion(v.name);
-      map?.fitBounds(v.bounds, { padding: [30, 30], animate: true });
+      if (fit) map?.fitBounds(v.bounds, { padding: [30, 30], animate: true });
     },
     [map, setRegion]
   );
@@ -158,17 +187,19 @@ export function ParcelMap() {
       if (regionReady) map?.setView([lat, lng], PICK_MIN_ZOOM, { animate: true });
       return;
     }
-    // зум ≥ 15: всегда выбор (obręby — только фон, клик по ним не приближает)
-    if (hit && mode === 'parcels') {
-      if (hit.id === parcel?.id) return; // повторный клик по уже выбранной делянке
-      const ready = parcelFromBoundary(hit);
+    // зум ≥ 15: всегда выбор (obręby — только фон, клик по ним не приближает).
+    // Сначала — из уже загруженных контуров (слой границ или фоновая подгрузка): без запроса и без индикатора.
+    const loaded = (hit && mode === 'parcels' ? hit : null) ?? findLoadedParcelAt(lat, lng);
+    if (loaded) {
+      if (loaded.id === parcel?.id) return; // повторный клик по уже выбранной делянке
+      const ready = parcelFromBoundary(loaded);
       if (ready) {
-        selectParcel(ready); // контур уже загружен — выбор без запроса к серверу
+        selectParcel(ready);
         return;
       }
     }
     void selectByLatLng(lat, lng);
-    if (hit) setPendingId(hit.id);
+    if (hit && mode === 'parcels') setPendingId(hit.id);
   };
 
   const onBoundaryClick = useCallback((feature: BoundaryFeature) => {
@@ -363,7 +394,7 @@ export function ParcelMap() {
         )}
       </div>
 
-      {loading && (
+      {loading && showLoader && (
         <div className="map-loader">
           <span className="spinner" />
           {found === null ? 'Pobieram działkę…' : `Szukam działek w zaznaczeniu… znaleziono: ${found}`}

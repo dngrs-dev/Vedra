@@ -34,7 +34,7 @@ interface PolandMapProps {
   layer: BaseLayer;
   regions: Voivodeship[] | undefined;
   activeRegion: string | null;
-  onRegionSelect: (v: Voivodeship) => void;
+  onRegionSelect: (v: Voivodeship, fit: boolean) => void;
   onPick: (lat: number, lng: number) => void;
   onArea: (ring: LatLng[]) => void;
   onReady: (map: LeafletMap | null) => void;
