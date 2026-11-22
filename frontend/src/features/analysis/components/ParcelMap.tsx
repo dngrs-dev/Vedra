@@ -1,19 +1,22 @@
-import { useCallback, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import type { Map as LeafletMap } from 'leaflet';
 import { FullscreenIcon, LayersIcon, LocateIcon, SearchIcon } from '@/components/ui/Icons';
 import { toast } from '@/components/ui/toastStore';
 import { PolandMap, type BaseLayer } from '@/components/map/PolandMap';
+import { BOUNDARY_MIN_ZOOM, PICK_MIN_ZOOM } from '@/constants/map';
 import { pl } from '@/constants/pl';
 import { POLAND_BOUNDS } from '@/constants/poland';
 import type { LatLng } from '@/types/parcel';
 import type { Voivodeship } from '@/types/region';
+import { useParcelBoundaries } from '../hooks/useParcelBoundaries';
 import { useParcelSelect } from '../hooks/useParcelSelect';
 import { useVoivodeships } from '../hooks/useVoivodeships';
 import { useAnalysisStore } from '../store';
 
 /**
  * Карта + плавающие элементы управления.
- * Сценарий: клик по воеводству → приближение → клик по делянке ИЛИ Ctrl + перетаскивание (своя область)
+ * Сценарий: клик по воеводству → приближение → клик (приближает к точке до PICK_MIN_ZOOM) → на крупном зуме видны
+ * границы делянок, наведение показывает код, клик выбирает делянку; ИЛИ Ctrl + перетаскивание (своя область)
  * → «Potwierdź działkę» в правой панели → расчёт на бэкенде.
  */
 export function ParcelMap() {
@@ -27,11 +30,35 @@ export function ParcelMap() {
   const [layer, setLayer] = useState<BaseLayer>('satellite');
   const [showParcels, setShowParcels] = useState(true);
   const [query, setQuery] = useState('');
+  const [zoom, setZoom] = useState(0);
+  /** Делянка, по которой кликнули, пока идёт запрос — заливается сразу, до ответа бэкенда */
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const cardRef = useRef<HTMLElement>(null);
   const lastAreaAt = useRef(0);
+  /** ID контура под последним кликом (слой границ сообщает его раньше, чем карта — сам клик) */
+  const clickedId = useRef<string | null>(null);
 
-  // Если границы воеводств не загрузились — не блокируем работу: выбор делянки доступен сразу.
-  const canPick = region !== null || !regions;
+  useEffect(() => {
+    if (!map) return;
+    const sync = () => setZoom(map.getZoom());
+    sync();
+    map.on('zoomend', sync);
+    return () => {
+      map.off('zoomend', sync);
+    };
+  }, [map]);
+
+  useEffect(() => {
+    if (!loading) setPendingId(null);
+  }, [loading]);
+
+  const zoomedIn = zoom >= PICK_MIN_ZOOM;
+  // Воеводство выбрано (или его границы не загрузились — тогда не блокируем работу)
+  const regionReady = region !== null || !regions;
+  // Кликом делянку выбираем только на крупном зуме: на мелком клик — это «лотерея» среди десятков делянок
+  const canPick = zoomedIn;
+  const showBoundaries = showParcels && zoom >= BOUNDARY_MIN_ZOOM;
+  const { features: boundaries } = useParcelBoundaries(map, showBoundaries);
 
   const selectRegion = useCallback(
     (v: Voivodeship) => {
@@ -47,10 +74,22 @@ export function ParcelMap() {
   };
 
   const pick = (lat: number, lng: number) => {
+    const hitId = clickedId.current;
+    clickedId.current = null;
     if (Date.now() - lastAreaAt.current < 400) return; // «хвост» клика после Ctrl-выделения
-    if (!canPick) return;
+    if (!canPick) {
+      // мелкий зум внутри воеводства: приближаем к точке клика, выбор — следующим кликом
+      if (regionReady) map?.setView([lat, lng], PICK_MIN_ZOOM, { animate: true });
+      return;
+    }
+    if (hitId && hitId === parcel?.id) return; // повторный клик по уже выбранной делянке
     void selectByLatLng(lat, lng);
+    if (hitId) setPendingId(hitId);
   };
+
+  const onBoundaryClick = useCallback((id: string) => {
+    clickedId.current = id;
+  }, []);
 
   // useCallback: AreaSelect переподписывается на события при смене функции — она должна быть стабильной
   const onArea = useCallback(
@@ -69,7 +108,7 @@ export function ParcelMap() {
   const locate = () => {
     if (!navigator.geolocation) return toast('Geolokalizacja niedostępna w tej przeglądarce', 'error');
     navigator.geolocation.getCurrentPosition(
-      (p) => map?.setView([p.coords.latitude, p.coords.longitude], 14),
+      (p) => map?.setView([p.coords.latitude, p.coords.longitude], PICK_MIN_ZOOM),
       () => toast('Nie udało się pobrać lokalizacji', 'error')
     );
   };
@@ -82,11 +121,13 @@ export function ParcelMap() {
     setTimeout(() => map?.invalidateSize(), 300);
   };
 
-  const hint = parcel
-    ? pl.map.hintSelected
-    : region === null && regions
-      ? pl.map.hintRegion
-      : pl.map.hintParcel;
+  const hint = !regionReady && !zoomedIn
+    ? pl.map.hintRegion
+    : parcel
+      ? pl.map.hintSelected
+      : zoomedIn
+        ? pl.map.hintParcel
+        : pl.map.hintZoom;
 
   return (
     <section className="map-card" aria-label="Mapa działek" ref={cardRef}>
@@ -100,6 +141,10 @@ export function ParcelMap() {
         onPick={pick}
         onArea={onArea}
         onReady={setMap}
+        zoom={zoom}
+        boundaries={showBoundaries ? boundaries : null}
+        pendingId={pendingId}
+        onBoundaryClick={onBoundaryClick}
       />
 
       <form className="map-search" role="search" autoComplete="off" onSubmit={onSubmit}>

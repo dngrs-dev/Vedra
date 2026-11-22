@@ -3,9 +3,11 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
+from app.api import parcel_grid
 from app.api.deps import GeoDependency
+from app.config import settings
 from app.contracts.errors import ParcelNotFound, UpstreamUnavailable
 from app.contracts.parcel import Parcel
 from app.recommendations import texts_pl as text
@@ -36,3 +38,17 @@ async def parcel_at_point(lat: Latitude, lon: Longitude, geo: GeoDependency) -> 
     if parcel is None:
         raise ParcelNotFound("No parcel at the requested point")
     return parcel
+
+
+@router.get("/in-bbox", summary="Parcel outlines in a WGS84 box (map boundary layer)")
+async def parcels_in_bbox(min_lat: Latitude, min_lon: Longitude, max_lat: Latitude, max_lon: Longitude) -> dict:
+    """GeoJSON FeatureCollection of the parcels in the grid cells covering the box, plus `truncated`."""
+    if min_lat >= max_lat or min_lon >= max_lon:
+        raise HTTPException(status_code=422, detail="min_lat/min_lon must be below max_lat/max_lon")
+    try:
+        parcel_grid.cells_for(min_lat, min_lon, max_lat, max_lon)
+    except parcel_grid.BboxTooLarge as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if settings.geo_provider != "real":   # fake / fixture runs stay offline: no boundary layer
+        return {"type": "FeatureCollection", "features": [], "truncated": False}
+    return await parcel_grid.parcels_in_bbox(min_lat, min_lon, max_lat, max_lon)

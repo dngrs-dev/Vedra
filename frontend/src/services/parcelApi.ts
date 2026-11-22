@@ -226,3 +226,43 @@ export async function findParcelsInArea(ring: LatLng[], opts: AreaSearchOptions 
   const inside = all.filter((p) => shareInsideRect(p.ring, s, w, n, e) >= MIN_INSIDE_SHARE);
   return { parcels: inside, serviceDown: answered === 0, truncated, skippedEdge: all.length - inside.length };
 }
+
+/* ---------- границы делянок для слоя на карте (GET /parcels/in-bbox) ---------- */
+
+const boundaryFeature = z.object({
+  type: z.literal('Feature'),
+  id: z.string(),
+  properties: z.object({ id: z.string(), number: z.string() }),
+  geometry: z.discriminatedUnion('type', [
+    z.object({ type: z.literal('Polygon'), coordinates: polygon }),
+    z.object({ type: z.literal('MultiPolygon'), coordinates: z.array(polygon).min(1) })
+  ])
+});
+const boundaryCollection = z.object({
+  features: z.array(z.unknown()),
+  truncated: z.boolean().optional()
+});
+
+export type BoundaryFeature = z.infer<typeof boundaryFeature>;
+
+export interface BoundaryBox {
+  minLat: number;
+  minLng: number;
+  maxLat: number;
+  maxLng: number;
+}
+
+/** Контуры делянок в рамке (сетка ячеек на бэкенде). Битые записи пропускаются, а не роняют весь слой. */
+export async function getParcelsInBbox(box: BoundaryBox, signal?: AbortSignal): Promise<BoundaryFeature[]> {
+  const params = new URLSearchParams({
+    min_lat: box.minLat.toFixed(6),
+    min_lon: box.minLng.toFixed(6),
+    max_lat: box.maxLat.toFixed(6),
+    max_lon: box.maxLng.toFixed(6)
+  });
+  const raw = boundaryCollection.parse(await request<unknown>(`/parcels/in-bbox?${params}`, { signal }));
+  return raw.features.flatMap((f) => {
+    const parsed = boundaryFeature.safeParse(f);
+    return parsed.success ? [parsed.data] : [];
+  });
+}

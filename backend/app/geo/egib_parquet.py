@@ -304,3 +304,33 @@ async def by_region_number(region: str, number: str) -> list[list[str]]:
     full = await _read_groups(size, md, list(found), ATTR_COLUMNS + ["geometry"])
     return [record({c: full[g].column(c)[k].as_py() for c in ATTR_COLUMNS}, full[g].column("geometry")[k].as_py())
             for g, rows in found.items() for k in rows]
+
+
+async def in_bbox(xmin: float, ymin: float, xmax: float, ymax: float) -> list[tuple[str, str, bytes]]:
+    """(id_dzialki, numer_dzialki, WKB EPSG:2180) of the parcels intersecting the EPSG:2180 box (map boundary layer).
+
+    Same path as by_point: per-row geometry_bbox first, then id/number/geometry only of row groups with hits."""
+    from shapely import wkb
+    from shapely.geometry import box
+
+    size, foot = await footer()
+    md = await asyncio.to_thread(metadata, foot)
+    groups = row_groups_for(md, xmin, ymin, xmax, ymax)
+    boxes = await _read_groups(size, md, groups, [BBOX])
+    hits = {g: [k for k, b in enumerate(t.column(BBOX).to_pylist())
+                if b and b["xmin"] <= xmax and b["xmax"] >= xmin and b["ymin"] <= ymax and b["ymax"] >= ymin]
+            for g, t in boxes.items()}
+    hits = {g: rows for g, rows in hits.items() if rows}
+    if not hits:
+        return []
+    full = await _read_groups(size, md, list(hits), ["id_dzialki", "numer_dzialki", "geometry"])
+    area = box(xmin, ymin, xmax, ymax)
+    out = []
+    for g, rows in hits.items():
+        t = full[g]
+        for k in rows:
+            geom = t.column("geometry")[k].as_py()
+            pid = t.column("id_dzialki")[k].as_py()
+            if geom and pid and wkb.loads(geom).intersects(area):
+                out.append((pid, t.column("numer_dzialki")[k].as_py() or pid.rsplit(".", 1)[-1], geom))
+    return out
