@@ -18,6 +18,7 @@ import type { Voivodeship } from '@/types/region';
 import {
   findLoadedParcelAt,
   prefetchAround,
+  prefetchView,
   useParcelBoundaries,
   type BoundaryMode
 } from '../hooks/useParcelBoundaries';
@@ -30,6 +31,9 @@ function parcelBounds(p: Parcel): L.LatLngBounds {
   const rings = p.outline ? p.outline.map((poly) => poly[0] ?? []) : p.parts ? p.parts.map((x) => x.ring) : [p.ring];
   return L.latLngBounds(rings.flat());
 }
+
+/** Клик ниже этого зума приближает на полпути к PICK_MIN_ZOOM (воеводство 7–8 → 11–12 → 15), выше — сразу до него */
+const ZOOM_STEP_FROM = 11;
 
 /** Индикатор «Pobieram działkę…» — только если ответ дольше этого (быстрые ответы из кэша не мигают) */
 const LOADER_DELAY_MS = 400;
@@ -114,6 +118,19 @@ export function ParcelMap() {
     return () => clearTimeout(t);
   }, [loading, found]);
 
+  // на зуме выбора — фоновая подгрузка контуров видимой области ещё до клика (и при выключенных границах)
+  useEffect(() => {
+    if (!map) return;
+    const onMove = () => {
+      if (map.getZoom() >= PICK_MIN_ZOOM) prefetchView(map);
+    };
+    onMove();
+    map.on('moveend', onMove);
+    return () => {
+      map.off('moveend', onMove);
+    };
+  }, [map]);
+
   // после выбора — фоновая подгрузка контуров вокруг: следующий клик рядом выберет делянку мгновенно
   useEffect(() => {
     if (!parcel || parcel.isCustom || parcel.parts || parcel.isDemo) return;
@@ -183,8 +200,10 @@ export function ParcelMap() {
     if (Date.now() - lastAreaAt.current < 400) return; // «хвост» клика после Ctrl-выделения
     const z = map?.getZoom() ?? zoom;
     if (z < PICK_MIN_ZOOM) {
-      // мелкий зум: клик — это «лотерея» среди десятков делянок; приближаем к точке, выбор — следующим кликом
-      if (regionReady) map?.setView([lat, lng], PICK_MIN_ZOOM, { animate: true });
+      // мелкий зум: клик — это «лотерея» среди десятков делянок; приближаем к точке, выбор — следующим кликом.
+      // С уровня воеводства — в два шага (примерно на полпути, затем до уровня obrębów), чтобы не терять ориентир.
+      const target = z < ZOOM_STEP_FROM ? Math.ceil((z + PICK_MIN_ZOOM) / 2) : PICK_MIN_ZOOM;
+      if (regionReady) map?.setView([lat, lng], target, { animate: true });
       return;
     }
     // зум ≥ 15: всегда выбор (obręby — только фон, клик по ним не приближает).
