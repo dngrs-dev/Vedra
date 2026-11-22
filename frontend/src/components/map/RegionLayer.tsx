@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react';
 import L from 'leaflet';
 import { Marker, Polygon, useMap, useMapEvents } from 'react-leaflet';
+import { PICK_MIN_ZOOM } from '@/constants/map';
 import type { Voivodeship } from '@/types/region';
 
 interface RegionLayerProps {
   regions: Voivodeship[];
   /** Имя активного воеводства (карта приближена на него) */
   active: string | null;
-  onSelect: (v: Voivodeship) => void;
+  /** fit = false: воеводство стало активным «по пути» (клик на крупном зуме) — камеру не двигаем */
+  onSelect: (v: Voivodeship, fit: boolean) => void;
 }
 
 /** Цвет контура выбранного воеводства */
@@ -53,8 +55,14 @@ export function RegionLayer({ regions, active, onSelect }: RegionLayerProps) {
               click: (e) => {
                 // клик по активному воеводству «пролетает» дальше на карту → выбор делянки
                 if (isActive) return;
+                if (map.getZoom() >= PICK_MIN_ZOOM) {
+                  // на крупном зуме (напр. после «Moja lokalizacja» в другом воеводстве) клик — это выбор делянки:
+                  // воеводство становится активным без смены вида, клик идёт дальше на карту
+                  onSelect(v, false);
+                  return;
+                }
                 L.DomEvent.stopPropagation(e);
-                onSelect(v);
+                onSelect(v, true);
               },
               mouseover: (e) => {
                 if (!isActive) (e.target as L.Path).setStyle({ fillOpacity: dim ? 0.2 : 0.22 });

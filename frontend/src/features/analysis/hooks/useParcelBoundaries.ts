@@ -4,6 +4,8 @@ import { toast } from '@/components/ui/toastStore';
 import { GRIDS, type BoundaryKind } from '@/constants/map';
 import { pl } from '@/constants/pl';
 import { getBoundaries, type BoundaryFeature } from '@/services/parcelApi';
+import type { LatLng } from '@/types/parcel';
+import { pointInRing } from '@/utils/geo';
 
 export type BoundaryMode = 'off' | BoundaryKind;
 
@@ -27,9 +29,14 @@ interface Job {
   j: number;
 }
 
-/** Общая очередь загрузки ячеек: по приоритету «от центра экрана», с отменой ушедших с экрана. */
+/**
+ * Общая очередь загрузки ячеек. Видимые — по приоритету «от центра экрана», с отменой ушедших с экрана.
+ * Фоновые (вокруг выбранной делянки, даже при выключенных границах) — когда видимых нет, не отменяются:
+ * из них потом мгновенно выбираются соседние делянки.
+ */
 const queue: Job[] = [];
-const running = new Map<string, AbortController>();
+const background: Job[] = [];
+const running = new Map<string, { ctrl: AbortController; bg: boolean }>();
 const listeners = new Set<() => void>();
 
 const cellKey = (kind: BoundaryKind, i: number, j: number) => `${kind}:${i}:${j}`;
@@ -45,11 +52,12 @@ function remember(key: string, features: BoundaryFeature[]) {
 }
 
 function pump() {
-  while (running.size < MAX_PARALLEL && queue.length) {
-    const job = queue.shift()!;
+  while (running.size < MAX_PARALLEL && (queue.length || background.length)) {
+    const bg = queue.length === 0;
+    const job = (bg ? background : queue).shift()!;
     if (cellCache.has(job.key) || running.has(job.key)) continue;
     const ctrl = new AbortController();
-    running.set(job.key, ctrl);
+    running.set(job.key, { ctrl, bg });
     const grid = GRIDS[job.kind];
     getBoundaries(grid.path, {
       minLat: job.i * grid.lat,
@@ -62,7 +70,7 @@ function pump() {
         listeners.forEach((fn) => fn());
       })
       .catch(() => {
-        if (ctrl.signal.aborted || warned) return;
+        if (ctrl.signal.aborted || warned || bg) return; // фоновая подгрузка молчит: границы могут быть выключены
         warned = true;
         toast(pl.map.boundariesFailed, 'error');
       })
@@ -76,12 +84,51 @@ function pump() {
 /** Новый набор нужных ячеек: очередь заменяется, загрузка ненужных отменяется. */
 function want(jobs: Job[]) {
   const keys = new Set(jobs.map((j) => j.key));
-  running.forEach((ctrl, key) => {
-    if (!keys.has(key)) ctrl.abort();
+  running.forEach(({ ctrl, bg }, key) => {
+    if (!bg && !keys.has(key)) ctrl.abort();
   });
   queue.length = 0;
   queue.push(...jobs.filter((j) => !cellCache.has(j.key) && !running.has(j.key)));
   pump();
+}
+
+/** Загрузить в фоне 3 × 3 ячейки делянок вокруг точки (обычно — вокруг только что выбранной делянки). */
+export function prefetchAround(lat: number, lng: number) {
+  const grid = GRIDS.parcels;
+  const ci = Math.floor(lat / grid.lat);
+  const cj = Math.floor(lng / grid.lon);
+  const jobs: Job[] = [];
+  for (const [di, dj] of [[0, 0], [0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [-1, 1], [1, -1], [1, 1]] as const) {
+    const i = ci + di;
+    const j = cj + dj;
+    const key = cellKey('parcels', i, j);
+    if (!cellCache.has(key) && !running.has(key) && !background.some((b) => b.key === key)) {
+      jobs.push({ key, kind: 'parcels', i, j });
+    }
+  }
+  // свежий выбор важнее старого фона: его ячейки — в начало
+  background.unshift(...jobs);
+  background.length = Math.min(background.length, MAX_VISIBLE_CELLS);
+  pump();
+}
+
+const toLatLng = (ring: [number, number][]): LatLng[] => ring.map(([lon, lat]) => [lat, lon]);
+
+/** Делянка из уже загруженных ячеек, внутри которой лежит точка (без запроса к серверу), или null. */
+export function findLoadedParcelAt(lat: number, lng: number): BoundaryFeature | null {
+  const grid = GRIDS.parcels;
+  const cell = cellCache.get(cellKey('parcels', Math.floor(lat / grid.lat), Math.floor(lng / grid.lon)));
+  if (!cell) return null;
+  for (const f of cell) {
+    const polygons = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+    const inside = polygons.some(([outer, ...holes]) =>
+      outer !== undefined &&
+      pointInRing(lat, lng, toLatLng(outer)) &&
+      !holes.some((h) => pointInRing(lat, lng, toLatLng(h)))
+    );
+    if (inside) return f;
+  }
+  return null;
 }
 
 function visibleJobs(map: LeafletMap, kind: BoundaryKind): Job[] {
