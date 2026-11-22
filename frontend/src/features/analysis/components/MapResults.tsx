@@ -1,7 +1,15 @@
+import { pl } from '@/constants/pl';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useScenarioStore } from '../scenarioStore';
 import { ScenarioSimulator } from './ScenarioSimulator';
 import { ScenarioToggle } from './ScenarioToggle';
+
+export const MAP_RESULTS_ID = 'map-results';
+
+/** Płynne przewinięcie do symulacji „Co jeśli?” i analizy AI pod mapą (przycisk w panelu i w podpowiedzi mapy). */
+export function scrollToMapResults() {
+  document.getElementById(MAP_RESULTS_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 /**
  * Под картой на /map: симулятор «co jeśli» и ответы AI во всю ширину (страница прокручивается).
@@ -14,7 +22,11 @@ export function MapResults() {
   if (!ready.length) return null;
 
   return (
-    <section className="map-results" aria-label="Symulacja działań i analiza AI">
+    <section id={MAP_RESULTS_ID} className="map-results" aria-labelledby="map-results-title">
+      <header className="map-results__head">
+        <h2 id="map-results-title">{pl.panel.scenariosTitle}</h2>
+        <p>{pl.panel.scenariosLead}</p>
+      </header>
       <ScenarioToggle />
       {show && ready.map((job) => (
         <div key={job.code} className="map-results__crop">

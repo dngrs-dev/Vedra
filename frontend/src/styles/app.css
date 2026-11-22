@@ -25,7 +25,7 @@ button { font: inherit; cursor: pointer; }
 .small { font-size: 12px; }
 
 /* ---------- layout ---------- */
-.app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; height: 100dvh; min-height: 560px; }
+.app { display: grid; grid-template-rows: auto 1fr; height: 100vh; height: 100dvh; min-height: 560px; }
 
 .topbar { background: var(--green-800); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 22px; }
 .brand { display: flex; align-items: center; gap: 16px; }
@@ -232,15 +232,6 @@ button { font: inherit; cursor: pointer; }
 .btn-secondary:hover { background: var(--green-100); }
 .btn-primary:focus-visible, .btn-secondary:focus-visible { outline: 3px solid rgba(42, 90, 75, 0.35); outline-offset: 2px; }
 
-/* ---------- footer ---------- */
-.foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 22px; background: #fff; border-top: 1px solid var(--line); }
-.foot__left { display: flex; align-items: center; gap: 18px; min-width: 0; }
-.foot__upd { display: flex; gap: 6px; flex-wrap: wrap; }
-.foot__upd span { color: var(--muted); }
-.foot__sep { width: 1px; height: 30px; background: var(--line); }
-.foot__weather { display: flex; align-items: center; gap: 10px; }
-.foot__region { font-weight: 600; }
-.foot__small { font-size: 12px; color: var(--muted); }
 
 .toast { position: fixed; z-index: 1000; left: 50%; bottom: 76px; transform: translateX(-50%); background: var(--green-900); color: #fff; padding: 10px 16px; border-radius: 8px; box-shadow: var(--shadow); max-width: 90vw; }
 .toast.is-error { background: #a93226; }
@@ -275,8 +266,6 @@ button { font: inherit; cursor: pointer; }
   .map-type { top: 58px; left: 12px; transform: none; }
   .map-zoom, .map-fullscreen { display: none; }
   .brand__text p { display: none; }
-  .foot { flex-direction: column; align-items: stretch; }
-  .foot__left { justify-content: space-between; }
   .moisture { grid-template-columns: minmax(0, 1fr) 130px; }
   .report { padding: 18px; }
 }
@@ -484,10 +473,11 @@ button { font: inherit; cursor: pointer; }
 /* ---------- /map: результаты под картой, переключатель AI, окно zgody ---------- */
 /* Страница прокручивается: карта занимает первый экран, симулятор и ответы AI - под ней. */
 .app { height: auto; min-height: 100vh; min-height: 100dvh; }
-.foot { position: sticky; bottom: 0; z-index: 700; }
 .map-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.map-col > .map-card { flex: none; height: calc(100vh - 165px); height: calc(100dvh - 165px); min-height: 420px; }
-.main > .panel { position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); max-height: calc(100dvh - 120px); }
+.map-col > .map-card { flex: none; height: calc(100vh - 100px); height: calc(100dvh - 100px); min-height: 420px; }
+/* Gdy są wyniki: mapa niższa, żeby nagłówek „Co jeśli?” i analizy AI był widoczny bez przewijania. */
+.map-col--results > .map-card { height: calc(100vh - 170px); height: calc(100dvh - 170px); }
+.main > .panel { position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 100px); max-height: calc(100dvh - 100px); }
 .map-results { display: grid; gap: 16px; }
 .map-results__crop { display: grid; gap: 8px; }
 .map-results .sim-sliders { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 24px; }
@@ -525,20 +515,31 @@ button { font: inherit; cursor: pointer; }
   .main > .panel { order: 2; position: static; max-height: none; }
   .map-results { order: 3; }
   .map-results .sim-sliders { grid-template-columns: 1fr; }
-  .foot { position: static; }
   .consent__actions .btn-primary, .consent__actions .btn-secondary { flex: 1; justify-content: center; }
 }
 
-/* ---------- футер: текущая погода в выбранном месте ---------- */
-.foot__weather { min-width: 0; }
-.foot__weather-text { display: grid; gap: 1px; min-width: 0; }
-.foot__place { color: var(--green-800); text-decoration: none; }
-.foot__place:hover { text-decoration: underline; }
-.foot__place span { font-size: 12px; color: var(--muted); }
-.foot__now { font-size: 13px; color: var(--ink); }
+/* ---------- panel: «Pogoda teraz», przejście do raportu i do „Co jeśli?” ---------- */
+.weather-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.weather-card svg { flex: none; }
+.weather-card__text { display: grid; gap: 2px; min-width: 0; }
+.weather-card__title { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.weather-card__place { color: var(--green-800); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.weather-card__place:hover { text-decoration: underline; }
+.weather-card__place span { font-size: 12px; color: var(--muted); }
+.weather-card__now { font-size: 13px; color: var(--ink); }
+.weather-card__small { font-size: 12px; color: var(--muted); }
+/* Przyciski pod wynikami: przyklejone do dołu panelu (który ma własne przewijanie), więc zawsze widoczne. */
+.panel-next { display: grid; gap: 8px; position: sticky; bottom: 0; z-index: 1; margin-top: auto; padding: 14px 0 6px;
+  background: linear-gradient(rgba(255, 255, 255, 0), #fff 14px); }
+.panel-next .btn-primary, .panel-next .btn-secondary { justify-content: center; white-space: normal; text-align: center; }
 @media (max-width: 760px) {
-  .foot__now { font-size: 12px; }
+  /* mobilka: panel nie ma własnego przewijania - bez przyklejania, żeby nie zasłaniać strony */
+  .panel-next { position: static; background: none; padding-top: 4px; }
 }
+.map-results { scroll-margin-top: 12px; }
+.map-results__head { background: var(--green-100); border: 1px solid #cfe0d8; border-left: 4px solid var(--green-700); border-radius: var(--radius); padding: 12px 16px; }
+.map-results__head h2 { margin: 0 0 2px; font-size: 17px; color: var(--green-900); }
+.map-results__head p { margin: 0; font-size: 13px; color: #3c4b46; }
 
 /* ---------- raport: «Pobierz PDF» + галочка «Co jeśli?» ---------- */
 .pdf-download { display: grid; justify-items: end; gap: 6px; }

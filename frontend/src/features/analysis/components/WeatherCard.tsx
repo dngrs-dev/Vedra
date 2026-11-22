@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { describeWeather, getCurrentWeather, type WeatherKind } from '@/services/weatherApi';
+import { useAnalysis } from '../hooks/useAnalysis';
+import { useAnalysisStore } from '../store';
 
 // Обновляем раз в 15 минут - с такой частотой Open-Meteo обновляет текущие данные.
 const REFRESH_MS = 15 * 60 * 1000;
@@ -25,8 +27,15 @@ function WeatherIcon({ kind }: { kind: WeatherKind }) {
   );
 }
 
-/** Текущая погода в центре выбранной делянки + ссылка на это место в Google Maps. */
-export function FooterWeather({ point, place }: { point: { lat: number; lng: number } | null; place: string | null }) {
+/**
+ * «Pogoda teraz» w prawym panelu: aktualna pogoda w środku wybranej działki + link do tego miejsca w Mapach Google.
+ * Bez wybranej działki nic nie pokazuje (wcześniej była to stała stopka na dole ekranu, która zasłaniała interfejs).
+ */
+export function WeatherCard() {
+  const selected = useAnalysisStore((s) => s.confirmed ?? s.parcel);
+  const region = useAnalysisStore((s) => s.region);
+  const { demo, jobs } = useAnalysis({ active: false });
+  const point = selected?.center ?? null;
   const lat = point ? +point.lat.toFixed(4) : null;
   const lng = point ? +point.lng.toFixed(4) : null;
   const weather = useQuery({
@@ -38,18 +47,13 @@ export function FooterWeather({ point, place }: { point: { lat: number; lng: num
     retry: 1
   });
 
-  if (lat === null || lng === null) {
-    return (
-      <div className="foot__weather">
-        <WeatherIcon kind="partly" />
-        <div>
-          <div className="foot__region">Pogoda</div>
-          <div className="foot__small">Wybierz działkę na mapie, aby zobaczyć aktualną pogodę.</div>
-        </div>
-      </div>
-    );
-  }
+  if (lat === null || lng === null) return null;
 
+  // Miejsce: gmina i województwo z raportu, inaczej region analizy demo albo województwo na mapie
+  const parcel = jobs.find((job) => job.report)?.report?.parcel;
+  const place = parcel
+    ? [...new Set([parcel.commune, parcel.voivodeship].filter(Boolean))].join(', ')
+    : demo.data?.region || region;
   const label = place || `${lat.toFixed(3)}° N, ${lng.toFixed(3)}° E`;
   const maps = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   const current = weather.data;
@@ -57,27 +61,28 @@ export function FooterWeather({ point, place }: { point: { lat: number; lng: num
   const time = current?.time.slice(11, 16);
 
   return (
-    <div className="foot__weather">
+    <section className="card weather-card" aria-label="Aktualna pogoda na działce">
       <WeatherIcon kind={info?.kind ?? 'cloud'} />
-      <div className="foot__weather-text">
-        <a className="foot__region foot__place" href={maps} target="_blank" rel="noreferrer"
+      <div className="weather-card__text">
+        <div className="weather-card__title">Pogoda teraz</div>
+        <a className="weather-card__place" href={maps} target="_blank" rel="noreferrer"
           title="Otwórz lokalizację działki w Mapach Google">
-          Pogoda w punkcie: {label} <span aria-hidden="true">↗</span>
+          {label} <span aria-hidden="true">↗</span>
         </a>
         {current && info ? (
           <>
-            <div className="foot__now">
+            <div className="weather-card__now">
               <b>{num.format(current.temperature_2m)}°C</b> · {info.text} · wiatr {num.format(current.wind_speed_10m)} km/h
               {' '}· opad {num.format(current.precipitation)} mm
             </div>
-            <div className="foot__small">Teraz, stan na {time} · Open-Meteo</div>
+            <div className="weather-card__small">Stan na {time} · Open-Meteo</div>
           </>
         ) : (
-          <div className="foot__small">
+          <div className="weather-card__small">
             {weather.isError ? 'Nie udało się pobrać aktualnej pogody.' : 'Pobieram aktualną pogodę…'}
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }

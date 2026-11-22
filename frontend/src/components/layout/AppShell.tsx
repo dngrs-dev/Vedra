@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { Footer } from './Footer';
 import { Header } from './Header';
 
 interface AppShellProps {
@@ -15,7 +14,6 @@ export function AppShell({ children, headerCenter, headerActions }: AppShellProp
     <div className="app">
       <Header center={headerCenter} actions={headerActions} />
       <main className="main">{children}</main>
-      <Footer />
     </div>
   );
 }

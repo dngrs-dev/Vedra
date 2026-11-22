@@ -22,9 +22,11 @@ import {
   useParcelBoundaries,
   type BoundaryMode
 } from '../hooks/useParcelBoundaries';
+import { useAnalysis } from '../hooks/useAnalysis';
 import { useParcelSelect } from '../hooks/useParcelSelect';
 import { useVoivodeships } from '../hooks/useVoivodeships';
 import { useAnalysisStore } from '../store';
+import { scrollToMapResults } from './MapResults';
 
 /** Рамка делянки / группы (внешние контуры) */
 function parcelBounds(p: Parcel): L.LatLngBounds {
@@ -302,7 +304,14 @@ export function ParcelMap() {
     setTimeout(() => map?.invalidateSize(), 300);
   };
 
-  const hint = !regionReady && zoom < PICK_MIN_ZOOM
+  // Wyniki z backendu gotowe: pod mapą jest symulacja „Co jeśli?” i analiza AI - podpowiedź prowadzi tam
+  const { jobs } = useAnalysis({ active: false });
+  const resultsReady = jobs.some((job) => job.report);
+  const confirmed = useAnalysisStore((s) => s.confirmed);
+
+  const hint = resultsReady && confirmed
+    ? pl.map.hintResults
+    : !regionReady && zoom < PICK_MIN_ZOOM
     ? pl.map.hintRegion
     : parcel
       ? pl.map.hintSelected
@@ -409,6 +418,11 @@ export function ParcelMap() {
         {parcel && parcelOffscreen && (
           <button type="button" className="map-hint__btn" onClick={() => fitParcel(parcel)}>
             {pl.map.showWholeParcel}
+          </button>
+        )}
+        {resultsReady && confirmed && (
+          <button type="button" className="map-hint__btn" onClick={scrollToMapResults}>
+            ↓ {pl.panel.toScenariosShort}
           </button>
         )}
       </div>
