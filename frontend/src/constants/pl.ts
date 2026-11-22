@@ -10,6 +10,8 @@ export const pl = {
     invalidList: 'Wpisz poprawne identyfikatory działek ewidencyjnych.',
     tooManyIds: (max: number) => `Podaj najwyżej ${max} identyfikatorów w jednym wyszukiwaniu.`,
     lookupFailed: (id: string) => `Nie udało się znaleźć działki ${id}. Sprawdź identyfikator lub spróbuj ponownie.`,
+    areaLookupFailed: 'Nie udało się wyszukać działek w zaznaczeniu. Spróbuj ponownie lub użyj opcji „Wiele ID”.',
+    areaNoParcels: 'Nie znaleziono działek ewidencyjnych w zaznaczeniu. Zmień ramkę lub użyj opcji „Wiele ID”.',
     confirm: 'Potwierdź działki',
     commonInputs: 'Wybrane uprawy i data dotyczą każdej działki w grupie.',
     tooManyJobs: (max: number) => `Jedna seria obejmuje maksymalnie ${max} analiz. Zmniejsz liczbę działek lub upraw.`,

@@ -142,10 +142,7 @@ export function useParcelSelect() {
     [run]
   );
 
-  /**
-   * Ctrl + ЛКМ рамка → выбираются ВСЕ делянки из ewidencji, которые попали в рамку (групповой выбор).
-   * Одна делянка → обычный выбор. Ни одной (дорога, вода) или ULDK недоступен → рамка = «własny obszar».
-   */
+  // Ctrl-drag in smart mode selects registered parcels. Simple mode selects the drawn area.
   const selectArea = useCallback(
     async (ring: LatLng[]) => {
       const areaHa = +polygonAreaHa(ring).toFixed(2);
@@ -160,20 +157,17 @@ export function useParcelSelect() {
         return;
       }
 
-      const customArea: Parcel = {
-        id: `OBSZAR_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`,
-        ring,
-        areaHa,
-        center,
-        isCustom: true
-      };
-
-      // «Zwykły wybór» — просто прямоугольник, без поиска делянок
       if (useAnalysisStore.getState().selectMode === 'simple') {
         abortRef.current?.abort();
         setLoading(false);
         setFound(null);
-        setParcel(customArea);
+        setParcel({
+          id: `OBSZAR_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`,
+          ring,
+          areaHa,
+          center,
+          isCustom: true
+        });
         return;
       }
 
@@ -199,20 +193,15 @@ export function useParcelSelect() {
               : `Połączono ${dzialki(res.parcels.length)} w jeden obszar (${total} ha).`
           );
         } else {
-          setParcel(customArea);
-          toast(
-            res.serviceDown
-              ? 'Usługa ULDK niedostępna — zaznaczony prostokąt użyto jako własny obszar.'
-              : 'W zaznaczeniu nie ma działki ewidencyjnej — użyto zaznaczonego obszaru.'
-          );
+          toast(res.serviceDown ? pl.batch.areaLookupFailed : pl.batch.areaNoParcels, 'error');
+          return;
         }
         if (res.skippedEdge > 0 && res.parcels.length > 0 && !res.truncated) {
           setTimeout(() => toast(`Pominięto ${dzialki(res.skippedEdge)}, które tylko zahaczają o ramkę.`), 2500);
         }
         if (res.truncated) toast('Zaznaczenie jest bardzo duże — pokazano tylko część działek. Zaznacz mniejszy obszar.', 'error');
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') return;
-        setParcel(customArea);
+      } catch {
+        if (!ctrl.signal.aborted) toast(pl.batch.areaLookupFailed, 'error');
       } finally {
         if (abortRef.current === ctrl) {
           setLoading(false);
