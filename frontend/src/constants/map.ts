@@ -1,12 +1,23 @@
 /**
- * Зум, с которого можно кликом выбрать делянку (без слоя границ - запросом по точке).
- * На 15 при широте ~52° 1 px ≈ 3 м: типичная делянка 20-100 м занимает 7-30 px - попасть в неё можно осознанно.
+ * Klikanie w mapę przybliża ją krokami, a działkę wybiera się dopiero na poziomie działek:
+ *   województwo (≈8) → klik → ≈12 → klik → 15 (poziom obrębów) → klik → 17 (poziom działek) → klik = wybór.
+ * Tak samo przy włączonym i wyłączonym przełączniku «Granice działek» - on tylko rysuje linie.
  */
-export const PICK_MIN_ZOOM = 15;
-/** Слой границ, уровень 1: контуры obrębów ewidencyjnych (группы делянок) - зум 15-16 */
+/** Poniżej tego zumu klik przybliża mniej więcej w pół drogi do poziomu obrębów */
+export const ZOOM_STEP_FROM = 11;
+/** Warstwa granic, poziom 1: obręby ewidencyjne (grupy działek) - zum 15-16 */
 export const OBREB_MIN_ZOOM = 15;
-/** Слой границ, уровень 2: контуры отдельных делянок - с зума 17 (1-4 ячейки на экран вместо 12-48 на зуме 15) */
+/** Warstwa granic, poziom 2: pojedyncze działki - od zumu 17 (1-4 komórki na ekran) */
 export const PARCEL_BOUNDARY_MIN_ZOOM = 17;
+/** Od tego zumu klik wybiera działkę (na 17 przy ~52° 1 px ≈ 0,8 m - pojedyncze działki są dobrze widoczne) */
+export const PICK_MIN_ZOOM = PARCEL_BOUNDARY_MIN_ZOOM;
+
+/** Zum, do którego przybliża klik na mniejszym zumie niż PICK_MIN_ZOOM */
+export function nextZoomStep(zoom: number): number {
+  if (zoom < ZOOM_STEP_FROM) return Math.ceil((zoom + OBREB_MIN_ZOOM) / 2);
+  if (zoom < OBREB_MIN_ZOOM) return OBREB_MIN_ZOOM;
+  return PICK_MIN_ZOOM;
+}
 
 export type BoundaryKind = 'obreby' | 'parcels';
 

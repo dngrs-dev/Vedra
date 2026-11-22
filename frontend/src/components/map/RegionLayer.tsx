@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import L from 'leaflet';
 import { Marker, Polygon, useMap, useMapEvents } from 'react-leaflet';
-import { PICK_MIN_ZOOM } from '@/constants/map';
+import { ZOOM_STEP_FROM } from '@/constants/map';
 import type { Voivodeship } from '@/types/region';
 
 interface RegionLayerProps {
@@ -55,7 +55,8 @@ export function RegionLayer({ regions, active, onSelect }: RegionLayerProps) {
               click: (e) => {
                 // клик по активному воеводству «пролетает» дальше на карту → выбор делянки
                 if (isActive) return;
-                if (map.getZoom() >= PICK_MIN_ZOOM) {
+                // po pierwszym przybliżeniu (zum ≥ 11) klik w sąsiednie województwo nie oddala mapy - to krok do działki
+                if (map.getZoom() >= ZOOM_STEP_FROM) {
                   // на крупном зуме (напр. после «Moja lokalizacja» в другом воеводстве) клик - это выбор делянки:
                   // воеводство становится активным без смены вида, клик идёт дальше на карту
                   onSelect(v, false);

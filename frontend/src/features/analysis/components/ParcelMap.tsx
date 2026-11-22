@@ -8,7 +8,8 @@ import {
   BOUNDARIES_STORAGE_KEY,
   OBREB_MIN_ZOOM,
   PARCEL_BOUNDARY_MIN_ZOOM,
-  PICK_MIN_ZOOM
+  PICK_MIN_ZOOM,
+  nextZoomStep
 } from '@/constants/map';
 import { pl } from '@/constants/pl';
 import { POLAND_BOUNDS } from '@/constants/poland';
@@ -32,9 +33,6 @@ function parcelBounds(p: Parcel): L.LatLngBounds {
   const rings = p.outline ? p.outline.map((poly) => poly[0] ?? []) : p.parts ? p.parts.map((x) => x.ring) : [p.ring];
   return L.latLngBounds(rings.flat());
 }
-
-/** Клик ниже этого зума приближает на полпути к PICK_MIN_ZOOM (воеводство 7-8 → 11-12 → 15), выше - сразу до него */
-const ZOOM_STEP_FROM = 11;
 
 /** Индикатор «Pobieram działkę…» - только если ответ дольше этого (быстрые ответы из кэша не мигают) */
 const LOADER_DELAY_MS = 400;
@@ -203,13 +201,12 @@ export function ParcelMap() {
     if (Date.now() - lastAreaAt.current < 400) return; // «хвост» клика после Ctrl-выделения
     const z = map?.getZoom() ?? zoom;
     if (z < PICK_MIN_ZOOM) {
-      // мелкий зум: клик - это «лотерея» среди десятков делянок; приближаем к точке, выбор - следующим кликом.
-      // С уровня воеводства - в два шага (примерно на полпути, затем до уровня obrębów), чтобы не терять ориентир.
-      const target = z < ZOOM_STEP_FROM ? Math.ceil((z + PICK_MIN_ZOOM) / 2) : PICK_MIN_ZOOM;
-      if (regionReady) map?.setView([lat, lng], target, { animate: true });
+      // мелкий зум: клик - это «лотерея» среди десятков делянок; приближаем к точке шагами
+      // (воеводство → пол-пути → уровень obrębów → уровень делянок), выбор - только на уровне делянок
+      if (regionReady) map?.setView([lat, lng], nextZoomStep(z), { animate: true });
       return;
     }
-    // зум ≥ 15: всегда выбор (obręby - только фон, клик по ним не приближает).
+    // зум ≥ 17 (уровень делянок): выбор.
     // Сначала - из уже загруженных контуров (слой границ или фоновая подгрузка): без запроса и без индикатора.
     const loaded = (hit && mode === 'parcels' ? hit : null) ?? findLoadedParcelAt(lat, lng);
     if (loaded) {
