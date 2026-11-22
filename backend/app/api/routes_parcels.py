@@ -40,15 +40,31 @@ async def parcel_at_point(lat: Latitude, lon: Longitude, geo: GeoDependency) -> 
     return parcel
 
 
-@router.get("/in-bbox", summary="Parcel outlines in a WGS84 box (map boundary layer)")
-async def parcels_in_bbox(min_lat: Latitude, min_lon: Longitude, max_lat: Latitude, max_lon: Longitude) -> dict:
-    """GeoJSON FeatureCollection of the parcels in the grid cells covering the box, plus `truncated`."""
+_EMPTY = {"type": "FeatureCollection", "features": [], "truncated": False}
+
+
+def _check_box(min_lat: float, min_lon: float, max_lat: float, max_lon: float, grid: parcel_grid.Grid) -> None:
     if min_lat >= max_lat or min_lon >= max_lon:
         raise HTTPException(status_code=422, detail="min_lat/min_lon must be below max_lat/max_lon")
     try:
-        parcel_grid.cells_for(min_lat, min_lon, max_lat, max_lon)
+        parcel_grid.cells_for(min_lat, min_lon, max_lat, max_lon, grid)
     except parcel_grid.BboxTooLarge as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/in-bbox", summary="Parcel outlines in a WGS84 box (map boundary layer, zoom >= 17)")
+async def parcels_in_bbox(min_lat: Latitude, min_lon: Longitude, max_lat: Latitude, max_lon: Longitude) -> dict:
+    """GeoJSON FeatureCollection of the parcels in the grid cells covering the box, plus `truncated`."""
+    _check_box(min_lat, min_lon, max_lat, max_lon, parcel_grid.PARCELS)
     if settings.geo_provider != "real":   # fake / fixture runs stay offline: no boundary layer
-        return {"type": "FeatureCollection", "features": [], "truncated": False}
+        return _EMPTY
     return await parcel_grid.parcels_in_bbox(min_lat, min_lon, max_lat, max_lon)
+
+
+@router.get("/obreby-in-bbox", summary="Obręb outlines in a WGS84 box (map boundary layer, zoom 15-16)")
+async def obreby_in_bbox(min_lat: Latitude, min_lon: Longitude, max_lat: Latitude, max_lon: Longitude) -> dict:
+    """GeoJSON FeatureCollection of the obręby (cadastral precincts) in the grid cells covering the box."""
+    _check_box(min_lat, min_lon, max_lat, max_lon, parcel_grid.OBREBY)
+    if settings.geo_provider != "real":
+        return _EMPTY
+    return await parcel_grid.obreby_in_bbox(min_lat, min_lon, max_lat, max_lon)

@@ -1,28 +1,34 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { useMap } from 'react-leaflet';
-import { BOUNDARY_COLOR, PANE_BOUNDARIES, PARCEL_FILL, boundaryWeight } from '@/constants/map';
+import { BOUNDARY_COLOR, PANE_BOUNDARIES, PARCEL_FILL, boundaryWeight, type BoundaryKind } from '@/constants/map';
 import type { BoundaryFeature } from '@/services/parcelApi';
 
 interface ParcelBoundariesProps {
+  /** obręby (зум 15–16, клик приближает) или делянки (зум ≥ 17, клик выбирает). Смена — через key (перемонтирование). */
+  kind: BoundaryKind;
   features: BoundaryFeature[];
   /** ID выбранной делянки — её рисует отдельный полигон сверху, здесь не подсвечиваем */
   selectedId: string | null;
   /** ID делянки, по которой только что кликнули (идёт запрос) — сразу заливаем плотнее */
   pendingId: string | null;
   /** Клик по контуру: вызывается ДО клика по карте (canvas → слой → карта), карта затем делает выбор */
-  onFeatureClick: (id: string) => void;
+  onFeatureClick: (feature: BoundaryFeature) => void;
 }
 
 const HOVER_FILL = 0.22;
+const OBREB_HOVER_FILL = 0.12;
 const PENDING_FILL = 0.4;
 
+const label = (kind: BoundaryKind, f: BoundaryFeature) =>
+  kind === 'obreby' ? `Obręb ${f.properties.name || f.properties.id}` : f.properties.id;
+
 /**
- * Границы всех делянок вокруг видимой области. Canvas-рендерер (тысячи полигонов без тормозов),
+ * Границы всех делянок (или obrębów) вокруг видимой области. Canvas-рендерер (тысячи полигонов без тормозов),
  * толщина линии зависит от зума, наведение — лёгкая заливка + код делянки рядом с курсором.
  * Должен рендериться внутри <Pane name={PANE_BOUNDARIES}>.
  */
-export function ParcelBoundaries({ features, selectedId, pendingId, onFeatureClick }: ParcelBoundariesProps) {
+export function ParcelBoundaries({ kind, features, selectedId, pendingId, onFeatureClick }: ParcelBoundariesProps) {
   const map = useMap();
   const groupRef = useRef<L.LayerGroup | null>(null);
   const rendererRef = useRef<L.Canvas | null>(null);
@@ -34,8 +40,9 @@ export function ParcelBoundaries({ features, selectedId, pendingId, onFeatureCli
 
   const styleFor = (id: string): L.PathOptions => {
     const { hovered, selectedId: sel, pendingId: pend } = state.current;
-    const fillOpacity = id === sel ? 0 : id === pend ? PENDING_FILL : id === hovered ? HOVER_FILL : 0;
-    return { weight: boundaryWeight(map.getZoom()), fillOpacity };
+    const hover = kind === 'obreby' ? OBREB_HOVER_FILL : HOVER_FILL;
+    const fillOpacity = id === sel ? 0 : id === pend ? PENDING_FILL : id === hovered ? hover : 0;
+    return { weight: boundaryWeight(map.getZoom(), kind), fillOpacity };
   };
   const restyle = (id: string | null) => {
     if (id) layers.current.get(id)?.setStyle(styleFor(id));
@@ -98,7 +105,7 @@ export function ParcelBoundaries({ features, selectedId, pendingId, onFeatureCli
         mouseover: (e: L.LeafletMouseEvent) => {
           state.current.hovered = id;
           restyle(id);
-          tooltip.setContent(f.properties.id).setLatLng(e.latlng);
+          tooltip.setContent(label(kind, f)).setLatLng(e.latlng);
           if (!map.hasLayer(tooltip)) tooltip.addTo(map);
         },
         mousemove: (e: L.LeafletMouseEvent) => tooltip.setLatLng(e.latlng),
@@ -107,7 +114,7 @@ export function ParcelBoundaries({ features, selectedId, pendingId, onFeatureCli
           restyle(id);
           tooltip.remove();
         },
-        click: () => clickRef.current(id)
+        click: () => clickRef.current(f)
       });
       layers.current.set(id, layer);
       group.addLayer(layer);

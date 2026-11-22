@@ -16,7 +16,12 @@ export const pl = {
   map: {
     satellite: 'Satellite',
     terrain: 'Terrain',
-    layers: 'Pokaż / ukryj działki',
+    boundaries: 'Granice działek',
+    boundariesHint: 'Pokaż granice wszystkich działek i numer po najechaniu',
+    boundariesOff: 'Pokaż granice i numery działek',
+    boundariesZoomIn: 'Przybliż mapę, aby je zobaczyć',
+    boundariesObreby: 'Obręby · przybliż, aby zobaczyć działki',
+    boundariesParcels: 'Najedź na działkę, aby zobaczyć numer',
     locate: 'Moja lokalizacja',
     fullscreen: 'Pełny ekran',
     zoomIn: 'Przybliż',
@@ -25,6 +30,9 @@ export const pl = {
     hintRegion: 'Kliknij województwo, aby je przybliżyć',
     hintParcel: 'Kliknij działkę lub przytrzymaj Ctrl i przeciągnij ramkę',
     hintZoom: 'Przybliż mapę, aby wybrać działkę (lub Ctrl + ramka)',
+    hintObreby: 'Kliknij obręb, aby go przybliżyć i zobaczyć działki',
+    locateFailed: 'Nie udało się pobrać lokalizacji',
+    locateUnavailable: 'Geolokalizacja niedostępna w tej przeglądarce',
     boundariesFailed: 'Granice działek są chwilowo niedostępne — wybór kliknięciem nadal działa',
     hintSelected: 'Zaznaczono. Potwierdź działkę w panelu po prawej',
     regionsFailed: 'granice województw niedostępne'

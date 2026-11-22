@@ -1,42 +1,73 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import type { Map as LeafletMap } from 'leaflet';
+import L, { type Map as LeafletMap } from 'leaflet';
 import { FullscreenIcon, LayersIcon, LocateIcon, SearchIcon } from '@/components/ui/Icons';
 import { toast } from '@/components/ui/toastStore';
 import { PolandMap, type BaseLayer } from '@/components/map/PolandMap';
-import { BOUNDARY_MIN_ZOOM, PICK_MIN_ZOOM } from '@/constants/map';
+import type { UserPosition } from '@/components/map/UserLocation';
+import {
+  BOUNDARIES_STORAGE_KEY,
+  OBREB_MIN_ZOOM,
+  PARCEL_BOUNDARY_MIN_ZOOM,
+  PICK_MIN_ZOOM
+} from '@/constants/map';
 import { pl } from '@/constants/pl';
 import { POLAND_BOUNDS } from '@/constants/poland';
+import { parcelFromBoundary, type BoundaryFeature } from '@/services/parcelApi';
 import type { LatLng } from '@/types/parcel';
 import type { Voivodeship } from '@/types/region';
-import { useParcelBoundaries } from '../hooks/useParcelBoundaries';
+import { useParcelBoundaries, type BoundaryMode } from '../hooks/useParcelBoundaries';
 import { useParcelSelect } from '../hooks/useParcelSelect';
 import { useVoivodeships } from '../hooks/useVoivodeships';
 import { useAnalysisStore } from '../store';
 
+/** Точность хуже этой (м) — показываем весь круг точности, а не приближаем к точке */
+const LOCATE_FIT_ACCURACY_M = 300;
+
+function readBoundariesPref(): boolean {
+  try {
+    return localStorage.getItem(BOUNDARIES_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeBoundariesPref(on: boolean) {
+  try {
+    localStorage.setItem(BOUNDARIES_STORAGE_KEY, on ? '1' : '0');
+  } catch {
+    // приватный режим / заблокированное хранилище — просто не запоминаем
+  }
+}
+
 /**
  * Карта + плавающие элементы управления.
- * Сценарий: клик по воеводству → приближение → клик (приближает к точке до PICK_MIN_ZOOM) → на крупном зуме видны
- * границы делянок, наведение показывает код, клик выбирает делянку; ИЛИ Ctrl + перетаскивание (своя область)
- * → «Potwierdź działkę» в правой панели → расчёт на бэкенде.
+ * Сценарий: клик по воеводству → приближение → клик (приближает к точке до PICK_MIN_ZOOM) → клик по делянке
+ * ИЛИ Ctrl + перетаскивание (своя область) → «Potwierdź działkę» в правой панели → расчёт на бэкенде.
+ * Переключатель «Granice działek» (по умолчанию выкл.): на зуме 15–16 — obręby (клик приближает), с 17 — делянки
+ * (наведение показывает номер, клик выбирает мгновенно — контур уже загружен).
  */
 export function ParcelMap() {
   const parcel = useAnalysisStore((s) => s.parcel);
   const region = useAnalysisStore((s) => s.region);
   const setRegion = useAnalysisStore((s) => s.setRegion);
-  const { loading, found, selectById, selectByLatLng, selectArea } = useParcelSelect();
+  const { loading, found, selectById, selectByLatLng, selectArea, selectParcel } = useParcelSelect();
   const { data: regions, isError: regionsFailed } = useVoivodeships();
 
   const [map, setMap] = useState<LeafletMap | null>(null);
   const [layer, setLayer] = useState<BaseLayer>('satellite');
-  const [showParcels, setShowParcels] = useState(true);
+  const [boundariesOn, setBoundariesOn] = useState(readBoundariesPref);
   const [query, setQuery] = useState('');
   const [zoom, setZoom] = useState(0);
-  /** Делянка, по которой кликнули, пока идёт запрос — заливается сразу, до ответа бэкенда */
+  /** Делянка, по которой кликнули, пока идёт запрос по точке — заливается сразу, до ответа бэкенда */
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
+  const [watching, setWatching] = useState(false);
   const cardRef = useRef<HTMLElement>(null);
   const lastAreaAt = useRef(0);
-  /** ID контура под последним кликом (слой границ сообщает его раньше, чем карта — сам клик) */
-  const clickedId = useRef<string | null>(null);
+  /** Контур под последним кликом (слой границ сообщает его раньше, чем карта — сам клик) */
+  const clickedFeature = useRef<BoundaryFeature | null>(null);
+  const watchId = useRef<number | null>(null);
+  const centerOnNextFix = useRef(false);
 
   useEffect(() => {
     if (!map) return;
@@ -52,13 +83,20 @@ export function ParcelMap() {
     if (!loading) setPendingId(null);
   }, [loading]);
 
-  const zoomedIn = zoom >= PICK_MIN_ZOOM;
+  const mode: BoundaryMode = !boundariesOn || zoom < OBREB_MIN_ZOOM
+    ? 'off'
+    : zoom < PARCEL_BOUNDARY_MIN_ZOOM ? 'obreby' : 'parcels';
+  const boundaries = useParcelBoundaries(map, mode);
+
   // Воеводство выбрано (или его границы не загрузились — тогда не блокируем работу)
   const regionReady = region !== null || !regions;
-  // Кликом делянку выбираем только на крупном зуме: на мелком клик — это «лотерея» среди десятков делянок
-  const canPick = zoomedIn;
-  const showBoundaries = showParcels && zoom >= BOUNDARY_MIN_ZOOM;
-  const { features: boundaries } = useParcelBoundaries(map, showBoundaries);
+
+  const toggleBoundaries = () => {
+    setBoundariesOn((on) => {
+      writeBoundariesPref(!on);
+      return !on;
+    });
+  };
 
   const selectRegion = useCallback(
     (v: Voivodeship) => {
@@ -74,21 +112,34 @@ export function ParcelMap() {
   };
 
   const pick = (lat: number, lng: number) => {
-    const hitId = clickedId.current;
-    clickedId.current = null;
+    const hit = clickedFeature.current;
+    clickedFeature.current = null;
     if (Date.now() - lastAreaAt.current < 400) return; // «хвост» клика после Ctrl-выделения
-    if (!canPick) {
-      // мелкий зум внутри воеводства: приближаем к точке клика, выбор — следующим кликом
+    const z = map?.getZoom() ?? zoom;
+    if (z < PICK_MIN_ZOOM) {
+      // мелкий зум: клик — это «лотерея» среди десятков делянок; приближаем к точке, выбор — следующим кликом
       if (regionReady) map?.setView([lat, lng], PICK_MIN_ZOOM, { animate: true });
       return;
     }
-    if (hitId && hitId === parcel?.id) return; // повторный клик по уже выбранной делянке
+    if (mode === 'obreby') {
+      // уровень obrębów: клик приближает до уровня делянок
+      map?.setView([lat, lng], PARCEL_BOUNDARY_MIN_ZOOM, { animate: true });
+      return;
+    }
+    if (hit && mode === 'parcels') {
+      if (hit.id === parcel?.id) return; // повторный клик по уже выбранной делянке
+      const ready = parcelFromBoundary(hit);
+      if (ready) {
+        selectParcel(ready); // контур уже загружен — выбор без запроса к серверу
+        return;
+      }
+    }
     void selectByLatLng(lat, lng);
-    if (hitId) setPendingId(hitId);
+    if (hit) setPendingId(hit.id);
   };
 
-  const onBoundaryClick = useCallback((id: string) => {
-    clickedId.current = id;
+  const onBoundaryClick = useCallback((feature: BoundaryFeature) => {
+    clickedFeature.current = feature;
   }, []);
 
   // useCallback: AreaSelect переподписывается на события при смене функции — она должна быть стабильной
@@ -105,11 +156,56 @@ export function ParcelMap() {
     void selectById(query);
   };
 
+  /* ---------- геолокация: точка + круг точности, обновляется при перемещении ---------- */
+
+  const stopWatching = useCallback(() => {
+    if (watchId.current !== null) navigator.geolocation?.clearWatch(watchId.current);
+    watchId.current = null;
+    setWatching(false);
+  }, []);
+
+  useEffect(() => stopWatching, [stopWatching]);
+
+  const centerOn = (pos: UserPosition) => {
+    if (!map) return;
+    if (pos.accuracy > LOCATE_FIT_ACCURACY_M) {
+      map.fitBounds(L.latLng(pos.lat, pos.lng).toBounds(pos.accuracy * 2), { animate: true, maxZoom: PICK_MIN_ZOOM });
+    } else {
+      map.setView([pos.lat, pos.lng], Math.max(map.getZoom(), PICK_MIN_ZOOM), { animate: true });
+    }
+  };
+  const centerOnRef = useRef(centerOn);
+  centerOnRef.current = centerOn;
+
   const locate = () => {
-    if (!navigator.geolocation) return toast('Geolokalizacja niedostępna w tej przeglądarce', 'error');
-    navigator.geolocation.getCurrentPosition(
-      (p) => map?.setView([p.coords.latitude, p.coords.longitude], PICK_MIN_ZOOM),
-      () => toast('Nie udało się pobrać lokalizacji', 'error')
+    if (!navigator.geolocation) return toast(pl.map.locateUnavailable, 'error');
+    if (watchId.current !== null) {
+      // уже следим: повторное нажатие только центрирует (или центрирует при первой позиции)
+      if (userPosition) centerOn(userPosition);
+      else centerOnNextFix.current = true;
+      return;
+    }
+    centerOnNextFix.current = true;
+    setWatching(true);
+    let hadFix = false;
+    watchId.current = navigator.geolocation.watchPosition(
+      (p) => {
+        hadFix = true;
+        const pos = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
+        setUserPosition(pos);
+        if (centerOnNextFix.current) {
+          centerOnNextFix.current = false;
+          centerOnRef.current(pos);
+        }
+      },
+      (err) => {
+        // единичный сбой при уже найденной позиции не мешает — точка остаётся
+        if (err.code !== err.PERMISSION_DENIED && hadFix) return;
+        stopWatching();
+        if (err.code === err.PERMISSION_DENIED) setUserPosition(null);
+        toast(pl.map.locateFailed, 'error');
+      },
+      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 20_000 }
     );
   };
 
@@ -121,20 +217,29 @@ export function ParcelMap() {
     setTimeout(() => map?.invalidateSize(), 300);
   };
 
-  const hint = !regionReady && !zoomedIn
+  const hint = !regionReady && zoom < PICK_MIN_ZOOM
     ? pl.map.hintRegion
     : parcel
       ? pl.map.hintSelected
-      : zoomedIn
-        ? pl.map.hintParcel
-        : pl.map.hintZoom;
+      : zoom < PICK_MIN_ZOOM
+        ? pl.map.hintZoom
+        : mode === 'obreby'
+          ? pl.map.hintObreby
+          : pl.map.hintParcel;
+
+  const toggleSub = !boundariesOn
+    ? pl.map.boundariesOff
+    : mode === 'off'
+      ? pl.map.boundariesZoomIn
+      : mode === 'obreby'
+        ? pl.map.boundariesObreby
+        : pl.map.boundariesParcels;
 
   return (
     <section className="map-card" aria-label="Mapa działek" ref={cardRef}>
       <PolandMap
         parcel={parcel}
         layer={layer}
-        showParcels={showParcels}
         regions={regions}
         activeRegion={region}
         onRegionSelect={selectRegion}
@@ -142,9 +247,11 @@ export function ParcelMap() {
         onArea={onArea}
         onReady={setMap}
         zoom={zoom}
-        boundaries={showBoundaries ? boundaries : null}
+        boundaryKind={mode === 'off' ? null : mode}
+        boundaries={boundaries}
         pendingId={pendingId}
         onBoundaryClick={onBoundaryClick}
+        userPosition={userPosition}
       />
 
       <form className="map-search" role="search" autoComplete="off" onSubmit={onSubmit}>
@@ -169,10 +276,29 @@ export function ParcelMap() {
       </div>
 
       <div className="map-side-btns">
-        <button type="button" className={`sq-btn${showParcels ? '' : ' is-off'}`} aria-label={pl.map.layers} title={pl.map.layers} onClick={() => setShowParcels((v) => !v)}>
-          <LayersIcon />
+        <button
+          type="button"
+          role="switch"
+          aria-checked={boundariesOn}
+          className={`map-toggle${boundariesOn ? ' is-on' : ''}`}
+          title={pl.map.boundariesHint}
+          onClick={toggleBoundaries}
+        >
+          <LayersIcon size={16} />
+          <span className="map-toggle__text">
+            <span className="map-toggle__label">{pl.map.boundaries}</span>
+            <span className="map-toggle__sub">{toggleSub}</span>
+          </span>
+          <span className="map-toggle__track" aria-hidden="true"><span className="map-toggle__thumb" /></span>
         </button>
-        <button type="button" className="sq-btn" aria-label={pl.map.locate} title={pl.map.locate} onClick={locate}>
+        <button
+          type="button"
+          className={`sq-btn${watching ? ' is-active' : ''}`}
+          aria-label={pl.map.locate}
+          aria-pressed={watching}
+          title={pl.map.locate}
+          onClick={locate}
+        >
           <LocateIcon />
         </button>
       </div>

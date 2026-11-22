@@ -227,12 +227,19 @@ export async function findParcelsInArea(ring: LatLng[], opts: AreaSearchOptions 
   return { parcels: inside, serviceDown: answered === 0, truncated, skippedEdge: all.length - inside.length };
 }
 
-/* ---------- границы делянок для слоя на карте (GET /parcels/in-bbox) ---------- */
+/* ---------- границы для слоя на карте (GET /parcels/in-bbox, /parcels/obreby-in-bbox) ---------- */
 
 const boundaryFeature = z.object({
   type: z.literal('Feature'),
   id: z.string(),
-  properties: z.object({ id: z.string(), number: z.string() }),
+  properties: z.object({
+    id: z.string(),
+    /** делянка: номер и площадь (из EPSG:2180 до упрощения) */
+    number: z.string().optional(),
+    area_ha: z.number().nonnegative().optional(),
+    /** obręb: название */
+    name: z.string().optional()
+  }),
   geometry: z.discriminatedUnion('type', [
     z.object({ type: z.literal('Polygon'), coordinates: polygon }),
     z.object({ type: z.literal('MultiPolygon'), coordinates: z.array(polygon).min(1) })
@@ -252,17 +259,32 @@ export interface BoundaryBox {
   maxLng: number;
 }
 
-/** Контуры делянок в рамке (сетка ячеек на бэкенде). Битые записи пропускаются, а не роняют весь слой. */
-export async function getParcelsInBbox(box: BoundaryBox, signal?: AbortSignal): Promise<BoundaryFeature[]> {
+/** Контуры в рамке (сетка ячеек на бэкенде). Битые записи пропускаются, а не роняют весь слой. */
+export async function getBoundaries(path: string, box: BoundaryBox, signal?: AbortSignal): Promise<BoundaryFeature[]> {
   const params = new URLSearchParams({
     min_lat: box.minLat.toFixed(6),
     min_lon: box.minLng.toFixed(6),
     max_lat: box.maxLat.toFixed(6),
     max_lon: box.maxLng.toFixed(6)
   });
-  const raw = boundaryCollection.parse(await request<unknown>(`/parcels/in-bbox?${params}`, { signal }));
+  const raw = boundaryCollection.parse(await request<unknown>(`${path}?${params}`, { signal }));
   return raw.features.flatMap((f) => {
     const parsed = boundaryFeature.safeParse(f);
     return parsed.success ? [parsed.data] : [];
   });
+}
+
+/**
+ * Делянка из уже загруженного контура слоя границ — выбор без запроса к серверу.
+ * Анализу нужен только ID (бэкенд сам находит делянку по нему), площадь и контур — для отображения.
+ */
+export function parcelFromBoundary(f: BoundaryFeature): Parcel | null {
+  if (!isParcelId(f.id) || f.properties.area_ha === undefined) return null;
+  const polygons = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+  const outline = polygons.map((rings) => rings.map((ring) => ring.map(([lon, lat]): LatLng => [lat, lon])));
+  const [first, ...others] = outline.map((rings) => rings[0]!);
+  if (!first) return null;
+  const ring = others.reduce((largest, candidate) =>
+    polygonAreaHa(candidate) > polygonAreaHa(largest) ? candidate : largest, first);
+  return remember({ id: f.id, ring, outline, areaHa: f.properties.area_ha, center: ringCenter(ring) });
 }
