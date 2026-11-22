@@ -44,8 +44,10 @@ przez dostawcę części A. Tryb `fixtures` korzysta z zapisanych przypadków, a
 demonstracji. Raport pokazuje dostępne wyniki oraz powody braków.
 [Źródła danych przestrzennych](docs/DATA_SOURCES.md).
 
-Frontend wyszukuje pojedynczą działkę przez API, uruchamia jej analizę przez `POST /api/analyses`
-i odczytuje postęp zadania. Grupy i własne obszary korzystają z wyników demonstracyjnych.
+Frontend uruchamia `POST /api/analyses` dla każdej pary działka–uprawa i odczytuje postęp zadania.
+Działki z listy identyfikatorów lub inteligentnego zaznaczenia można analizować w jednej serii.
+Porównanie pokazuje różniące się wyniki KBW dla tej samej uprawy i okresu. Każda analiza ma własny PDF.
+Własne obszary i zastępcze obrysy korzystają z wyników demonstracyjnych.
 [Uruchomienie frontendu](../frontend/README.md).
 
 ## 4. API
@@ -120,12 +122,14 @@ backend korzysta z dołączonego archiwum dobowego IMGW-PIB i wskazuje stację w
 | --- | --- | --- |
 | `GEO_PROVIDER` | `real` | `real` pobiera dane części A, `fixtures` czyta zapisy części A, `fake` zwraca dane demonstracyjne. |
 | `EGIB_SNAPSHOT_PATH` | brak | Ścieżka do opcjonalnej lokalnej bazy granic działek dla trybu `real`. |
+| `ANALYSIS_CONCURRENCY` | `2` | Maksymalna liczba analiz wykonywanych równolegle przez proces API. |
 | `CACHE_DIR` | `.cache` | Pamięć podręczna źródeł. |
 | `DB_PATH` | `data/vedra.sqlite` | Baza raportów. |
 | `CORS_ORIGINS` | `http://localhost:5173` | Dozwolone adresy frontendu, rozdzielone przecinkami. |
 | `LOG_LEVEL` | `INFO` | Poziom logowania. |
 
-Jeden proces API obsługuje kolejkę i odpytywanie w toku zadania. Zapisane raporty przeżywają restart.
+Jeden proces API obsługuje kolejkę i odpytywanie w toku zadania. Limit czasu analizy zaczyna się
+po zwolnieniu miejsca w kolejce. Zapisane raporty przeżywają restart.
 W Dockerze można oddzielić dane raportów od dołączonych danych źródłowych przez
 `-e DB_PATH=/app/state/vedra.sqlite -v vedra-state:/app/state`.
 

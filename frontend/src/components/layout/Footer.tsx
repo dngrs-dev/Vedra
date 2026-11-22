@@ -7,8 +7,8 @@ export function Footer() {
   const navigate = useNavigate();
   const { demo, jobs } = useAnalysis({ active: false });
   const reports = jobs.flatMap(({ report }) => report ? [report] : []);
-  const parcel = reports[0]?.parcel;
-  const region = demo.data?.region || parcel?.voivodeship || '—';
+  const regions = [...new Set(reports.map(({ parcel }) => parcel.voivodeship).filter(Boolean))];
+  const region = demo.data?.region || (regions.length > 1 ? pl.batch.multipleRegions : regions[0]) || '—';
   const fetchedAt = reports.flatMap((report) => report.data_sources).reduce<string | undefined>(
     (latest, source) => !latest || Date.parse(source.fetched_at) > Date.parse(latest) ? source.fetched_at : latest,
     demo.data?.generatedAt

@@ -7,6 +7,7 @@ import { MONTHS_PL, pl } from '@/constants/pl';
 import { AnalysisError, AnalysisJobState } from '@/features/analysis/components/AnalysisJobState';
 import { BackendReportCards } from '@/features/analysis/components/BackendReportCards';
 import { ConfidenceBadge } from '@/features/analysis/components/Badges';
+import { GroupAnalysisResults } from '@/features/analysis/components/GroupAnalysisResults';
 import { useAnalysis } from '@/features/analysis/hooks/useAnalysis';
 import { useAnalysisStore } from '@/features/analysis/store';
 import { reportPdfUrl } from '@/services/analysisApi';
@@ -33,7 +34,7 @@ function RecoBlock({ title, items }: { title: string; items: Recommendation[] })
 export function ReportPage() {
   const parcel = useAnalysisStore((s) => s.confirmed);
   const cropIds = useAnalysisStore((s) => s.cropIds);
-  const { demo, demoMode, jobs, selectionError } = useAnalysis();
+  const { demo, demoMode, isGroup, jobs, selectionError } = useAnalysis();
 
   if (!parcel) return <Navigate to="/map" replace />;
   if (demoMode && demo.data) return <DemoReport parcel={parcel} cropIds={cropIds} data={demo.data} />;
@@ -49,11 +50,11 @@ export function ReportPage() {
           ? <AnalysisError message={demo.error.message} retry={() => void demo.refetch()} />
           : <p role="status">{pl.backend.preparing}</p>
       )}
-      {jobs.map((job) => {
+      <GroupAnalysisResults jobs={jobs} group={isGroup}>{(visible) => visible.map((job) => {
         const report = job.report;
         if (!report || !job.analysisId) {
           return (
-            <div className="backend-report results" key={job.code}>
+            <div className="backend-report results" key={`${job.parcelId}:${job.code}`}>
               <h2 className="analysis-crop">{job.names.join(', ')}</h2>
               <AnalysisJobState job={job} />
             </div>
@@ -61,7 +62,7 @@ export function ReportPage() {
         }
         const { parcel } = report;
         return (
-          <article className="report backend-report results" key={job.code}>
+          <article className="report backend-report results" key={`${job.parcelId}:${job.code}`}>
             <header className="report__head">
               <div>
                 <h1>{pl.report.title}</h1>
@@ -80,7 +81,7 @@ export function ReportPage() {
             <p className="muted small">{pl.report.disclaimer}</p>
           </article>
         );
-      })}
+      })}</GroupAnalysisResults>
     </div>
   );
 }
