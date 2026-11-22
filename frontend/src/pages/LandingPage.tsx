@@ -11,20 +11,20 @@ const delay = (i: number) => ({ '--d': `${i * 90}ms` }) as CSSProperties;
 
 const STEPS = [
   { icon: <PinIcon />, title: 'Wskaż działkę', text: 'Wybierz województwo na mapie, a potem kliknij działkę albo zaznacz własny obszar.' },
-  { icon: <SproutIcon />, title: 'Wybierz uprawę', text: 'Powiedz, co rośnie na polu i na jaki dzień ma być analiza — dziś lub z ostatnich 10 lat.' },
+  { icon: <SproutIcon />, title: 'Wybierz uprawę', text: 'Powiedz, co rośnie na polu i na jaki dzień ma być analiza - dziś lub z ostatnich 10 lat.' },
   { icon: <FileIcon />, title: 'Odbierz zalecenia', text: 'Dostajesz prostą ocenę suszy, zalecenia i gotowy raport do wydruku lub zapisu w PDF.' }
 ];
 
 const BENEFITS = [
   { icon: <DropIcon size={26} />, title: 'Ocena wilgotności i suszy', text: 'Aktualny stan gleby i ryzyko suszy na tle ostatnich 10 lat.' },
   { icon: <ShieldIcon size={26} />, title: 'Retencja wody', text: 'Co zrobić, żeby woda została na polu: międzyplony, resztki, spowolnienie odpływu.' },
-  { icon: <CalendarIcon size={26} />, title: 'Termin nawadniania', text: 'Czy nawadniać i kiedy — jasno i bez zbędnej statystyki.' },
+  { icon: <CalendarIcon size={26} />, title: 'Termin nawadniania', text: 'Czy nawadniać i kiedy - jasno i bez zbędnej statystyki.' },
   { icon: <FileIcon size={26} />, title: 'Uczciwy raport', text: 'Źródła, daty i ograniczenia. Gdy brakuje danych, mówimy to wprost.' }
 ];
 
 const SOURCES = ['Sentinel-2', 'IMGW-PIB', 'Open-Meteo', 'IUNG-PIB', 'GUGiK / Geoportal', 'Wody Polskie'];
 
-/** Главная «/» — короткий лендинг: hero на фото поля, 3 шага, польза, источники, CTA → /map. */
+/** Главная «/» - короткий лендинг: hero на фото поля, 3 шага, польза, источники, CTA → /map. */
 export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
   useReveal(rootRef);
@@ -47,7 +47,7 @@ export function LandingPage() {
         <Link to="/map" className="btn-primary">Zobacz mapę</Link>
       </header>
 
-      {/* Фото поля — фон hero (public/images/hero-field.jpg) */}
+      {/* Фото поля - фон hero (public/images/hero-field.jpg) */}
       <section className="l-hero">
         <div className="l-hero__text">
           <h2 className="l-hero__title anim-in" style={delay(1)}>Zatrzymaj wodę,<br />chroń swoje plony</h2>

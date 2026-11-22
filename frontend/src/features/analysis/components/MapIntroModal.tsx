@@ -21,17 +21,17 @@ function MouseLeft() {
 const STEPS = [
   {
     title: 'Wybierz województwo',
-    text: 'Kliknij województwo na mapie Polski — mapa przybliży się do niego.',
+    text: 'Kliknij województwo na mapie Polski - mapa przybliży się do niego.',
     keys: <MouseLeft />
   },
   {
     title: 'Kliknij działkę',
-    text: 'Kliknij lewym przyciskiem myszy na pole — zaznaczymy działkę ewidencyjną.',
+    text: 'Kliknij lewym przyciskiem myszy na pole - zaznaczymy działkę ewidencyjną.',
     keys: <MouseLeft />
   },
   {
     title: 'Albo zaznacz ramką',
-    text: 'Przytrzymaj Ctrl (⌘ na Macu), wciśnij lewy przycisk myszy i przeciągnij ramkę. Na górnym pasku: „Zwykły wybór” — sam prostokąt, „Inteligentny wybór” — wszystkie działki w środku.',
+    text: 'Przytrzymaj Ctrl (⌘ na Macu), wciśnij lewy przycisk myszy i przeciągnij ramkę. Na górnym pasku: „Zwykły wybór” - sam prostokąt, „Inteligentny wybór” - wszystkie działki w środku.',
     keys: (
       <>
         <kbd>Ctrl</kbd>
@@ -42,7 +42,7 @@ const STEPS = [
   },
   {
     title: 'Potwierdź działkę',
-    text: 'W panelu po prawej kliknij „Potwierdź działkę” — wtedy ruszą obliczenia.',
+    text: 'W panelu po prawej kliknij „Potwierdź działkę” - wtedy ruszą obliczenia.',
     keys: <span className="intro__btn-demo">Potwierdź</span>
   }
 ];
@@ -68,7 +68,7 @@ export function MapIntroModal({ onClose, initialRemember = false }: MapIntroModa
     <div className="intro-backdrop">
       <div className="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
         <h2 id="intro-title" className="intro__title">Jak zaznaczyć działkę</h2>
-        <p className="intro__lead">Cztery proste kroki — potem zobaczysz ocenę wody na swoim polu.</p>
+        <p className="intro__lead">Cztery proste kroki - potem zobaczysz ocenę wody na swoim polu.</p>
 
         <ol className="intro__steps">
           {STEPS.map((s, i) => (
@@ -85,7 +85,7 @@ export function MapIntroModal({ onClose, initialRemember = false }: MapIntroModa
 
         <label className="intro__remember">
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-          <span>Zapamiętaj mój wybór — nie pokazuj tego okna przy następnym wejściu</span>
+          <span>Zapamiętaj mój wybór - nie pokazuj tego okna przy następnym wejściu</span>
         </label>
 
         <button ref={okRef} type="button" className="btn-primary btn-block intro__ok" onClick={() => onClose(remember)}>

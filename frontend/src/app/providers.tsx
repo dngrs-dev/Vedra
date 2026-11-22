@@ -9,7 +9,7 @@ const queryClient = new QueryClient({
 /**
  * BrowserRouter → чистые адреса: / (лендинг), /map (карта), /report (отчёт).
  * Хостинг должен отдавать index.html для любых путей (SPA fallback):
- * Vercel — vercel.json, Netlify — public/_redirects (оба файла уже в проекте).
+ * Vercel - vercel.json, Netlify - public/_redirects (оба файла уже в проекте).
  */
 export function Providers({ children }: { children: ReactNode }) {
   return (

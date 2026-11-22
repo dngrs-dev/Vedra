@@ -10,7 +10,7 @@ interface RegionLayerProps {
   onSelect: (v: Voivodeship) => void;
 }
 
-/** Подписи исчезают при приближении — тогда они только мешают. */
+/** Подписи исчезают при приближении - тогда они только мешают. */
 const LABEL_MAX_ZOOM = 8;
 
 function makeLabel(name: string): L.DivIcon {

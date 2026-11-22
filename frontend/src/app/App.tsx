@@ -7,10 +7,10 @@ import { ReportPage } from '@/pages/ReportPage';
 
 /** Название вкладки браузера для каждой страницы (по-польски) */
 const TITLES: Record<string, string> = {
-  '/map': 'Vedra — Mapa',
-  '/report': 'Vedra — Raport'
+  '/map': 'Vedra - Mapa',
+  '/report': 'Vedra - Raport'
 };
-const DEFAULT_TITLE = 'Vedra — Strona główna';
+const DEFAULT_TITLE = 'Vedra - Strona główna';
 
 export function App() {
   const { pathname } = useLocation();

@@ -3,12 +3,12 @@
 The model is the FAO-56 daily root-zone bucket already used for irrigation advice
 (water_balance.py), run over the growing season with four optional levers:
 
-* landscape retention – part of the rain surplus that would drain away is held back on or
+* landscape retention - part of the rain surplus that would drain away is held back on or
   next to the field and slowly returned to the root zone;
-* soil retention – more soil organic matter raises available water (Saxton & Rawls, 2006);
-* cover crops / residues / mulch – lower soil evaporation (FAO-56: about 5% less
+* soil retention - more soil organic matter raises available water (Saxton & Rawls, 2006);
+* cover crops / residues / mulch - lower soil evaporation (FAO-56: about 5% less
   evaporation for each 10% of the surface covered by organic mulch);
-* irrigation – a net dose whenever depletion reaches the readily available water (RAW),
+* irrigation - a net dose whenever depletion reaches the readily available water (RAW),
   within a seasonal water limit.
 
 The lever coefficients are explicit, documented assumptions for comparing actions,
@@ -61,17 +61,17 @@ ASSUMPTIONS_PL = [
     "a nie pomiarami z tej działki.",
 ]
 KBW_NOTE_PL = (
-    "Ustawowy klimatyczny bilans wodny (KBW = opad − ewapotranspiracja potencjalna) zależy tylko od pogody, "
+    "Ustawowy klimatyczny bilans wodny (KBW = opad - ewapotranspiracja potencjalna) zależy tylko od pogody, "
     "więc działania na polu go nie zmieniają. Scenariusze pokazują, ile wody zostaje w glebie dla rośliny "
     "i jak często roślina cierpi z powodu suszy."
 )
 
 PRESETS: tuple[tuple[str, str, str, ScenarioLevers], ...] = (
     ("retention", "Retencja krajobrazowa",
-     "Zastawki na rowach, oczka wodne, zatrzymanie spływu – ok. 25 mm wody zatrzymanej na polu.",
+     "Zastawki na rowach, oczka wodne, zatrzymanie spływu - ok. 25 mm wody zatrzymanej na polu.",
      ScenarioLevers(retention_mm=25)),
     ("organic_matter", "Więcej próchnicy",
-     "Obornik, resztki, uproszczona uprawa – wzrost materii organicznej o 1 punkt procentowy (efekt wieloletni).",
+     "Obornik, resztki, uproszczona uprawa - wzrost materii organicznej o 1 punkt procentowy (efekt wieloletni).",
      ScenarioLevers(organic_matter_pct=1)),
     ("cover", "Międzyplony i mulcz",
      "Pozostawienie resztek lub mulczu z międzyplonu na 60% powierzchni gleby.",
@@ -163,7 +163,7 @@ def prepare(weather: WeatherData | None, crop: Crop, soil: SoilInfo | None, star
 
 
 def with_et0(weather: WeatherData, start: date, end: date) -> tuple[WeatherData, bool]:
-    """Fill missing daily ET0 from the monthly Doroszewski–Górski ETP used for KBW.
+    """Fill missing daily ET0 from the monthly Doroszewski-Górski ETP used for KBW.
 
     Station archives (IMGW) have temperature and sunshine but no ET0. The monthly ETP is spread
     evenly over the month's days, which is enough for a seasonal comparison of actions.

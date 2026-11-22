@@ -4,8 +4,11 @@ import { Card } from '@/components/ui/Card';
 import { getAiInsight, simulateScenarios } from '@/services/scenarioApi';
 import type { AiInsight, Levers, ScenarioReport, ScenarioResult, ScenarioRisk } from '@/types/scenario';
 import { fmtDate } from '@/utils/format';
+import { useAiStore } from '../aiStore';
+import { NO_ACTION, useScenarioStore } from '../scenarioStore';
+import { useAiStatus } from '../hooks/useAiStatus';
+import { AiConsentModal } from './AiConsentModal';
 
-const NONE: Levers = { retention_mm: 0, organic_matter_pct: 0, cover_pct: 0, irrigation_limit_mm: 0, irrigation_dose_mm: 25 };
 
 const RISK: Record<ScenarioRisk, { label: string; cls: string }> = {
   low: { label: 'Niskie ryzyko', cls: 'badge--ok' },
@@ -27,7 +30,7 @@ const SLIDERS: Slider[] = [
   { key: 'retention_mm', label: 'Retencja krajobrazowa', hint: 'zastawki, oczka wodne, zatrzymanie spływu', min: 0, max: 60, step: 5, unit: 'mm' },
   { key: 'organic_matter_pct', label: 'Więcej próchnicy w glebie', hint: 'obornik, resztki, uproszczona uprawa', min: 0, max: 3, step: 0.25, unit: 'p.p.' },
   { key: 'cover_pct', label: 'Międzyplony, resztki, mulcz', hint: 'okryta powierzchnia gleby', min: 0, max: 100, step: 10, unit: '%' },
-  { key: 'irrigation_limit_mm', label: 'Nawadnianie – limit wody w sezonie', hint: '0 = bez nawadniania', min: 0, max: 300, step: 10, unit: 'mm' }
+  { key: 'irrigation_limit_mm', label: 'Nawadnianie - limit wody w sezonie', hint: '0 = bez nawadniania', min: 0, max: 300, step: 10, unit: 'mm' }
 ];
 const DOSE: Slider = { key: 'irrigation_dose_mm', label: 'Jednorazowa dawka', hint: 'netto, gdy roślina zaczyna cierpieć', min: 10, max: 50, step: 5, unit: 'mm' };
 
@@ -48,7 +51,7 @@ function Delta({ base, value, unit, better }: { base: number; value: number; uni
   const good = better === 'lower' ? diff < 0 : diff > 0;
   return (
     <span className={`sim-delta ${good ? 'sim-delta--good' : 'sim-delta--bad'}`}>
-      {diff > 0 ? '+' : '−'}{num.format(Math.abs(diff))} {unit}
+      {diff > 0 ? '+' : '-'}{num.format(Math.abs(diff))} {unit}
     </span>
   );
 }
@@ -75,7 +78,7 @@ function Chart({ base, custom }: { base: ScenarioResult; custom: ScenarioResult 
       <figcaption>
         <span><i className="sim-lg sim-lg--base" />Bez działań</span>
         <span><i className="sim-lg sim-lg--custom" />Twój wariant</span>
-        <span className="muted">{first && fmtDate(first)} – {last && fmtDate(last)} · zapas wody w glebie (%)</span>
+        <span className="muted">{first && fmtDate(first)} - {last && fmtDate(last)} · zapas wody w glebie (%)</span>
       </figcaption>
     </figure>
   );
@@ -177,11 +180,23 @@ function AiPanel({ insight }: { insight: AiInsight }) {
   );
 }
 
-/** «Co jeśli?» — как меняется риск засухи и водный баланс при разных действиях фермера + комментарий ИИ. */
+/** «Co jeśli?» - как меняется риск засухи и водный баланс при разных действиях фермера + комментарий ИИ. */
 export function ScenarioSimulator({ analysisId }: { analysisId: string }) {
-  const [levers, setLevers] = useState<Levers>(NONE);
+  // Общие для карты, страницы raportu и PDF (галочка «Dołącz do PDF»)
+  const levers = useScenarioStore((s) => s.levers[analysisId] ?? NO_ACTION);
+  const storeLevers = useScenarioStore((s) => s.setLevers);
+  const setLevers = (next: Levers | ((prev: Levers) => Levers)) =>
+    storeLevers(analysisId, typeof next === 'function' ? next(levers) : next);
   const debounced = useDebounced(levers, 350);
   const [askedFor, setAskedFor] = useState<Levers | null>(null);
+  const [consentOpen, setConsentOpen] = useState(false);
+  const aiEnabled = useAiStore((s) => s.enabled);
+  const consentFor = useAiStore((s) => s.consentFor);
+  const grantConsent = useAiStore((s) => s.grantConsent);
+  const { data: aiStatus } = useAiStatus();
+  // RODO: dane trafiają do zewnętrznej usługi tylko po zgodzie na tego konkretnego dostawcę
+  const needsConsent = !!aiStatus?.external;
+  const consented = needsConsent && consentFor === aiStatus.provider;
 
   const sim = useQuery({
     queryKey: ['scenarios', analysisId, debounced],
@@ -193,7 +208,7 @@ export function ScenarioSimulator({ analysisId }: { analysisId: string }) {
 
   const ai = useQuery({
     queryKey: ['ai-insight', analysisId, askedFor],
-    queryFn: ({ signal }) => getAiInsight(analysisId, askedFor!, signal),
+    queryFn: ({ signal }) => getAiInsight(analysisId, askedFor!, consented, signal),
     enabled: askedFor !== null,
     staleTime: Infinity,
     retry: false
@@ -227,7 +242,7 @@ export function ScenarioSimulator({ analysisId }: { analysisId: string }) {
         {levers.irrigation_limit_mm > 0 && render(DOSE)}
       </div>
       <div className="sim-actions">
-        <button type="button" className="link-btn" onClick={() => setLevers(NONE)}>Wyzeruj</button>
+        <button type="button" className="link-btn" onClick={() => setLevers(NO_ACTION)}>Wyzeruj</button>
         {sim.isFetching && <span className="muted small"><span className="spinner" /> Liczę…</span>}
       </div>
 
@@ -238,7 +253,7 @@ export function ScenarioSimulator({ analysisId }: { analysisId: string }) {
           {data.custom.levers.retention_mm > 0 && data.custom.outcome.budget.retained_mm === 0 && (
             <p className="muted small">
               W tym okresie deszcz nie dał nadwyżek wody do zatrzymania, więc retencja nic nie zmienia.
-              Działa w mokrych okresach – zatrzymuje wodę z ulew i roztopów na później.
+              Działa w mokrych okresach - zatrzymuje wodę z ulew i roztopów na później.
             </p>
           )}
           <Chart base={data.baseline} custom={data.custom} />
@@ -253,34 +268,50 @@ export function ScenarioSimulator({ analysisId }: { analysisId: string }) {
           </details>
           <details className="sim-details">
             <summary>Okres i założenia modelu</summary>
-            <p className="small">{fmtDate(data.window_start)} – {fmtDate(data.window_end)}. {data.window_note_pl}</p>
+            <p className="small">{fmtDate(data.window_start)} - {fmtDate(data.window_end)}. {data.window_note_pl}</p>
             <ul className="small">{data.assumptions_pl.map((a) => <li key={a}>{a}</li>)}</ul>
           </details>
         </>
       )}
 
+      {aiEnabled ? (
       <section className="sim-ai">
         <div className="sim-ai__head">
           <h3>Prognoza i porada AI</h3>
           <button type="button" className="btn-primary" disabled={ai.isFetching || !data}
-            onClick={() => setAskedFor(levers)}>
+            onClick={() => (needsConsent && !consented ? setConsentOpen(true) : setAskedFor(levers))}>
             {ai.isFetching ? 'AI analizuje…' : askedFor ? 'Zapytaj ponownie' : 'Zapytaj AI'}
           </button>
         </div>
         {!askedFor && (
           <p className="muted small">
             Model językowy przeczyta raport i wyniki symulacji, a potem napisze prostą prognozę i poradę dla Twojego pola.
+            {needsConsent && !consented && ` Przed wysłaniem poprosimy o zgodę na przekazanie danych do ${aiStatus.provider_name}.`}
           </p>
         )}
         {ai.isFetching && <p className="muted small"><span className="spinner" /> To może potrwać do minuty…</p>}
         {ai.isError && <p role="alert" className="sim-error">{ai.error.message}</p>}
         {ai.data && !ai.isFetching && (
           <>
-            {aiStale && <p className="muted small">Suwaki zmieniły się od ostatniego pytania – zapytaj ponownie, aby uwzględnić nowy wariant.</p>}
+            {aiStale && <p className="muted small">Suwaki zmieniły się od ostatniego pytania - zapytaj ponownie, aby uwzględnić nowy wariant.</p>}
             <AiPanel insight={ai.data} />
           </>
         )}
       </section>
+      ) : (
+        <p className="muted small sim-ai-off">Analiza AI jest wyłączona - włączysz ją przełącznikiem „Analiza AI” w panelu po prawej.</p>
+      )}
+      {consentOpen && aiStatus && (
+        <AiConsentModal
+          status={aiStatus}
+          onCancel={() => setConsentOpen(false)}
+          onAccept={() => {
+            grantConsent(aiStatus.provider);
+            setConsentOpen(false);
+            setAskedFor(levers);
+          }}
+        />
+      )}
     </Card>
   );
 }

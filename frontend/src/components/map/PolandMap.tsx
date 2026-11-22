@@ -13,7 +13,7 @@ export type BaseLayer = 'satellite' | 'terrain';
 const TILES: Record<BaseLayer, { url: string; attribution: string; maxZoom: number }> = {
   satellite: {
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics',
+    attribution: 'Tiles © Esri - Source: Esri, Maxar, Earthstar Geographics',
     maxZoom: 19
   },
   terrain: {
@@ -46,7 +46,7 @@ function ClickHandler({ onPick }: { onPick: PolandMapProps['onPick'] }) {
 function FitParcel({ parcel }: { parcel: Parcel | null }) {
   const map = useMap();
   useEffect(() => {
-    if (!parcel || parcel.isCustom) return; // свою область не «перепрыгиваем» — пользователь её только что нарисовал
+    if (!parcel || parcel.isCustom) return; // свою область не «перепрыгиваем» - пользователь её только что нарисовал
     const pts = parcel.outline ? parcel.outline.flatMap((poly) => poly[0] ?? []) : parcel.parts ? parcel.parts.flatMap((p) => p.ring) : parcel.ring;
     map.fitBounds(pts as LatLngTuple[], { maxZoom: 17, padding: [60, 60] });
   }, [map, parcel]);
@@ -59,7 +59,7 @@ export function PolandMap({
   const tiles = TILES[layer];
 
   // Маска «всё кроме Польши»: внешнее кольцо = мир, «дыры» = внешние контуры воеводств.
-  // Пока границы не загрузились — упрощённый контур страны.
+  // Пока границы не загрузились - упрощённый контур страны.
   const maskPositions: LatLng[][] = regions?.length
     ? [WORLD_RING, ...regions.flatMap((v) => v.polygons.map((p) => p[0]!).filter(Boolean))]
     : [WORLD_RING, POLAND_OUTLINE];

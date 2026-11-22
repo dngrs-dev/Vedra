@@ -154,7 +154,7 @@ def test_ai_insight_uses_gemini_by_default(api, monkeypatch):
     monkeypatch.setattr(settings, "gemini_api_key", "test-key")
 
     analysis_id = _finished_analysis(api)
-    body = api.post(f"/api/analyses/{analysis_id}/ai-insight", json={"cover_pct": 40}).json()
+    body = api.post(f"/api/analyses/{analysis_id}/ai-insight", json={"cover_pct": 40, "consent": True}).json()
     assert body["source"] == "llm"
     assert body["model"] == settings.gemini_model
     assert body["best_action_pl"] == "Zatrzymaj wodę."
@@ -164,7 +164,7 @@ def test_ai_insight_uses_gemini_by_default(api, monkeypatch):
     assert kwargs["config"].response_mime_type == "application/json"
     assert '"farmer_combination"' in kwargs["contents"]
 
-    api.post(f"/api/analyses/{analysis_id}/ai-insight", json={"cover_pct": 40})
+    api.post(f"/api/analyses/{analysis_id}/ai-insight", json={"cover_pct": 40, "consent": True})
     assert generate.await_count == 1
 
 
@@ -180,7 +180,7 @@ def test_gemini_switches_to_the_fallback_model_when_overloaded(api, monkeypatch)
     monkeypatch.setattr(settings, "gemini_api_key", "test-key")
 
     analysis_id = _finished_analysis(api)
-    body = api.post(f"/api/analyses/{analysis_id}/ai-insight", json={}).json()
+    body = api.post(f"/api/analyses/{analysis_id}/ai-insight", json={"consent": True}).json()
     assert body["source"] == "llm"
     assert body["model"] == settings.gemini_fallback_model
     assert [call.kwargs["model"] for call in generate.await_args_list] == [settings.gemini_model,
@@ -245,3 +245,95 @@ def test_station_weather_without_et0_gets_a_monthly_estimate():
     assert len(values) == 1 and next(iter(values)) > 0
     field = scenarios.prepare(weather, crops.load()["potatoes"], SOIL, start)
     assert scenarios.result("x", "x", "x", weather, field, ScenarioLevers(), start, end).outcome.days == 31
+
+
+def test_external_ai_needs_consent_and_reports_its_status(api, monkeypatch):
+    from google import genai
+    generate = AsyncMock(return_value=SimpleNamespace(text=ANSWER))
+    monkeypatch.setattr(genai, "Client", lambda **_: SimpleNamespace(
+        aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate))))
+    monkeypatch.setattr(settings, "ai_enabled", True)
+    monkeypatch.setattr(settings, "ai_provider", "gemini")
+    monkeypatch.setattr(settings, "gemini_api_key", "test-key")
+
+    status = api.get("/api/ai/status").json()
+    assert status == {"enabled": True, "provider": "gemini", "provider_name": "Google Gemini",
+                      "model": settings.gemini_model, "external": True}
+
+    analysis_id = _finished_analysis(api)
+    refused = api.post(f"/api/analyses/{analysis_id}/ai-insight", json={})
+    assert refused.status_code == HTTPStatus.FORBIDDEN
+    assert "zgoda" in refused.json()["detail"].lower()
+    assert generate.await_count == 0  # nothing left the server
+
+    agreed = api.post(f"/api/analyses/{analysis_id}/ai-insight", json={"consent": True})
+    assert agreed.status_code == HTTPStatus.OK
+    assert agreed.json()["source"] == "llm"
+
+
+def test_without_a_key_no_consent_is_needed(api, monkeypatch):
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.setattr(settings, "ai_provider", "gemini")
+    monkeypatch.setattr(settings, "gemini_api_key", None)
+    assert api.get("/api/ai/status").json()["external"] is False
+    analysis_id = _finished_analysis(api)
+    assert api.post(f"/api/analyses/{analysis_id}/ai-insight", json={}).json()["source"] == "rules"
+
+
+def test_pdf_can_include_the_what_if_section(api, monkeypatch):
+    from app.reports import pdf
+    calls = []
+
+    def render(report, map_png, scenarios=None):
+        calls.append(scenarios)
+        return b"%PDF-test"
+
+    monkeypatch.setattr(pdf, "render", render)
+    analysis_id = _finished_analysis(api)
+
+    plain = api.get(f"/api/analyses/{analysis_id}/report.pdf")
+    assert plain.status_code == HTTPStatus.OK and calls[-1] is None
+
+    with_scenarios = api.get(f"/api/analyses/{analysis_id}/report.pdf",
+                             params={"scenarios": "true", "cover_pct": 60, "irrigation_limit_mm": 80})
+    assert with_scenarios.status_code == HTTPStatus.OK
+    included = calls[-1]
+    assert included is not None
+    assert included.custom.levers.cover_pct == 60 and included.custom.levers.irrigation_limit_mm == 80
+
+    # The plain PDF is cached; the scenario one depends on the sliders and is rendered each time.
+    api.get(f"/api/analyses/{analysis_id}/report.pdf", params={"scenarios": "true"})
+    assert len(calls) == 3
+
+
+def test_pdf_html_shows_the_farmer_variant_only_when_an_action_is_set(api):
+    import asyncio
+    from app.api.routes_scenarios import build
+    from app.reports import pdf
+    from app.storage.db import ReportStore
+
+    analysis_id = _finished_analysis(api)
+    saved = ReportStore(settings.db_path).by_analysis(analysis_id)
+    with_action = asyncio.run(build(saved, analysis_id, ScenarioLevers(cover_pct=60)))
+    html = pdf.render_html(saved.report, None, with_action)
+    assert "Co jeśli? Symulacja działań" in html
+    assert "Twój wariant: międzyplony/mulcz na 60% powierzchni" in html
+    assert "Wszystkie działania razem" in html and "data:image/svg+xml" in html
+
+    nothing = asyncio.run(build(saved, analysis_id, ScenarioLevers()))
+    assert "Twój wariant" not in pdf.render_html(saved.report, None, nothing)
+    assert "Co jeśli?" not in pdf.render_html(saved.report, None, None)
+
+
+def test_ai_answers_use_plain_hyphens(api, monkeypatch):
+    from google import genai
+    dashed = ANSWER.replace("Zatrzymaj wodę.", "Zatrzymaj wodę \u2014 retencja \u2013 mulcz, \u22125 dni.")
+    generate = AsyncMock(return_value=SimpleNamespace(text=dashed))
+    monkeypatch.setattr(genai, "Client", lambda **_: SimpleNamespace(
+        aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate))))
+    monkeypatch.setattr(settings, "ai_enabled", True)
+    monkeypatch.setattr(settings, "ai_provider", "gemini")
+    monkeypatch.setattr(settings, "gemini_api_key", "test-key")
+    analysis_id = _finished_analysis(api)
+    body = api.post(f"/api/analyses/{analysis_id}/ai-insight", json={"consent": True}).json()
+    assert body["best_action_pl"] == "Zatrzymaj wodę - retencja - mulcz, -5 dni."

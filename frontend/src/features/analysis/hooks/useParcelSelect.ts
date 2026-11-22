@@ -17,7 +17,7 @@ const MAX_CUSTOM_AREA_HA = 5000;
 export function useParcelSelect() {
   const setParcel = useAnalysisStore((s) => s.setParcel);
   const [loading, setLoading] = useState(false);
-  /** Сколько делянок уже найдено в рамке (null — поиск по рамке не идёт) */
+  /** Сколько делянок уже найдено в рамке (null - поиск по рамке не идёт) */
   const [found, setFound] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -62,7 +62,7 @@ export function useParcelSelect() {
   const selectByLatLng = useCallback(
     (lat: number, lng: number) => {
       if (!pointInRing(lat, lng, POLAND_OUTLINE)) {
-        // контур упрощённый, поэтому не блокируем жёстко у самой границы — только предупреждаем вдали
+        // контур упрощённый, поэтому не блокируем жёстко у самой границы - только предупреждаем вдали
         const nearBorder = lat > 48.9 && lat < 55.05 && lng > 13.9 && lng < 24.3;
         if (!nearBorder) {
           toast(pl.search.outsidePoland, 'error');
@@ -112,7 +112,7 @@ export function useParcelSelect() {
         isCustom: true
       };
 
-      // «Zwykły wybór» — просто прямоугольник, без поиска делянок
+      // «Zwykły wybór» - просто прямоугольник, без поиска делянок
       if (useAnalysisStore.getState().selectMode === 'simple') {
         abortRef.current?.abort();
         setLoading(false);
@@ -137,7 +137,7 @@ export function useParcelSelect() {
           const total = +parts.reduce((sum, p) => sum + p.areaHa, 0).toFixed(2);
           // объединяем делянки в один общий контур (без внутренних границ)
           let outline = unionRings(parts.map((p) => p.ring));
-          if (!outline.length) outline = parts.map((p) => [p.ring]); // на всякий случай — показываем как есть
+          if (!outline.length) outline = parts.map((p) => [p.ring]); // на всякий случай - показываем как есть
           setParcel({
             id: `GRUPA_${parts.length}_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`,
             ring,
@@ -148,21 +148,21 @@ export function useParcelSelect() {
           });
           toast(
             outline.length > 1
-              ? `Połączono ${dzialki(parts.length)} (${total} ha) w ${outline.length} części — rozdziela je np. droga lub rów.`
+              ? `Połączono ${dzialki(parts.length)} (${total} ha) w ${outline.length} części - rozdziela je np. droga lub rów.`
               : `Połączono ${dzialki(parts.length)} w jeden obszar (${total} ha).`
           );
         } else {
           setParcel(customArea);
           toast(
             res.serviceDown
-              ? 'Usługa ULDK niedostępna — zaznaczony prostokąt użyto jako własny obszar.'
-              : 'W zaznaczeniu nie ma działki ewidencyjnej — użyto zaznaczonego obszaru.'
+              ? 'Usługa ULDK niedostępna - zaznaczony prostokąt użyto jako własny obszar.'
+              : 'W zaznaczeniu nie ma działki ewidencyjnej - użyto zaznaczonego obszaru.'
           );
         }
         if (res.skippedEdge > 0 && res.parcels.length > 0 && !res.truncated) {
           setTimeout(() => toast(`Pominięto ${dzialki(res.skippedEdge)}, które tylko zahaczają o ramkę.`), 2500);
         }
-        if (res.truncated) toast('Zaznaczenie jest bardzo duże — pokazano tylko część działek. Zaznacz mniejszy obszar.', 'error');
+        if (res.truncated) toast('Zaznaczenie jest bardzo duże - pokazano tylko część działek. Zaznacz mniejszy obszar.', 'error');
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return;
         setParcel(customArea);

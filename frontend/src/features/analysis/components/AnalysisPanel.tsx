@@ -3,6 +3,7 @@ import { pl } from '@/constants/pl';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useAnalysisStore } from '../store';
 import { AnalysisError, AnalysisJobState } from './AnalysisJobState';
+import { AiToggle } from './AiToggle';
 import { AnalysisProgress } from './AnalysisProgress';
 import { BackendReportCards } from './BackendReportCards';
 import { BasisCard } from './BasisCard';
@@ -10,7 +11,6 @@ import { CropSelect } from './CropSelect';
 import { DateField } from './DateField';
 import { MoistureCard } from './MoistureCard';
 import { RecommendationsCard } from './RecommendationsCard';
-import { ScenarioSimulator } from './ScenarioSimulator';
 
 /**
  * Правая панель. Состояния:
@@ -32,6 +32,7 @@ export function AnalysisPanel() {
         <CropSelect />
       </div>
       <DateField />
+      <AiToggle />
 
       {!parcel && (
         <div className="empty">
@@ -96,7 +97,6 @@ export function AnalysisPanel() {
         <section key={job.code} className="results">
           <h2 className="analysis-crop">{job.report?.crop_name_pl ?? job.names.join(', ')}</h2>
           {job.report ? <BackendReportCards report={job.report} /> : <AnalysisJobState job={job} />}
-          {job.report && job.analysisId && <ScenarioSimulator analysisId={job.analysisId} />}
         </section>
       ))}
     </aside>

@@ -2,12 +2,12 @@
 # crop or scenario used when the annex groups several crops under one name.
 source: &kbw https://eli.gov.pl/api/acts/DU/2019/739/text.pdf
 sources:
-  kc_fao56: &kc56 "FAO-56 (1998), table 12 — https://www.fao.org/4/x0490e/x0490e0b.htm"
-  water_fao56: &water56 "FAO-56 (1998), table 22 — https://www.fao.org/4/x0490e/x0490e0e.htm"
-  kc_root_fao56_rev1: &kc_root56_rev1 "FAO-56 Rev.1 (2025), table 6.2 — https://doi.org/10.4060/cd6621en"
-  depletion_fao56_rev1: &p56_rev1 "FAO-56 Rev.1 (2025), table 8.2 — https://doi.org/10.4060/cd6621en"
-  kc_tobacco: &kc33 "FAO-33, tobacco row in the tabulated Kc values — https://posmet.ufv.br/wp-content/uploads/2017/04/MET-477-Doorenbos-e-Kassam-Yield-response.pdf"
-  water_tobacco: &water33 "FAO-33, tobacco, Water Uptake section — https://posmet.ufv.br/wp-content/uploads/2017/04/MET-477-Doorenbos-e-Kassam-Yield-response.pdf"
+  kc_fao56: &kc56 "FAO-56 (1998), table 12 - https://www.fao.org/4/x0490e/x0490e0b.htm"
+  water_fao56: &water56 "FAO-56 (1998), table 22 - https://www.fao.org/4/x0490e/x0490e0e.htm"
+  kc_root_fao56_rev1: &kc_root56_rev1 "FAO-56 Rev.1 (2025), table 6.2 - https://doi.org/10.4060/cd6621en"
+  depletion_fao56_rev1: &p56_rev1 "FAO-56 Rev.1 (2025), table 8.2 - https://doi.org/10.4060/cd6621en"
+  kc_tobacco: &kc33 "FAO-33, tobacco row in the tabulated Kc values - https://posmet.ufv.br/wp-content/uploads/2017/04/MET-477-Doorenbos-e-Kassam-Yield-response.pdf"
+  water_tobacco: &water33 "FAO-33, tobacco, Water Uptake section - https://posmet.ufv.br/wp-content/uploads/2017/04/MET-477-Doorenbos-e-Kassam-Yield-response.pdf"
 
 crops:
   winter_cereals:

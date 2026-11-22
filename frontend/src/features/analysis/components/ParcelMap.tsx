@@ -30,7 +30,7 @@ export function ParcelMap() {
   const cardRef = useRef<HTMLElement>(null);
   const lastAreaAt = useRef(0);
 
-  // Если границы воеводств не загрузились — не блокируем работу: выбор делянки доступен сразу.
+  // Если границы воеводств не загрузились - не блокируем работу: выбор делянки доступен сразу.
   const canPick = region !== null || !regions;
 
   const selectRegion = useCallback(
@@ -52,7 +52,7 @@ export function ParcelMap() {
     void selectByLatLng(lat, lng);
   };
 
-  // useCallback: AreaSelect переподписывается на события при смене функции — она должна быть стабильной
+  // useCallback: AreaSelect переподписывается на события при смене функции - она должна быть стабильной
   const onArea = useCallback(
     (ring: LatLng[]) => {
       lastAreaAt.current = Date.now();
@@ -134,7 +134,7 @@ export function ParcelMap() {
 
       <div className="map-zoom">
         <button type="button" aria-label={pl.map.zoomIn} onClick={() => map?.zoomIn()}>+</button>
-        <button type="button" aria-label={pl.map.zoomOut} onClick={() => map?.zoomOut()}>−</button>
+        <button type="button" aria-label={pl.map.zoomOut} onClick={() => map?.zoomOut()}>-</button>
       </div>
       <button type="button" className="sq-btn map-fullscreen" aria-label={pl.map.fullscreen} title={pl.map.fullscreen} onClick={fullscreen}>
         <FullscreenIcon />

@@ -771,7 +771,7 @@
      "data_period": null,
      "resolution": "250 m",
      "licence": "CC BY 4.0",
-     "attribution_pl": "SoilGrids 2.0, ISRIC – World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
+     "attribution_pl": "SoilGrids 2.0, ISRIC - World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
     }
    ],
    "notes_pl": [
@@ -812,13 +812,13 @@
      "live": true,
      "data_period": "2015-07-15..2018-07-09",
      "resolution": "10 m",
-     "licence": "Copernicus Sentinel data – free, full and open access",
+     "licence": "Copernicus Sentinel data - free, full and open access",
      "attribution_pl": "Contains modified Copernicus Sentinel data 2015 · Contains modified Copernicus Sentinel data 2016 · Contains modified Copernicus Sentinel data 2017 · Contains modified Copernicus Sentinel data 2018"
     }
    ],
    "notes_pl": [
     "Przeanalizowano 33 z 37 scen Sentinel-2 w dostępnym czasie; pozostałe sceny są przetwarzane w tle i mogą uzupełnić wynik po odświeżeniu danych.",
-    "Brak bezchmurnych zdjęć Sentinel-2 działki od 2018-05-11 do 2018-07-10 (na zdjęciach z tego okresu za mało pikseli z roślinnością lub odsłoniętą glebą – przesłaniały je chmury, cienie, śnieg lub woda).",
+    "Brak bezchmurnych zdjęć Sentinel-2 działki od 2018-05-11 do 2018-07-10 (na zdjęciach z tego okresu za mało pikseli z roślinnością lub odsłoniętą glebą - przesłaniały je chmury, cienie, śnieg lub woda).",
     "Brak zdjęć Sentinel-2 L2A w archiwum dla lat: 2008, 2009, 2010, 2011, 2012, 2013, 2014; porównanie wieloletnie obejmuje krótszy okres."
    ],
    "error": null,
@@ -60133,7 +60133,7 @@
    "provenance": [
     {
      "source_id": "bdot10k_water",
-     "name": "BDOT10k (GUGiK) – sieć wodna, usługa WMS",
+     "name": "BDOT10k (GUGiK) - sieć wodna, usługa WMS",
      "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/kompozycja_BDOT10k_WMS/MapServer/WMSServer",
      "fetched_at": "2026-11-21T19:10:29.842356Z",
      "live": false,

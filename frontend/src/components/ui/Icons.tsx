@@ -59,7 +59,7 @@ export function KowrLogo() {
   );
 }
 
-/** Знак Vedra — три полоски из логотипа, без подписи; цвет берёт из currentColor */
+/** Знак Vedra - три полоски из логотипа, без подписи; цвет берёт из currentColor */
 export const VedraMark = ({ size = 48 }: IconProps) => (
   <svg viewBox="0 0 64 28" width={size} height={(size * 28) / 64} fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
     <path d="M2 14c12-12 36-12 60-2M2 19c12-10 34-10 56-2M2 24c10-8 30-8 48-2" />

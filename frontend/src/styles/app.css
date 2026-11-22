@@ -353,33 +353,33 @@ button { font: inherit; cursor: pointer; }
   padding: 0;
 }
 @media (max-width: 900px) {
-  /* на узких экранах — отдельной строкой под логотипом, как было */
+  /* на узких экранах - отдельной строкой под логотипом, как было */
   .topbar__center { position: static; transform: none; flex-basis: 100%; }
 }
 
 /* ---------- мобилка: компактный переключатель режима, элементы карты внизу ---------- */
 @media (max-width: 760px) {
   /* логотип держит свою ширину (иначе flex сжимает ссылку до 0 и её перекрывает переключатель);
-     переключатель — справа в той же строке, а если не влезает — переносится и прижимается вправо */
+     переключатель - справа в той же строке, а если не влезает - переносится и прижимается вправо */
   .topbar .brand { flex: 0 1 auto; }
   .topbar__center { flex: 0 0 auto; width: auto; margin-left: auto; }
   .mode-toggle { gap: 2px; padding: 3px; }
   .mode-toggle button { padding: 5px 10px; font-size: 12px; }
 
-  /* Satelita/Teren и «Małopolskie · ← Cała Polska» — в нижнюю часть карты */
+  /* Satelita/Teren и «Małopolskie · ← Cała Polska» - в нижнюю часть карты */
   .map-type { top: auto; bottom: 22px; left: auto; right: 8px; transform: none; }
   .map-type button { height: 30px; padding: 0 10px; font-size: 12px; }
   .map-region { top: auto; bottom: 22px; left: 8px; max-width: calc(100% - 160px); padding: 4px 6px 4px 10px; gap: 6px; font-size: 12px; }
   .map-region span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .map-region button { flex: none; padding: 4px 8px; font-size: 11px; white-space: nowrap; }
-  /* подсказка — над нижними кнопками */
+  /* подсказка - над нижними кнопками */
   .map-hint { bottom: 62px; font-size: 12px; padding: 6px 12px; }
 }
 @media (max-width: 400px) {
   .mode-toggle button { padding: 5px 9px; font-size: 11.5px; }
 }
 
-/* ---------- «Co jeśli?» — симулятор действий и комментарий ИИ ---------- */
+/* ---------- «Co jeśli?» - симулятор действий и комментарий ИИ ---------- */
 .sim { display: flex; flex-direction: column; gap: 12px; }
 .sim > p { margin: 0; }
 .sim-sliders { display: grid; gap: 12px; }
@@ -440,3 +440,79 @@ button { font: inherit; cursor: pointer; }
 @media print {
   .sim-sliders, .sim-actions, .sim-ai__head .btn-primary, .sim-presets button { display: none; }
 }
+
+/* ---------- /map: результаты под картой, переключатель AI, окно zgody ---------- */
+/* Страница прокручивается: карта занимает первый экран, симулятор и ответы AI - под ней. */
+.app { height: auto; min-height: 100vh; min-height: 100dvh; }
+.foot { position: sticky; bottom: 0; z-index: 700; }
+.map-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.map-col > .map-card { flex: none; height: calc(100vh - 165px); height: calc(100dvh - 165px); min-height: 420px; }
+.main > .panel { position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); max-height: calc(100dvh - 120px); }
+.map-results { display: grid; gap: 16px; }
+.map-results__crop { display: grid; gap: 8px; }
+.map-results .sim-sliders { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 24px; }
+.map-results .sim-compare { max-width: 760px; }
+.map-results .sim-chart svg { height: 160px; }
+.map-results .sim-ai__body { max-width: 900px; }
+
+.ai-toggle { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fafcfb; }
+.switch { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch__track { flex: none; width: 38px; height: 22px; border-radius: 999px; background: #c9d3cf; position: relative; transition: background 0.2s; margin-top: 1px; }
+.switch__thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.2s; }
+.switch input:checked + .switch__track { background: var(--green-700); }
+.switch input:checked + .switch__track .switch__thumb { transform: translateX(16px); }
+.switch input:focus-visible + .switch__track { outline: 3px solid rgba(42, 90, 75, 0.35); outline-offset: 2px; }
+.switch__text { display: grid; gap: 2px; }
+.switch__text small { color: var(--muted); font-size: 12px; line-height: 1.35; }
+.ai-toggle__consent { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.ai-toggle__consent .link-btn { font-size: 12px; padding: 0; }
+.sim-ai-off { border-top: 1px solid var(--line); padding-top: 10px; margin: 0; }
+
+.consent { width: min(620px, 100%); }
+.consent h3 { margin: 14px 0 6px; font-size: 14px; color: var(--green-900); }
+.consent ul { margin: 0 0 6px 18px; padding: 0; display: grid; gap: 4px; font-size: 13px; color: #3c4b46; }
+.consent p { font-size: 13px; color: #3c4b46; margin: 0 0 6px; }
+.consent .intro__lead { font-size: 14px; color: var(--muted); }
+.consent .intro__remember { margin: 14px 0; }
+.consent__actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.consent__actions .btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+@media (max-width: 760px) {
+  /* мобилка: карта → панель → симулятор и AI */
+  .map-col { display: contents; }
+  .map-col > .map-card { order: 1; height: 56vh; min-height: 320px; }
+  .main > .panel { order: 2; position: static; max-height: none; }
+  .map-results { order: 3; }
+  .map-results .sim-sliders { grid-template-columns: 1fr; }
+  .foot { position: static; }
+  .consent__actions .btn-primary, .consent__actions .btn-secondary { flex: 1; justify-content: center; }
+}
+
+/* ---------- футер: текущая погода в выбранном месте ---------- */
+.foot__weather { min-width: 0; }
+.foot__weather-text { display: grid; gap: 1px; min-width: 0; }
+.foot__place { color: var(--green-800); text-decoration: none; }
+.foot__place:hover { text-decoration: underline; }
+.foot__place span { font-size: 12px; color: var(--muted); }
+.foot__now { font-size: 13px; color: var(--ink); }
+@media (max-width: 760px) {
+  .foot__now { font-size: 12px; }
+}
+
+/* ---------- raport: «Pobierz PDF» + галочка «Co jeśli?» ---------- */
+.pdf-download { display: grid; justify-items: end; gap: 6px; }
+.pdf-download__check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink); cursor: pointer; user-select: none; }
+.pdf-download__check input { accent-color: var(--green-700); width: 16px; height: 16px; margin: 0; }
+@media (max-width: 760px) {
+  .pdf-download { justify-items: start; }
+}
+
+/* ---------- галочка «Co jeśli?» (экран + PDF) ---------- */
+.scenario-toggle { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; user-select: none; }
+.scenario-toggle input { accent-color: var(--green-700); width: 17px; height: 17px; margin: 2px 0 0; flex: none; cursor: pointer; }
+.scenario-toggle span { display: grid; gap: 1px; }
+.scenario-toggle small { color: var(--muted); font-size: 12px; }
+.map-results > .scenario-toggle { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fafcfb; }
+.scenario-toggle--compact { font-size: 13px; align-items: center; }
+.scenario-toggle--compact input { margin: 0; }

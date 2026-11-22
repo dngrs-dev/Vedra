@@ -8,7 +8,7 @@ import { ApiError, request } from './http';
 /**
  * Поиск участков через публичный ULDK GUGiK (бесплатно, без ключа).
  * Документация: https://uldk.gugik.gov.pl/opis.html
- * Ответ: первая строка — статус ("0" = OK), далее "id|SRID=4326;POLYGON((lon lat,...))".
+ * Ответ: первая строка - статус ("0" = OK), далее "id|SRID=4326;POLYGON((lon lat,...))".
  */
 const ULDK = import.meta.env.VITE_ULDK_URL ?? 'https://uldk.gugik.gov.pl/';
 const STANDALONE_DEMO = import.meta.env.VITE_USE_MOCK === 'true';
@@ -158,9 +158,9 @@ export const AREA_LIMITS = { maxParcels: 150, maxRequests: 300, maxPoints: 900, 
 /**
  * Находит ВСЕ делянки в рамке.
  * Рамка покрывается сеткой точек (шаг подстраивается под размер, минимум ~12 м).
- * Точка, которая уже лежит внутри найденной делянки, повторно не запрашивается —
+ * Точка, которая уже лежит внутри найденной делянки, повторно не запрашивается -
  * поэтому запросов к ULDK примерно столько, сколько делянок (+ дороги/вода).
- * Делянки уже шага сетки (узкие полоски) могут быть пропущены — это ограничение метода.
+ * Делянки уже шага сетки (узкие полоски) могут быть пропущены - это ограничение метода.
  */
 export async function findParcelsInArea(ring: LatLng[], opts: AreaSearchOptions = {}): Promise<AreaSearchResult> {
   const { signal, onProgress } = opts;
@@ -178,7 +178,7 @@ export async function findParcelsInArea(ring: LatLng[], opts: AreaSearchOptions 
   const rows = Math.max(1, Math.round(hM / step));
   const cols = Math.max(1, Math.round(wM / step));
 
-  // точки — центры ячеек; обходим от центра к краям, чтобы сначала находились «главные» делянки
+  // точки - центры ячеек; обходим от центра к краям, чтобы сначала находились «главные» делянки
   const pts: [number, number][] = [];
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++) pts.push([s + ((r + 0.5) / rows) * (n - s), w + ((c + 0.5) / cols) * (e - w)]);

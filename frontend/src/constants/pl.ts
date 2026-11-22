@@ -143,13 +143,12 @@ export const pl = {
   },
 
   footer: {
-    lastUpdate: 'Ostatnia Aktualizacja Danych:',
     report: 'Generuj Raport PDF',
     region: 'Region'
   },
 
   report: {
-    title: 'Raport — ocena sytuacji wodnej działki',
+    title: 'Raport - ocena sytuacji wodnej działki',
     parcel: 'Dane działki',
     assessment: 'Ocena wilgotności i ryzyka suszy',
     recommendations: 'Zalecenia',

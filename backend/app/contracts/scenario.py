@@ -87,3 +87,14 @@ class AiInsight(BaseModel):
     reasoning_pl: list[str]
     caveats_pl: list[str]
     note_pl: str | None = None
+
+
+class AiStatus(BaseModel):
+    """What the AI commentary would use, so the UI can ask for consent before data leaves the server."""
+
+    enabled: bool
+    provider: Literal["gemini", "anthropic"]
+    provider_name: str  # e.g. "Google Gemini"
+    model: str
+    # True when a key is set, so a question sends the analysis data to an external service.
+    external: bool

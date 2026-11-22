@@ -43,6 +43,7 @@ app.include_router(routes_parcels.router)
 app.include_router(routes_analyses.router)
 app.include_router(routes_reports.router)
 app.include_router(routes_scenarios.router)
+app.include_router(routes_scenarios.ai_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,

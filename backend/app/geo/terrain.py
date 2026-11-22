@@ -324,7 +324,7 @@ async def _terrain_data(parcel, hydro_data, budget_s: float, t0: float):
         data = await asyncio.to_thread(analyse, dem, geometry.parcel_geom_2180(parcel), ditches)
         cache.set(key, data.model_dump(mode="json"), expire_s=30 * 24 * 3600)   # OUR CHOICE, as for BDOT10k
     if hydro_data is None:
-        notes.append("Brak danych o rowach – miejsca odpływu rowami nie zostały wskazane.")
+        notes.append("Brak danych o rowach - miejsca odpływu rowami nie zostały wskazane.")
     name = "gugik_nmt_wcs" if dem.source == "gugik_nmt_1m" else "copernicus_dem"
     prov = [provenance(name, dem.url, live=dem.live, fetched_at=dem.fetched_at, resolution=f"{dem.res:g} m")]
     status = SourceStatus.OK if dem.source == "gugik_nmt_1m" else SourceStatus.PARTIAL

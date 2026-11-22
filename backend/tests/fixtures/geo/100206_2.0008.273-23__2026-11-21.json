@@ -443,7 +443,7 @@
      "data_period": null,
      "resolution": "250 m",
      "licence": "CC BY 4.0",
-     "attribution_pl": "SoilGrids 2.0, ISRIC – World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
+     "attribution_pl": "SoilGrids 2.0, ISRIC - World Soil Information; Poggio i in. (2021), https://doi.org/10.5194/soil-7-217-2021."
     }
    ],
    "notes_pl": [
@@ -480,7 +480,7 @@
      "live": true,
      "data_period": "2016-11-22..2025-11-07",
      "resolution": "10 m",
-     "licence": "Copernicus Sentinel data – free, full and open access",
+     "licence": "Copernicus Sentinel data - free, full and open access",
      "attribution_pl": "Contains modified Copernicus Sentinel data 2016 · Contains modified Copernicus Sentinel data 2017 · Contains modified Copernicus Sentinel data 2020 · Contains modified Copernicus Sentinel data 2025"
     }
    ],
@@ -6454,7 +6454,7 @@
    "provenance": [
     {
      "source_id": "bdot10k_water",
-     "name": "BDOT10k (GUGiK) – sieć wodna, usługa WMS",
+     "name": "BDOT10k (GUGiK) - sieć wodna, usługa WMS",
      "url": "https://mapy.geoportal.gov.pl/wss/service/pub/guest/kompozycja_BDOT10k_WMS/MapServer/WMSServer",
      "fetched_at": "2026-11-21T19:12:39.066118Z",
      "live": true,

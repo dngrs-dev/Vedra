@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from app.config import settings
 from app.contracts.report import Report
-from app.contracts.scenario import AiInsight, ScenarioReport, ScenarioResult
+from app.contracts.scenario import AiInsight, AiStatus, ScenarioReport, ScenarioResult
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,21 @@ and soil before irrigation, as the KOWR task does, unless the numbers clearly sa
 For the forecast, say what is likely in the coming weeks if the farmer does nothing, based on \
 the current water reserve, the trend and the ten-year drought frequency; do not invent weather \
 forecasts or data that is not in the JSON. Mention honestly that the simulations use model \
-assumptions. Keep each field short: 1-3 sentences, lists of 2-4 items."""
+assumptions. Keep each field short: 1-3 sentences, lists of 2-4 items. Use only the plain \
+hyphen-minus (-) as a dash, never em or en dashes."""
+
+# Long dashes (em dash, en dash, minus sign) are shown as a plain hyphen-minus everywhere in the app.
+_PLAIN_DASHES = str.maketrans({"\u2014": "-", "\u2013": "-", "\u2212": "-"})
+
+
+def _plain(answer: _LlmAnswer) -> _LlmAnswer:
+    return _LlmAnswer(
+        headline_pl=answer.headline_pl.translate(_PLAIN_DASHES),
+        forecast_pl=answer.forecast_pl.translate(_PLAIN_DASHES),
+        best_action_pl=answer.best_action_pl.translate(_PLAIN_DASHES),
+        reasoning_pl=[item.translate(_PLAIN_DASHES) for item in answer.reasoning_pl],
+        caveats_pl=[item.translate(_PLAIN_DASHES) for item in answer.caveats_pl],
+    )
 
 
 class _LlmAnswer(BaseModel):
@@ -123,17 +137,17 @@ def rules(report: Report, scenarios: ScenarioReport, note: str | None = None) ->
     forecast = (f"Na koniec okresu {trend} ({_n(base.end_available_pct)}% wody dostępnej). "
                 f"Jeśli nie spadnie większy deszcz, stres będzie narastał.{history}")
     if best is not None and best.outcome.stress_days < base.stress_days:
-        action = (f"Największy pojedynczy efekt daje: {best.title_pl.lower()} – dni stresu spadają z "
+        action = (f"Największy pojedynczy efekt daje: {best.title_pl.lower()} - dni stresu spadają z "
                   f"{base.stress_days} do {best.outcome.stress_days}.")
     else:
-        action = "Żadne pojedyncze działanie nie zmienia wyraźnie wyniku w tym okresie – warto łączyć działania."
+        action = "Żadne pojedyncze działanie nie zmienia wyraźnie wyniku w tym okresie - warto łączyć działania."
     reasoning = [
         f"Niedobór wody dla uprawy bez działań: {_n(base.et_deficit_pct)}% potrzeb.",
         f"Twój wariant: {custom.stress_days} dni stresu, niedobór {_n(custom.et_deficit_pct)}%, "
         f"ryzyko {RISK_PL[custom.risk]}.",
     ]
     if base.budget.losses_mm > 0:
-        reasoning.append(f"Poza strefę korzeni odpłynęło {_n(base.budget.losses_mm)} mm wody – to woda, "
+        reasoning.append(f"Poza strefę korzeni odpłynęło {_n(base.budget.losses_mm)} mm wody - to woda, "
                          f"którą retencja może zatrzymać.")
     return AiInsight(
         source="rules", headline_pl=headline, forecast_pl=forecast, best_action_pl=action,
@@ -182,9 +196,9 @@ async def _ask_gemini(prompt: str) -> tuple[_LlmAnswer, str]:
                 raise _Unavailable(f"Gemini odrzucił zapytanie (400: {exc.message})") from exc
             if exc.code not in GEMINI_RETRY_CODES:
                 raise _Unavailable(f"Model AI zwrócił błąd ({exc.code})") from exc
-            reason = {429: "Wyczerpano darmowy limit zapytań Gemini – spróbuj za chwilę",
+            reason = {429: "Wyczerpano darmowy limit zapytań Gemini - spróbuj za chwilę",
                       404: f"Model {model} jest niedostępny (sprawdź GEMINI_MODEL)"}.get(
-                exc.code, "Modele Gemini są teraz przeciążone – spróbuj za chwilę")
+                exc.code, "Modele Gemini są teraz przeciążone - spróbuj za chwilę")
             continue
         except Exception as exc:  # network errors and timeouts come from the SDK's HTTP client
             logger.warning("Gemini %s failed: %s", model, type(exc).__name__)
@@ -251,15 +265,15 @@ async def explain(report: Report, scenarios: ScenarioReport) -> AiInsight:
         _cache.move_to_end(key)
         return _cache[key]
     if not settings.ai_enabled:
-        return rules(report, scenarios, "Analiza AI jest wyłączona w konfiguracji – pokazano podsumowanie z reguł.")
+        return rules(report, scenarios, "Analiza AI jest wyłączona w konfiguracji - pokazano podsumowanie z reguł.")
 
     prompt = json.dumps(_context(report, scenarios), ensure_ascii=False)
     try:
         answer, model = await PROVIDERS[settings.ai_provider](prompt)
     except _Unavailable as exc:
-        return rules(report, scenarios, f"{exc} – pokazano podsumowanie z reguł.")
+        return rules(report, scenarios, f"{exc} - pokazano podsumowanie z reguł.")
 
-    insight = AiInsight(source="llm", model=model, **answer.model_dump())
+    insight = AiInsight(source="llm", model=model, **_plain(answer).model_dump())
     _cache[key] = insight
     if len(_cache) > CACHE_SIZE:
         _cache.popitem(last=False)
@@ -270,3 +284,18 @@ def _schema() -> dict:
     schema = _LlmAnswer.model_json_schema()
     schema["additionalProperties"] = False
     return schema
+
+
+PROVIDER_LABELS = {"gemini": "Google Gemini", "anthropic": "Anthropic Claude"}
+
+
+def status() -> AiStatus:
+    if settings.ai_provider == "gemini":
+        model = settings.gemini_model
+        configured = bool(settings.gemini_api_key or os.environ.get("GOOGLE_API_KEY"))
+    else:
+        model = settings.anthropic_model
+        configured = bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+    return AiStatus(enabled=settings.ai_enabled, provider=settings.ai_provider,
+                    provider_name=PROVIDER_LABELS[settings.ai_provider], model=model,
+                    external=settings.ai_enabled and configured)

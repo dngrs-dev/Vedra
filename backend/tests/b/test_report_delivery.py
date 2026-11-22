@@ -42,7 +42,7 @@ def test_saved_report_survives_restart_and_pdf_is_cached_without_map(monkeypatch
     monkeypatch.setattr(FakeGeoProvider, "render_static_map", map_builder)
     pdf_calls = []
 
-    def render(report, map_png):
+    def render(report, map_png, scenarios=None):
         pdf_calls.append((report.report_id, map_png))
         return b"%PDF-test"
 

@@ -1,6 +1,6 @@
 import type { LatLng } from './parcel';
 
-/** Воеводство: один или несколько полигонов (MultiPolygon), каждый — набор колец (внешнее + дыры). */
+/** Воеводство: один или несколько полигонов (MultiPolygon), каждый - набор колец (внешнее + дыры). */
 export interface Voivodeship {
   id: string;
   /** Например: "Podkarpackie" */

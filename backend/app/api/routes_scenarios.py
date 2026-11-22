@@ -9,20 +9,30 @@ from app.ai import insight
 from app.analytics import crops, scenarios
 from app.analytics import weather as weather_provider
 from app.api.deps import StoreDependency
-from app.contracts.scenario import AiInsight, ScenarioLevers, ScenarioReport
+from app.contracts.scenario import AiInsight, AiStatus, ScenarioLevers, ScenarioReport
 from app.storage.db import StoredReport
 
 router = APIRouter(prefix="/api/analyses")
+ai_router = APIRouter(prefix="/api/ai")
 
 NOT_FOUND = "Nie znaleziono analizy. Uruchom analizę działki ponownie."
-NO_SOIL = "Brak danych o glebie tej działki – symulacja scenariuszy nie jest możliwa."
-NO_WEATHER = "Brak danych pogodowych dla sezonu – symulacja scenariuszy nie jest możliwa."
+NO_SOIL = "Brak danych o glebie tej działki - symulacja scenariuszy nie jest możliwa."
+NO_WEATHER = "Brak danych pogodowych dla sezonu - symulacja scenariuszy nie jest możliwa."
 SOM_UNSUPPORTED = ("Dla tej gleby brakuje uziarnienia lub węgla organicznego, więc wpływ próchnicy "
                    "nie został policzony (przyjęto 0).")
 
 
+CONSENT_REQUIRED = ("Wymagana jest zgoda na przekazanie danych analizy do zewnętrznej usługi AI. "
+                    "Bez zgody aplikacja działa dalej, ale bez komentarza AI.")
+
+
 class ScenarioRequest(ScenarioLevers):
     pass
+
+
+class AiInsightRequest(ScenarioLevers):
+    # RODO: data goes to an external AI service only after the user agreed in the UI.
+    consent: bool = False
 
 
 async def _stored(store, analysis_id: str) -> StoredReport:
@@ -56,7 +66,7 @@ async def build(saved: StoredReport, analysis_id: str, levers: ScenarioLevers) -
         return outcome
 
     def compute() -> ScenarioReport:
-        baseline = run("baseline", "Bez działań", "Obecny sposób gospodarowania – punkt odniesienia.",
+        baseline = run("baseline", "Bez działań", "Obecny sposób gospodarowania - punkt odniesienia.",
                        ScenarioLevers())
         custom = run("custom", "Twój wariant", "Działania wybrane suwakami.", levers)
         presets = [run(*preset, series=True) for preset in scenarios.PRESETS]
@@ -64,13 +74,13 @@ async def build(saved: StoredReport, analysis_id: str, levers: ScenarioLevers) -
         if not scenarios.organic_matter_supported(field):
             assumptions.append(SOM_UNSUPPORTED)
         if et0_estimated:
-            assumptions.append("Dane stacji nie zawierają ewapotranspiracji dobowej – przyjęto miesięczną ETP "
-                               "(Doroszewski–Górski, jak w KBW) rozłożoną równo na dni miesiąca.")
+            assumptions.append("Dane stacji nie zawierają ewapotranspiracji dobowej - przyjęto miesięczną ETP "
+                               "(Doroszewski-Górski, jak w KBW) rozłożoną równo na dni miesiąca.")
         if field.typical_soil:
-            assumptions.append(f"Brak profilu glebowego dla tej działki – przyjęto typową glebę kategorii "
+            assumptions.append(f"Brak profilu glebowego dla tej działki - przyjęto typową glebę kategorii "
                                f"{soil.kbw_category} (woda użyteczna w środku zakresu WOD z rozporządzenia).")
         if not field.initial_from_data:
-            assumptions.append("Brak modelowej wilgotności gleby na początek okresu – przyjęto, że gleba "
+            assumptions.append("Brak modelowej wilgotności gleby na początek okresu - przyjęto, że gleba "
                                "była nasycona do polowej pojemności wodnej (typowe po zimie).")
         return ScenarioReport(
             analysis_id=analysis_id, crop_name_pl=report.crop_name_pl,
@@ -89,7 +99,15 @@ async def simulate(analysis_id: str, levers: ScenarioRequest, store: StoreDepend
 
 
 @router.post("/{analysis_id}/ai-insight", summary="Komentarz AI do raportu i scenariuszy")
-async def ai_insight(analysis_id: str, levers: ScenarioRequest, store: StoreDependency) -> AiInsight:
+async def ai_insight(analysis_id: str, request: AiInsightRequest, store: StoreDependency) -> AiInsight:
+    if insight.status().external and not request.consent:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, CONSENT_REQUIRED)
     saved = await _stored(store, analysis_id)
+    levers = ScenarioLevers(**request.model_dump(exclude={"consent"}))
     report = await build(saved, analysis_id, levers)
     return await insight.explain(saved.report, report)
+
+
+@ai_router.get("/status", summary="Czy komentarz AI jest włączony i do jakiej usługi trafiają dane")
+async def ai_status() -> AiStatus:
+    return insight.status()

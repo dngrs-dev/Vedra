@@ -69,3 +69,12 @@ export const AiInsightSchema = z.object({
   note_pl: z.string().nullable()
 });
 export type AiInsight = z.infer<typeof AiInsightSchema>;
+
+export const AiStatusSchema = z.object({
+  enabled: z.boolean(),
+  provider: z.enum(['gemini', 'anthropic']),
+  provider_name: z.string(),
+  model: z.string(),
+  external: z.boolean()
+});
+export type AiStatus = z.infer<typeof AiStatusSchema>;
