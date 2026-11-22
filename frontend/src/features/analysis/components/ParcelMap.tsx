@@ -23,7 +23,6 @@ import {
   useParcelBoundaries,
   type BoundaryMode
 } from '../hooks/useParcelBoundaries';
-import { useAnalysis } from '../hooks/useAnalysis';
 import { useParcelSelect } from '../hooks/useParcelSelect';
 import { useVoivodeships } from '../hooks/useVoivodeships';
 import { useAnalysisStore } from '../store';
@@ -69,6 +68,9 @@ export function ParcelMap() {
   const setRegion = useAnalysisStore((s) => s.setRegion);
   const { loading, found, selectById, selectByIds, selectByLatLng, selectArea, selectParcel } = useParcelSelect();
   const { data: regions, isError: regionsFailed } = useVoivodeships();
+  useEffect(() => {
+    if (regionsFailed) toast(pl.map.regionsFailed, 'error');
+  }, [regionsFailed]);
 
   const [map, setMap] = useState<LeafletMap | null>(null);
   const [layer, setLayer] = useState<BaseLayer>('satellite');
@@ -311,22 +313,6 @@ export function ParcelMap() {
     setTimeout(() => map?.invalidateSize(), 300);
   };
 
-  const { jobs } = useAnalysis({ active: false });
-  const resultsReady = jobs.some((job) => job.report);
-  const confirmed = useAnalysisStore((s) => s.confirmed);
-
-  const hint = resultsReady && confirmed
-    ? pl.map.hintResults
-    : !regionReady && zoom < PICK_MIN_ZOOM
-    ? pl.map.hintRegion
-    : parcel
-      ? pl.map.hintSelected
-      : zoom < PICK_MIN_ZOOM
-        ? pl.map.hintZoom
-        : mode === 'obreby'
-          ? pl.map.hintObreby
-          : pl.map.hintParcel;
-
   const toggleSub = !boundariesOn
     ? pl.map.boundariesOff
     : mode === 'off'
@@ -430,15 +416,14 @@ export function ParcelMap() {
         </div>
       )}
 
-      <div className="map-hint" role="note">
-        {hint}
-        {regionsFailed && <span className="map-hint__warn"> · {pl.map.regionsFailed}</span>}
-        {parcel && parcelOffscreen && (
+      {/* Bez tekstowych podpowiedzi na mapie - na dole tylko przyciski akcji, gdy są potrzebne */}
+      {parcel && parcelOffscreen && (
+        <div className="map-hint map-hint--actions">
           <button type="button" className="map-hint__btn" onClick={() => fitParcel(parcel)}>
             {pl.map.showWholeParcel}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {loading && showLoader && (
         <div className="map-loader">

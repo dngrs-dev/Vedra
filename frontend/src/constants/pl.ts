@@ -55,17 +55,11 @@ export const pl = {
     zoomIn: 'Przybliż',
     zoomOut: 'Oddal',
     backToPoland: '← Cała Polska',
-    hintRegion: 'Kliknij województwo, aby je przybliżyć',
-    hintParcel: 'Kliknij działkę lub przytrzymaj Ctrl i przeciągnij ramkę',
-    hintZoom: 'Przybliż mapę, aby wybrać działkę (lub Ctrl + ramka)',
-    hintObreby: 'Kliknij działkę · granice działek pojawią się po przybliżeniu',
     showWholeParcel: 'Pokaż całą działkę',
     locateFailed: 'Nie udało się pobrać lokalizacji',
     locateUnavailable: 'Geolokalizacja niedostępna w tej przeglądarce',
     boundariesFailed: 'Granice działek są chwilowo niedostępne - wybór kliknięciem nadal działa',
-    hintSelected: 'Działka została zaznaczona',
-    hintResults: 'Wyniki są gotowe',
-    regionsFailed: 'granice województw niedostępne'
+    regionsFailed: 'Granice województw są chwilowo niedostępne - działkę nadal możesz wybrać na mapie.'
   },
 
   selectMode: {
