@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Backend runtime state and caches (created by tests and local runs)
+backend/.cache/
+backend/data/vedra.sqlite
+backend/data/vedra.reports/
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Secrets and local settings
+.env
+.env.local
+.claude/settings.local.json

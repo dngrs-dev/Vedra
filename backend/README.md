@@ -133,6 +133,11 @@ backend korzysta z dołączonego archiwum dobowego IMGW-PIB i wskazuje stację w
 | `DB_PATH` | `data/vedra.sqlite` | Baza raportów. |
 | `CORS_ORIGINS` | `http://localhost:5173` | Dozwolone adresy frontendu, rozdzielone przecinkami. |
 | `LOG_LEVEL` | `INFO` | Poziom logowania. |
+| `AI_ENABLED` | `true` | Włącza opcjonalny komentarz AI do symulacji „Co jeśli?”. |
+| `AI_PROVIDER` | `gemini` | `gemini` (Google AI Studio) albo `anthropic` (Claude). |
+| `GEMINI_API_KEY` | brak | Klucz Gemini. Bez klucza komentarz powstaje z reguł. |
+| `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL` | `gemini-3.5-flash`, `gemini-3.5-flash-lite` | Model główny i zapasowy przy przeciążeniu. |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | brak, `claude-opus-5-5` | Klucz i model dla `AI_PROVIDER=anthropic`. |
 
 Jeden proces API obsługuje kolejkę i odpytywanie w toku zadania. Limit czasu analizy zaczyna się
 po zwolnieniu miejsca w kolejce. Zapisane raporty przeżywają restart.
@@ -209,10 +214,11 @@ Wykaz bezpośrednich zależności obejmuje również narzędzia testowe.
 | API, zapisy, konfiguracja | Python (PSF), FastAPI i Pydantic (MIT), Uvicorn i HTTPX (BSD-3-Clause), SQLite (domena publiczna), DiskCache (Apache-2.0), Structlog (MIT lub Apache-2.0), PyYAML (MIT), tzdata (Apache-2.0 z danymi IANA). |
 | Obliczenia i GIS | NumPy i SciPy (licencje BSD wraz z warunkami dołączonych składników), pandas, Shapely i Rasterio (BSD-3-Clause), pyproj (MIT), pystac-client (Apache-2.0). |
 | PDF i wykresy | Jinja2 i WeasyPrint (BSD), Matplotlib (licencja Matplotlib oparta na PSF), Pango (LGPL), HarfBuzz (MIT) i DejaVu (warunki Bitstream Vera i dodatków DejaVu). [Licencja Pango](https://github.com/GNOME/pango/blob/main/COPYING), [licencja DejaVu](https://github.com/dejavu-fonts/dejavu-fonts/blob/master/LICENSE). |
+| Komentarz AI | google-genai (Apache-2.0), anthropic (MIT). Usługi wymagają klucza i akceptacji warunków dostawcy. [Użycie AI](docs/AI_USAGE.md). |
 | Testy i porównanie urzędowe | pytest (MIT), pytest-asyncio (Apache-2.0), RESPX (BSD-3-Clause), pypdf (BSD-3-Clause) i PyArrow (Apache-2.0). |
 
 Modele obliczeniowe obejmują Doroszewskiego–Górskiego, FAO-56, SPI i Saxtona–Rawlsa.
-Zasady korzystania z narzędzia wspierającego rozwój opisuje [wykaz użycia AI](docs/AI_USAGE.md).
+Użycie AI w aplikacji i przy tworzeniu kodu opisuje [wykaz użycia AI](docs/AI_USAGE.md).
 
 ## 8. Ograniczenia
 

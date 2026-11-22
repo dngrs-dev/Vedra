@@ -26,6 +26,16 @@ raportów należy sprawdzić ich zakres danych i odsyłacze do źródeł.
 - Obraz kontenera uruchamia aplikację jako `nobody`. Stan raportów i pamięć podręczna
   mogą mieć oddzielne wolumeny i kontrolę dostępu systemu plików.
 
+## Komentarz AI
+
+Opcjonalny komentarz do symulacji „Co jeśli?” wysyła do Google Gemini lub Anthropic Claude
+identyfikator, powierzchnię i lokalizację działki (gmina, powiat, województwo), uprawę, datę
+oraz wyniki analizy. Identyfikator działki w połączeniu z ewidencją może wskazać właściciela,
+dlatego przed wysłaniem frontend pokazuje informację RODO i prosi o zgodę. Backend bez pola
+`consent` w żądaniu zwraca HTTP 403 i niczego nie wysyła. Klucze API są przekazywane tylko
+przez zmienne środowiskowe. Bez klucza komentarz powstaje lokalnie z reguł.
+[Użycie AI](AI_USAGE.md).
+
 ## Konfiguracja publicznego uruchomienia
 
 Ostatni etap wdrożenia powinien ograniczyć rozmiar żądania i liczbę kosztownych wywołań,

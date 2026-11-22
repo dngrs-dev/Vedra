@@ -1,4 +1,4 @@
-# Vendra (frontend)
+# Vedra (frontend)
 
 Aplikacja webowa dla rolników: wskaż działkę (ID lub klik na mapie), wybierz uprawę i datę → ocena wilgotności i ryzyka suszy (10 lat), rekomendacje retencyjne / agrotechniczne / nawodnieniowe, raport PDF.
 
@@ -19,9 +19,8 @@ Build to zwykłe pliki statyczne (`dist/`). Adresy: `/` (strona główna), `/map
 
 1. `/` — krótka strona główna (przycisk **Zobacz mapę**).
 2. `/map` — mapa Polski z liniami województw. Klik w województwo → mapa przybliża się, jego etykieta znika (przycisk „← Cała Polska” cofa widok).
-3. Wybór działki: klik na mapie, wpisanie identyfikatora lub `Ctrl` (⌘ na Macu) + LPM i przeciągnięcie ramki. Klik i wyszukiwanie po identyfikatorze korzystają z API Vedry i zapamiętują kontury już znalezionych działek w obrębie bieżącej sesji. Tryb ramki można zmienić w **Jak korzystać z mapy**:
-   - **Zwykły wybór** — ramka = dokładnie zaznaczony prostokąt (własny obszar, max 5000 ha).
-   - **Inteligentny wybór** (domyślny) — wyszukuje działki w ramce (`findParcelsInArea`: siatka punktów co ≥12 m, limit 150 działek / 300 zapytań). Działka trafia do wyboru, gdy **co najmniej 50% jej powierzchni** leży w ramce (`MIN_INSIDE_SHARE` w `services/parcelApi.ts`). Jeśli wyszukiwanie się nie powiedzie, można spróbować ponownie lub użyć **Wiele ID**.
+3. Wybór działki: klik na mapie, wpisanie identyfikatora lub `Ctrl` (⌘ na Macu) + LPM i przeciągnięcie ramki. Klik i wyszukiwanie po identyfikatorze korzystają z API Vedry i zapamiętują kontury już znalezionych działek w obrębie bieżącej sesji. Ramka wybiera działki ewidencyjne. Sam narysowany obszar (max 5000 ha, wyniki demonstracyjne) zostaje tylko wtedy, gdy w ramce nie ma działek:
+   - Wyszukuje działki w ramce (`findParcelsInArea`: siatka punktów co ≥12 m, limit 150 działek / 300 zapytań). Działka trafia do wyboru, gdy **co najmniej 50% jej powierzchni** leży w ramce (`MIN_INSIDE_SHARE` w `services/parcelApi.ts`). Jeśli wyszukiwanie się nie powiedzie, można spróbować ponownie lub użyć **Wiele ID**.
    - Znalezione działki są **łączone w jeden kontur** (`utils/union.ts`: usuwanie wspólnych krawędzi, sklejanie wierzchołków z tolerancją ~0,2 m, obsługa styków typu „T”, dziury). Działki rozdzielone drogą/rowem dają kilka części — luki nie są zamalowywane, bo to nie jest ziemia użytkownika.
 4. Wybierz uprawę i datę, a następnie potwierdź działkę lub grupę. Pasek u góry pokazuje aktualną pogodę wybranej działki. Panel przechodzi od formularza przez postęp analizy do KBW i podatności historycznej.
 5. **Zobacz pełny raport** otwiera `/report` z zaleceniami, źródłami i dostępnym planem weryfikacji w terenie oraz symulacją i komentarzem AI. Analiza backendowa udostępnia plik przez **Pobierz PDF**, a raport demonstracyjny korzysta z dialogu drukowania przeglądarki.
@@ -77,7 +76,7 @@ Własne obszary i zastępcze obrysy korzystają z jawnie oznaczonych danych demo
 
 ## Znane ograniczenia (TODO)
 
-- Granice województw ładowane z CDN w przeglądarce — nie mogłem ich zweryfikować w środowisku budowy (brak sieci). Jeśli nazwy się nie wyświetlą poprawnie, sprawdź pola w GeoJSON (`services/regionsApi.ts → NAME_KEYS`). Uproszczony kontur Polski w `constants/poland.ts` to tylko zapas na czas ładowania.
+- Granice województw są ładowane z CDN w przeglądarce. Jeśli nazwy się nie wyświetlą poprawnie, sprawdź pola w GeoJSON (`services/regionsApi.ts → NAME_KEYS`). Uproszczony kontur Polski w `constants/poland.ts` to tylko zapas na czas ładowania.
 - Tryb demo: wartości są losowe (deterministyczne), widoczny baner „dane demonstracyjne”.
 - Inteligentne zaznaczenie ramką używa bezpośrednich zapytań do ULDK, aby korzystać z dotychczasowej siatki punktów. W razie niedostępności rejestru obowiązują komunikaty i tryb demonstracyjny.
 - Brak testów automatycznych (do dodania: Vitest dla `utils/` i `services/mockAnalysis`).
