@@ -239,6 +239,12 @@ Powtarzające się zalecenia dla miejsc retencji mają wspólne uzasadnienie. W 
 można wybierać miejsca na mapie. W PDF numery na mapach prowadzą do tabel z pomiarami i uwagami
 dla poszczególnych miejsc.
 
+Plan wizji w terenie wskazuje pierwsze miejsce zgodnie z kolejnością zaleceń. Preferuje miejsca
+bez uwagi o konieczności uzgodnienia wizji z właścicielem terenu. W widoku webowym można zapisać,
+czy obliczone warunki potwierdziły się na miejscu. Obserwacje są przechowywane w bieżącej
+przeglądarce dla danej działki, uprawy, daty analizy i geometrii miejsca. Wydruk zawiera pola
+do odznaczania sprawdzonych miejsc.
+
 - [Września, 10.07.2018](data/b/samples/reports/wrzesnia-2018-07-10.pdf)
 - [Inowrocław, 31.05.2023](data/b/samples/reports/inowroclaw-2023-05-31.pdf)
 - [Kętrzyn, 21.11.2026](data/b/samples/reports/ketrzyn-2026-11-21.pdf)

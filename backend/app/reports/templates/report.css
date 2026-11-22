@@ -38,3 +38,7 @@ a { color: #175d57; overflow-wrap: anywhere; }
 .site-table thead { background: #eef7f3; }
 .site-table th span { font-weight: normal; white-space: nowrap; }
 .site-table p { margin-bottom: .5mm; }
+.field-plan { break-inside: avoid; background: #eef7f3; border-left: 3px solid #28776d; margin: 4mm 0; padding: 1mm 4mm 2mm; }
+.field-plan h2 { margin-top: 2mm; }
+.site-table .field-check { text-align: center; }
+.field-checkbox { display: inline-block; width: 3mm; height: 3mm; border: 1px solid #43605c; }

@@ -53,12 +53,19 @@ def _data_url(data: bytes, media_type: str) -> str:
 def render_html(report: Report, map_png: bytes | None = None) -> str:
     chart = monthly_risk_svg(report)
     actions = []
+    field_sites = []
     for action in group_actions(report.recommendations):
         site_map, coordinates = site_maps.render(report.parcel.geometry_wgs84, action.sites)
         actions.append((action, _data_url(site_map.encode(), "image/svg+xml") if site_map else None, coordinates))
+        if action.recommendation.category == "landscape_retention":
+            field_sites.extend((action, site) for site in action.sites if site.number in coordinates)
+    # Keep the report's action order and prefer a site without an access caution.
+    field_start = next((entry for entry in field_sites if not entry[1].note_pl), field_sites[0] if field_sites else None)
     return _environment().get_template("report.html.j2").render(
         report=report,
         actions=actions,
+        field_start=field_start,
+        field_count=len(field_sites),
         map_url=_data_url(map_png, "image/png") if map_png else None,
         chart_url=_data_url(chart.encode(), "image/svg+xml") if chart else None,
         category_labels=text.PDF_CATEGORY_LABELS,

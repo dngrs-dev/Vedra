@@ -79,11 +79,21 @@
     {% endfor %}
   </section>
   {% endif %}
+  {% if field_start %}
+  {% set first_action, first_site = field_start %}
+  <section class="field-plan">
+    <h2>Plan wizji w terenie</h2>
+    <p><strong>Od czego zacząć:</strong> <a href="#zalecenie-{{ first_action.recommendation.id }}">{{ first_action.recommendation.title_pl }}</a> · Miejsce {{ first_site.number }}</p>
+    <p>{{ first_action.recommendation.why_pl }}</p>
+    {% if first_site.note_pl %}<p>{{ first_site.note_pl }}</p>{% endif %}
+    <p class="small">Miejsca do sprawdzenia: {{ field_count }}. Po obejrzeniu miejsca zaznacz pole w tabeli.</p>
+  </section>
+  {% endif %}
   <section>
     <h2>Zalecane działania</h2>
     {% for action, site_map, coordinates in actions %}
       {% set recommendation = action.recommendation %}
-      <div class="action">
+      <div class="action" id="zalecenie-{{ recommendation.id }}">
         <div class="item">
           <p class="category">{{ category_labels[recommendation.category] }}</p>
           <h3>{{ recommendation.title_pl }}</h3>
@@ -100,7 +110,7 @@
             </figure>
           {% endif %}
           <table class="site-table small">
-            <thead><tr><th scope="col">Miejsce</th><th scope="col">Przesłanki i uwagi</th></tr></thead>
+            <thead><tr><th scope="col">Miejsce</th><th scope="col">Przesłanki i uwagi</th>{% if recommendation.category == 'landscape_retention' %}<th scope="col">Sprawdzone</th>{% endif %}</tr></thead>
             <tbody>
               {% for site in action.sites %}
                 <tr>
@@ -110,6 +120,9 @@
                     {% for metric in site.evidence %}{{ metric.label_pl }}: <strong>{{ metric.value | display_value }}{% if metric.unit %} {{ metric.unit }}{% endif %}</strong>{% if not loop.last %} · {% endif %}{% endfor %}
                     {% if not site.evidence and not site.note_pl %}Wspólne przesłanki dla działania podano powyżej.{% endif %}
                   </td>
+                  {% if recommendation.category == 'landscape_retention' %}
+                  <td class="field-check">{% if site.number in coordinates %}<span class="field-checkbox" aria-label="Miejsce {{ site.number }} do sprawdzenia"></span>{% endif %}</td>
+                  {% endif %}
                 </tr>
               {% endfor %}
             </tbody>

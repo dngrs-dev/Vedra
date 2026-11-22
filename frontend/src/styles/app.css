@@ -168,6 +168,10 @@ button { font: inherit; cursor: pointer; }
 .site-controls button { min-width: 34px; min-height: 34px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--green-700); cursor: pointer; }
 .site-controls button[aria-pressed='true'] { background: var(--green-700); color: #fff; }
 .site-detail { border-left: 2px solid var(--line); padding-left: 10px; }
+.field-plan { border-left: 3px solid var(--green-700); }
+.field-plan .field-next { margin: 4px 0 8px; }
+.field-outcome { display: grid; gap: 5px; margin-top: 8px; font-weight: 600; }
+.field-outcome select { width: 100%; font-weight: 400; }
 
 .basis summary { cursor: pointer; font-weight: 700; font-size: 15px; }
 .basis__h { font-size: 13px; margin: 14px 0 6px; }

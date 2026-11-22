@@ -34,6 +34,7 @@ export const BackendReportSchema = z.object({
     voivodeship: z.string(),
     geometry_wgs84: geometry.nullish().catch(null)
   }),
+  crop_code: z.string().optional(),
   crop_name_pl: z.string(),
   analysis_date: z.string(),
   summary: z.string(),

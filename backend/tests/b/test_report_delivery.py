@@ -51,6 +51,14 @@ def test_repeated_action_groups_keep_site_evidence_and_outside_caution():
     assert html.count(texts_pl.RETENTION_OUTSIDE_PARCEL) == 1
     assert 'data:image/svg+xml' in html
     assert '20 m²' in html and '31 m²' in html
+    assert 'Plan wizji w terenie' in html
+    assert html.count('class="field-checkbox"') == 2
+
+    report.recommendations = [second, first]
+    html = pdf.render_html(report)
+    plan = html.split('class="field-plan"', 1)[1].split('</section>', 1)[0]
+    assert 'Miejsce 2' in plan
+    assert texts_pl.RETENTION_OUTSIDE_PARCEL not in plan
 
 
 def test_native_renderer_produces_a_pdf_when_pango_is_available():
@@ -59,6 +67,7 @@ def test_native_renderer_produces_a_pdf_when_pango_is_available():
         from weasyprint import HTML  # noqa: F401
     except OSError as exc:
         pytest.skip(f"Native Pango unavailable: {exc}")
+    assert 'Plan wizji w terenie' not in pdf.render_html(report)
     assert pdf.render(report).startswith(b"%PDF-")
 
 
@@ -94,7 +103,7 @@ def test_saved_report_survives_restart_and_pdf_is_cached_without_map(monkeypatch
         report = response.json()["report"]
 
     # A previously downloaded PDF must be regenerated in the new layout.
-    old_path = settings.db_path.with_suffix(".reports") / f"{sha256(report['report_id'].encode()).hexdigest()}.pdf"
+    old_path = settings.db_path.with_suffix(".reports") / "grouped-retention" / f"{sha256(report['report_id'].encode()).hexdigest()}.pdf"
     old_path.parent.mkdir(parents=True, exist_ok=True)
     old_path.write_bytes(b"%PDF-old-layout")
     with TestClient(app) as client:

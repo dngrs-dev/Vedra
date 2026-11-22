@@ -13,7 +13,7 @@ from app.contracts.geo import GeoBundle
 from app.contracts.report import Report
 
 # Cached PDFs must be rendered again when the document layout changes.
-_PDF_LAYOUT_VERSION = "grouped-retention"
+_PDF_LAYOUT_VERSION = "field-verification"
 
 
 @dataclass(frozen=True, slots=True)

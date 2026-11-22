@@ -4,6 +4,7 @@ import type { BackendGeometry, BackendMetric, BackendReport } from '@/types/back
 type Recommendation = BackendReport['recommendations'][number];
 
 export interface RecommendationSite {
+  id: string;
   number: number;
   geometry: BackendGeometry;
   note: string;
@@ -33,6 +34,7 @@ export function groupRecommendations(items: Recommendation[]): Action[] {
     }
     if (item.geometry) {
       action.sites.push({
+        id: item.id,
         number: action.sites.length + 1,
         geometry: item.geometry,
         note: outside ? pl.backend.outsideSite : '',

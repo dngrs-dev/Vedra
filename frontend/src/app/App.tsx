@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { Toaster } from '@/components/ui/Toaster';
+import { pl } from '@/constants/pl';
 import { LandingPage } from '@/pages/LandingPage';
 import { MapPage } from '@/pages/MapPage';
-import { ReportPage } from '@/pages/ReportPage';
+
+const ReportPage = lazy(() => import('@/pages/ReportPage').then((module) => ({ default: module.ReportPage })));
 
 /** Название вкладки браузера для каждой страницы (по-польски) */
 const TITLES: Record<string, string> = {
@@ -23,7 +25,11 @@ export function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/map" element={<MapPage />} />
-        <Route path="/report" element={<ReportPage />} />
+        <Route path="/report" element={
+          <Suspense fallback={<p className="report-wrap" role="status">{pl.backend.loadingReport}</p>}>
+            <ReportPage />
+          </Suspense>
+        } />
         <Route path="*" element={<LandingPage />} />
       </Routes>
       <Toaster />
