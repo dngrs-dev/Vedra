@@ -20,13 +20,15 @@ export function ParcelMap() {
   const parcel = useAnalysisStore((s) => s.parcel);
   const region = useAnalysisStore((s) => s.region);
   const setRegion = useAnalysisStore((s) => s.setRegion);
-  const { loading, found, selectById, selectByLatLng, selectArea } = useParcelSelect();
+  const { loading, found, selectById, selectByIds, selectByLatLng, selectArea } = useParcelSelect();
   const { data: regions, isError: regionsFailed } = useVoivodeships();
 
   const [map, setMap] = useState<LeafletMap | null>(null);
   const [layer, setLayer] = useState<BaseLayer>('satellite');
   const [showParcels, setShowParcels] = useState(true);
   const [query, setQuery] = useState('');
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchQuery, setBatchQuery] = useState('');
   const cardRef = useRef<HTMLElement>(null);
   const lastAreaAt = useRef(0);
 
@@ -64,6 +66,11 @@ export function ParcelMap() {
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     void selectById(query);
+  };
+
+  const onBatchSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (await selectByIds(batchQuery)) setBatchOpen(false);
   };
 
   const locate = () => {
@@ -112,6 +119,18 @@ export function ParcelMap() {
           aria-label="Identyfikator działki ewidencyjnej"
           spellCheck={false}
         />
+        <button type="button" className="map-search__batch" aria-expanded={batchOpen} aria-controls="map-batch-search"
+          onClick={() => setBatchOpen(!batchOpen)}>{pl.batch.openLookup}</button>
+      </form>
+      <form id="map-batch-search" className="map-batch-search" hidden={!batchOpen}
+        autoComplete="off" onSubmit={(event) => void onBatchSubmit(event)}>
+        <label htmlFor="batch-parcel-ids">{pl.batch.lookupTitle}</label>
+        <textarea id="batch-parcel-ids" className="input" rows={4} value={batchQuery} spellCheck={false}
+          aria-describedby="batch-parcel-hint" onChange={(event) => setBatchQuery(event.target.value)} />
+        <small id="batch-parcel-hint" className="muted">{pl.batch.lookupHint}</small>
+        <button type="submit" className="btn-primary" disabled={loading}>
+          {loading ? pl.batch.lookupPending : pl.batch.lookupSubmit}
+        </button>
       </form>
 
       <div className="map-type" role="group" aria-label="Typ mapy">

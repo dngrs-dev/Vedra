@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.analytics.models import AnalysisRequest
 from app.analytics.pipeline import run_analysis
+from app.config import DEFAULT_ANALYSIS_CONCURRENCY
 from app.contracts.errors import InvalidParcelQuery, ParcelNotFound, UpstreamUnavailable
 from app.contracts.geo import GeoBundle, GeoProvider
 from app.contracts.report import Report
@@ -30,9 +31,11 @@ class AnalysisStatus(BaseModel):
 
 
 class AnalysisRunner:
-    def __init__(self, store: ReportStore, timeout_s: float = ANALYSIS_TIMEOUT_S) -> None:
+    def __init__(self, store: ReportStore, timeout_s: float = ANALYSIS_TIMEOUT_S, *,
+                 concurrency: int = DEFAULT_ANALYSIS_CONCURRENCY) -> None:
         self.store = store
         self.timeout_s = timeout_s
+        self._slots = asyncio.Semaphore(concurrency)
         self._jobs: dict[str, AnalysisStatus] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
 
@@ -49,6 +52,15 @@ class AnalysisRunner:
         return self._jobs.get(analysis_id)
 
     async def _run(self, req: AnalysisRequest, geo: GeoProvider, job: AnalysisStatus) -> None:
+        try:
+            async with self._slots:
+                await self._execute(req, geo, job)
+        except asyncio.CancelledError:
+            job.status = "error"
+            job.error = text.ANALYSIS_INTERRUPTED
+            raise
+
+    async def _execute(self, req: AnalysisRequest, geo: GeoProvider, job: AnalysisStatus) -> None:
         job.status = "running"
         bundle = None
 
@@ -69,10 +81,6 @@ class AnalysisRunner:
             job.error = text.GEO_SERVICE_UNAVAILABLE
         except TimeoutError:
             job.error = text.ANALYSIS_TIMEOUT
-        except asyncio.CancelledError:
-            job.status = "error"
-            job.error = text.ANALYSIS_INTERRUPTED
-            raise
         except Exception:
             logger.exception("Analysis %s failed", job.analysis_id)
             job.error = text.ANALYSIS_FAILED

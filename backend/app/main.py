@@ -27,7 +27,7 @@ from app.storage.db import ReportStore
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logging.getLogger("app").setLevel(settings.log_level)
     store = ReportStore(settings.db_path)
-    runner = AnalysisRunner(store)
+    runner = AnalysisRunner(store, concurrency=settings.analysis_concurrency)
     app.state.report_store = store
     app.state.analysis_runner = runner
     try:

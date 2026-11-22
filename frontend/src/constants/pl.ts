@@ -1,5 +1,32 @@
 /** Все тексты интерфейса в одном месте (польский). Легко добавить EN позже. */
 export const pl = {
+  batch: {
+    loadingMap: 'Wczytywanie mapy działek…',
+    openLookup: 'Wiele ID',
+    lookupTitle: 'Wybierz działki po identyfikatorach',
+    lookupHint: 'Rozdziel identyfikatory spacją, przecinkiem lub nową linią.',
+    lookupSubmit: 'Wyszukaj działki',
+    lookupPending: 'Wyszukiwanie działek…',
+    invalidList: 'Wpisz poprawne identyfikatory działek ewidencyjnych.',
+    tooManyIds: (max: number) => `Podaj najwyżej ${max} identyfikatorów w jednym wyszukiwaniu.`,
+    lookupFailed: (id: string) => `Nie udało się znaleźć działki ${id}. Sprawdź identyfikator lub spróbuj ponownie.`,
+    confirm: 'Potwierdź działki',
+    commonInputs: 'Wybrane uprawy i data dotyczą każdej działki w grupie.',
+    tooManyJobs: (max: number) => `Jedna seria obejmuje maksymalnie ${max} analiz. Zmniejsz liczbę działek lub upraw.`,
+    noSupportedCrops: 'Wybierz co najmniej jedną uprawę obsługiwaną przez analizę.',
+    title: 'Wyniki dla grupy działek',
+    summary: (done: number, total: number, failed: number) => `Gotowe analizy: ${done} z ${total}. Błędy: ${failed}.`,
+    parcel: 'Działka',
+    crop: 'Uprawa',
+    selectedParcel: 'Działka w wynikach',
+    compare: 'Porównaj działki',
+    result: 'Wynik KBW',
+    waiting: 'W kolejce',
+    running: 'W trakcie',
+    failed: 'Błąd analizy',
+    queued: 'Analiza oczekuje na wolne miejsce w kolejce.',
+    multipleRegions: 'Wiele regionów'
+  },
   appTitle: 'Vedra',
   appSubtitle: 'Twój asystent gospodarowania wodą',
 
@@ -137,7 +164,11 @@ export const pl = {
     balance: 'Wynik',
     verdict: {
       drought: 'Susza rolnicza',
-      no_drought: 'Brak suszy rolniczej'
+      no_drought: 'Brak suszy rolniczej',
+      not_applicable: 'Uprawa poza zakresem oceny KBW',
+      not_recommended: 'Uprawa niezalecana dla tej kategorii gleby',
+      off_season: 'Poza okresem oceny KBW',
+      unavailable: 'Brak danych do oceny KBW'
     },
     period: 'Okres oceny',
     soilCategory: 'Kategoria gleby',

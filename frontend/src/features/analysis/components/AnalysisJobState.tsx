@@ -13,7 +13,7 @@ export function AnalysisError({ message, retry }: { message: string; retry?: () 
 }
 
 export function AnalysisJobState({ job }: { job: AnalysisJob }) {
-  return job.error
-    ? <AnalysisError message={job.error} retry={job.retry} />
-    : <AnalysisProgress progress={job.progress} />;
+  if (job.error) return <AnalysisError message={job.error} retry={job.retry} />;
+  if (job.queued) return <Card><p role="status">{pl.batch.queued}</p></Card>;
+  return <AnalysisProgress progress={job.progress} />;
 }
