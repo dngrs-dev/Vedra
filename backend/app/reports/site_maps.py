@@ -1,7 +1,7 @@
 """Draw the reported locations on printable maps without a network tile service."""
 from __future__ import annotations
 
-from io import StringIO
+from io import BytesIO, StringIO
 from math import cos, pi, sin
 
 import numpy as np
@@ -74,13 +74,17 @@ def _label_sites(figure, axis, points: list[tuple[int, float, float]]) -> None:
         label.set_in_layout(False)
 
 
-def render(parcel_geojson: dict, sites: list[Site]) -> tuple[str | None, dict[int, str]]:
+# Raster resolution for the built-in renderer, which embeds the map as an image (as charts.PNG_DPI).
+PNG_DPI = 200
+
+
+def _figure(parcel_geojson: dict, sites: list[Site]):
+    """The site map figure and "lat, lon" per drawn site, or (None, {}) when no site has a usable geometry."""
     locations = [(site.number, _geometry(site.geometry)) for site in sites]
     locations = [(number, geometry) for number, geometry in locations if geometry is not None]
     if not locations:
         return None, {}
 
-    from matplotlib.backends.backend_svg import FigureCanvasSVG
     from matplotlib.figure import Figure
 
     # Match the A4 chart column and leave room for a site table below the map.
@@ -104,6 +108,29 @@ def render(parcel_geojson: dict, sites: list[Site]) -> tuple[str | None, dict[in
         coordinates[number] = f"{point.y:.6f}, {point.x:.6f}"
 
     _label_sites(figure, axis, points)
+    return figure, coordinates
+
+
+def render(parcel_geojson: dict, sites: list[Site]) -> tuple[str | None, dict[int, str]]:
+    """SVG site map for the HTML report (WeasyPrint)."""
+    figure, coordinates = _figure(parcel_geojson, sites)
+    if figure is None:
+        return None, {}
+    from matplotlib.backends.backend_svg import FigureCanvasSVG
+
     output = StringIO()
     FigureCanvasSVG(figure).print_svg(output)
+    return output.getvalue(), coordinates
+
+
+def render_png(parcel_geojson: dict, sites: list[Site]) -> tuple[bytes | None, dict[int, str]]:
+    """The same map as PNG, for the built-in matplotlib PDF renderer (pdf_basic)."""
+    figure, coordinates = _figure(parcel_geojson, sites)
+    if figure is None:
+        return None, {}
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+    output = BytesIO()
+    FigureCanvasAgg(figure)
+    figure.savefig(output, format="png", dpi=PNG_DPI)
     return output.getvalue(), coordinates

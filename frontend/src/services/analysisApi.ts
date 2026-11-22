@@ -40,3 +40,9 @@ export async function getAnalysisStatus(analysisId: string, signal: AbortSignal)
 export function reportPdfUrl(analysisId: string): string {
   return `${API_URL}/analyses/${encodeURIComponent(analysisId)}/report.pdf`;
 }
+
+/** One PDF with a section per analysis, e.g. for every crop selected on the parcel. */
+export function combinedReportPdfUrl(analysisIds: readonly string[]): string {
+  const query = new URLSearchParams(analysisIds.map((id) => ['analysis_id', id]));
+  return `${API_URL}/analyses/report.pdf?${query}`;
+}

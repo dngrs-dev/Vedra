@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <title>Vedra | Raport gospodarowania wodą</title>
+</head>
+<body>
+{% import "_parts.html.j2" as parts with context %}
+{# Several crops of one parcel: a general part, one part per crop from a new page and a shared appendix. #}
+{% set varies = document.has_crop_values %}
+<article class="report">
+<header>
+  <p class="wordmark">VEDRA · {{ texts.PDF_PART_GENERAL | upper }}</p>
+  <h1>Raport gospodarowania wodą</h1>
+  {{ parts.rows(parcel_rows(document.parcel)
+                + [("Uprawy", document.crop_names | join(", ")), ("Data analizy", document.analysis_date)],
+                "metrics identity") }}
+</header>
+<main>
+  <section>
+    <h2>Podsumowanie dla upraw</h2>
+    <p>{{ texts.PDF_COMBINED_OVERVIEW }}</p>
+    <table class="overview">
+      <thead><tr>{% for name, _, align in overview_columns %}<th class="{{ align }}">{{ name }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for crop in crops %}
+        <tr>{% for cell in overview_row(crop.part.report) %}<td class="{{ overview_columns[loop.index0][2] }}">{{ cell }}</td>{% endfor %}</tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {{ parts.map_section(map_url) }}
+  {{ parts.signals(document.signals, "Wskaźniki dla działki", varies) }}
+  {{ parts.causes(document.causes, "Przyczyny niedoboru wody wspólne dla upraw", varies) }}
+  {{ parts.field_plan(field_plan) }}
+  {{ parts.recommendations(shared_groups, document.recommendations, document.references,
+                           "Działania zalecane dla wszystkich upraw", none, varies) }}
+  {{ parts.irrigation(document.irrigation) }}
+</main>
+</article>
+
+{% for crop in crops %}
+{% set part = crop.part %}
+<article class="report next-report crop-part">
+<header>
+  <p class="wordmark">VEDRA · UPRAWA {{ loop.index }} Z {{ loop.length }}</p>
+  <h1>{{ part.report.crop_name_pl }}</h1>
+</header>
+<main>
+  {{ parts.assessment(part.report, "Ocena dla uprawy") }}
+  {{ parts.vulnerability(part.report, crop.chart_url) }}
+  {% if part.values %}
+  <section>
+    <h2>{{ texts.PDF_CROP_VALUES_HEADING }}</h2>
+    <p>{{ texts.PDF_CROP_VALUES_INTRO }}</p>
+    {% for value in part.values %}
+      <div class="item">
+        {{ parts.metrics([value.metric]) }}
+        <p class="small note">{{ texts.PDF_CROP_VALUES_APPLIES.format(items=value.applies_to | join(", ")) }}</p>
+      </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+  {{ parts.signals(part.signals, "Wskaźniki dla uprawy") }}
+  {{ parts.causes(part.causes, "Przyczyny dotyczące uprawy") }}
+  {{ parts.recommendations(crop.groups, part.recommendations, document.references, "Działania dla uprawy",
+                           texts.PDF_CROP_NO_EXTRA_ACTIONS) }}
+  {{ parts.irrigation(part.irrigation) }}
+</main>
+</article>
+{% endfor %}
+
+<article class="report next-report">
+<header>
+  <p class="wordmark">VEDRA · {{ texts.PDF_PART_APPENDIX | upper }}</p>
+  <h1>{{ texts.PDF_PART_APPENDIX }}</h1>
+</header>
+<main>
+  {{ parts.appendix(document.limitations, document.data_sources, document.references) }}
+</main>
+</article>
+</body>
+</html>

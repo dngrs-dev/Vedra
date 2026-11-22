@@ -1,0 +1,177 @@
+{# Report sections shared by report.html.j2 (one report) and combined.html.j2 (several crops of one parcel).
+   Row content comes from app/reports/grouping.py, which the built-in renderer (pdf_basic.py) also uses.
+   `varies(item)` marks shared items whose values differ per crop; those values are in each crop part. #}
+
+{% macro rows(items, class_="metrics") -%}
+  {% if items %}
+  <dl class="{{ class_ }}">
+    {% for label, value in items %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+  </dl>
+  {% endif %}
+{%- endmacro %}
+
+{% macro metrics(items) -%}
+  {{ rows(items | map("metric_row") | list) }}
+{%- endmacro %}
+
+{% macro crop_values_note(items, varies) -%}
+  {% if any_varies(items, varies) %}<p class="small note">{{ texts.PDF_CROP_VALUES_NOTE }}</p>{% endif %}
+{%- endmacro %}
+
+{% macro assessment(report, heading) -%}
+  {% set kbw = report.assessment.kbw %}
+  {% set last = last_kbw(report) %}
+  <section class="summary">
+    <h2>{{ heading }}</h2>
+    <p><strong>{{ texts.PDF_VERDICT_LABELS[kbw.verdict] }}</strong></p>
+    <p>{{ report.summary }}</p>
+    {% if kbw.explanation_pl != report.summary %}<p>{{ kbw.explanation_pl }}</p>{% endif %}
+    <p class="small note">{{ texts.PDF_KBW_DEFINITION }}</p>
+    {{ rows(assessment_rows(report)) }}
+    {% if last[0] and last[1] %}
+    <h3>Ostatnia dostępna ocena KBW</h3>
+    {{ rows([("Okres oceny", last[0].value | display_value), ("Wynik", metric_text(last[1]))]) }}
+    {% endif %}
+  </section>
+{%- endmacro %}
+
+{% macro map_section(map_url) -%}
+  <section>
+    <h2>Położenie działki</h2>
+    {% if map_url %}<img class="visual map" src="{{ map_url }}" alt="Mapa położenia działki">{% else %}<p>Mapa była niedostępna podczas tworzenia raportu.</p>{% endif %}
+  </section>
+{%- endmacro %}
+
+{% macro signals(items, heading="Wskaźniki", varies=none) -%}
+  {% if items %}
+  <section>
+    <h2>{{ heading }}</h2>
+    {{ crop_values_note(items, varies) }}
+    {% for signal in items %}
+      <div class="item"><p><strong>{{ texts.PDF_STATUS_LABELS[signal.status.value] }}.</strong> {{ signal.summary_pl }}</p>{{ metrics(signal.metrics) }}</div>
+    {% endfor %}
+  </section>
+  {% endif %}
+{%- endmacro %}
+
+{% macro vulnerability(report, chart_url) -%}
+  {% set history = report.assessment.vulnerability %}
+  {% if history %}
+  {% set last = last_kbw(report) %}
+  <section>
+    <h2>Podatność w poprzednich latach</h2>
+    <p>{{ history.summary_pl }}</p>
+    {{ rows(history_year_rows(report)) }}
+    {% if chart_url %}<img class="visual" src="{{ chart_url }}" alt="Udział okresów z niedoborem wody według miesiąca">{% endif %}
+    {% if last[0] and last[1] %}
+      {{ metrics(history.metrics | rejectattr("code", "in", ["kbw_last_period", "kbw_last_balance"]) | list) }}
+    {% else %}
+      {{ metrics(history.metrics) }}
+    {% endif %}
+  </section>
+  {% endif %}
+{%- endmacro %}
+
+{% macro causes(items, heading="Przyczyny niedoboru wody", varies=none) -%}
+  {% if items %}
+  <section>
+    <h2>{{ heading }}</h2>
+    {{ crop_values_note(items, varies) }}
+    {% for cause in items %}
+      <div class="item"><h3>{{ cause.title_pl }}</h3><p>{{ cause.explanation_pl }}</p>{{ metrics(cause.evidence) }}</div>
+    {% endfor %}
+  </section>
+  {% endif %}
+{%- endmacro %}
+
+{# Actions grouped by category (grouping.plan_actions, built on recommendation_groups.group_actions as the web
+   report): an action repeated for several places is written once, with a site map and a numbered site table. #}
+{% macro recommendations(groups, items, references, heading, empty, varies=none) -%}
+  {% if groups or empty %}
+  <section>
+    <h2>{{ heading }}</h2>
+    {{ crop_values_note(items, varies) }}
+    {% for category in groups %}
+      <p class="category">{{ category.title | upper }}</p>
+      {% for planned in category.actions %}
+      {% set action = planned.action %}
+      {% set item = action.recommendation %}
+      <div class="action" id="{{ planned.anchor }}">
+        <div class="item">
+          <h3>{{ item.title_pl }}</h3>
+          <p>{{ action.action_pl }}</p>
+          <p>{{ item.why_pl }}</p>
+          {{ metrics(action.evidence) }}
+          <p class="small">{% for ref in references if ref.id in item.reference_ids %}<a href="{{ ref.url }}">{{ ref.title_pl }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+        </div>
+        {% if action.sites %}
+          {% if planned.site_map %}
+            <figure class="site-map">
+              <img class="visual" src="{{ planned.site_map }}" alt="Mapa miejsc dla działania: {{ item.title_pl }}">
+              <figcaption class="small">{{ texts.PDF_SITE_MAP_CAPTION }}</figcaption>
+            </figure>
+          {% endif %}
+          <table class="site-table small">
+            <thead><tr><th scope="col">Miejsce</th><th scope="col">Przesłanki i uwagi</th>{% if planned.field_check %}<th scope="col">Sprawdzone</th>{% endif %}</tr></thead>
+            <tbody>
+              {% for site in action.sites %}
+                <tr>
+                  <th scope="row">{{ site.number }}<br><span>{{ planned.coordinates.get(site.number, texts.PDF_SITE_NOT_ON_MAP) }}</span></th>
+                  <td>
+                    {% if site.note_pl %}<p>{{ site.note_pl }}</p>{% endif %}
+                    {% for metric in site.evidence %}{{ metric.label_pl }}: <strong>{{ metric_text(metric) }}</strong>{% if not loop.last %} · {% endif %}{% endfor %}
+                    {% if not site.evidence and not site.note_pl %}{{ texts.PDF_SITE_SHARED_EVIDENCE }}{% endif %}
+                  </td>
+                  {% if planned.field_check %}
+                  <td class="field-check">{% if site.number in planned.coordinates %}<span class="field-checkbox" aria-label="Miejsce {{ site.number }} do sprawdzenia"></span>{% endif %}</td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}<p>{{ empty }}</p>{% endfor %}
+  </section>
+  {% endif %}
+{%- endmacro %}
+
+{# Where to start the field visit (grouping.field_plan): one box per parcel, before the actions. #}
+{% macro field_plan(plan) -%}
+  {% if plan %}
+  {% set item = plan.action.recommendation %}
+  <section class="field-plan">
+    <h2>{{ texts.PDF_FIELD_PLAN_HEADING }}</h2>
+    <p><strong>{{ texts.PDF_FIELD_PLAN_START }}</strong> <a href="#{{ plan.action.anchor }}">{{ item.title_pl }}</a> · Miejsce {{ plan.site.number }}</p>
+    <p>{{ item.why_pl }}</p>
+    {% if plan.site.note_pl %}<p>{{ plan.site.note_pl }}</p>{% endif %}
+    <p class="small">{{ texts.PDF_FIELD_PLAN_COUNT.format(count=plan.count) }}</p>
+  </section>
+  {% endif %}
+{%- endmacro %}
+
+{% macro irrigation(advice) -%}
+  {% if advice %}
+  <section>
+    <h2>Ocena nawadniania</h2>
+    <p>{{ advice.why_pl }}</p>
+    {{ rows(irrigation_rows(advice)) }}
+  </section>
+  {% endif %}
+{%- endmacro %}
+
+{% macro appendix(limitations, sources, references) -%}
+  {% if limitations %}
+  <section class="limitations"><h2>Ograniczenia oceny</h2><ul>{% for note in limitations %}<li>{{ note }}</li>{% endfor %}</ul></section>
+  {% endif %}
+  <section class="small">
+    <h2>Źródła danych</h2>
+    {% for source in sources %}
+    {% set lines = source_lines(source) %}
+    <p class="item"><strong><a href="{{ source.url }}">{{ lines[0] }}</a></strong><br>{{ lines[1] }}<br>{{ lines[2] }}</p>
+    {% else %}<p>Źródła danych przestrzennych i pogodowych były niedostępne.</p>{% endfor %}
+    <h2>Odniesienia</h2>
+    <ul>{% for ref in references %}<li><a href="{{ ref.url }}">{{ ref.title_pl }}</a></li>{% endfor %}</ul>
+  </section>
+{%- endmacro %}
