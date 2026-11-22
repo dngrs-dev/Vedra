@@ -1,16 +1,13 @@
 import { useScenarioStore } from '../scenarioStore';
 
-/** Галочка «Co jeśli?»: одна для экрана (под картой и в raporcie) и для PDF. */
-export function ScenarioToggle({ compact = false }: { compact?: boolean }) {
-  const show = useScenarioStore((s) => s.showScenarios);
-  const setShow = useScenarioStore((s) => s.setShowScenarios);
+/** Pole wyboru obok «Pobierz PDF»: czy dołączyć symulację „Co jeśli?” (z aktualnymi suwakami) do raportu PDF. */
+export function ScenarioToggle() {
+  const include = useScenarioStore((s) => s.includeInPdf);
+  const setInclude = useScenarioStore((s) => s.setIncludeInPdf);
   return (
-    <label className={`scenario-toggle${compact ? ' scenario-toggle--compact' : ''}`}>
-      <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} />
-      <span>
-        <b>Symulacja „Co jeśli?”</b>
-        {!compact && <small>{show ? 'Widoczna na ekranie i w raporcie PDF.' : 'Ukryta na ekranie i w raporcie PDF.'}</small>}
-      </span>
+    <label className="scenario-toggle scenario-toggle--compact">
+      <input type="checkbox" checked={include} onChange={(e) => setInclude(e.target.checked)} />
+      <span>Dołącz „Co jeśli?” do PDF</span>
     </label>
   );
 }

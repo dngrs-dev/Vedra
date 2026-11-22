@@ -5,9 +5,8 @@ import { Card } from '@/components/ui/Card';
 import { CROPS } from '@/constants/crops';
 import { MONTHS_PL, pl } from '@/constants/pl';
 import { AnalysisError, AnalysisJobState } from '@/features/analysis/components/AnalysisJobState';
-import { AiToggle } from '@/features/analysis/components/AiToggle';
-import { BackendReportCards } from '@/features/analysis/components/BackendReportCards';
-import { ScenarioSimulator } from '@/features/analysis/components/ScenarioSimulator';
+import { BackendReportCards, BasisCard } from '@/features/analysis/components/BackendReportCards';
+import { ScenarioAccordion } from '@/features/analysis/components/ScenarioAccordion';
 import { ConfidenceBadge } from '@/features/analysis/components/Badges';
 import { GroupAnalysisResults } from '@/features/analysis/components/GroupAnalysisResults';
 import { PdfDownloadButton } from '@/features/analysis/components/PdfDownloadButton';
@@ -40,7 +39,6 @@ export function ReportPage() {
   const parcel = useAnalysisStore((s) => s.confirmed);
   const cropIds = useAnalysisStore((s) => s.cropIds);
   const { demo, demoMode, isGroup, jobs, resultParcelId, visibleJobs, selectionError } = useAnalysis();
-  const showScenarios = useScenarioStore((s) => s.showScenarios);
 
   if (!parcel) return <Navigate to="/map" replace />;
   if (demoMode && demo.data) return <DemoReport parcel={parcel} cropIds={cropIds} data={demo.data} />;
@@ -74,7 +72,6 @@ export function ReportPage() {
       )}
       {isGroup && <GroupAnalysisResults jobs={jobs} parcelId={resultParcelId} />}
       {isGroup && combinedDownload && <div className="report-toolbar no-print">{combinedDownload}</div>}
-      {readyIds.length > 0 && <div className="report-options no-print"><AiToggle /></div>}
       {visibleJobs.map((job) => {
         const report = job.report;
         if (!report || !job.analysisId) {
@@ -102,8 +99,10 @@ export function ReportPage() {
                 <div><dt>Lokalizacja</dt><dd>{[parcel.commune, parcel.county, parcel.voivodeship].filter(Boolean).join(', ') || '-'}</dd></div>
               </dl>
             </Card>
-            <BackendReportCards report={report} />
-            {showScenarios && <ScenarioSimulator analysisId={job.analysisId} />}
+            <BackendReportCards report={report} basis={false} />
+            {/* „Co jeśli?” z AI jako rozwijany blok, pod nim podstawa analizy i źródła danych */}
+            <ScenarioAccordion analysisId={job.analysisId} />
+            <BasisCard report={report} />
             <p className="muted small">{pl.report.disclaimer}</p>
           </article>
         );
@@ -216,17 +215,17 @@ function DemoReport({ parcel, cropIds, data }: { parcel: Parcel; cropIds: string
 }
 
 /**
- * «Pobierz PDF» + галочка: dołączyć symulację „Co jeśli?” z aktualnymi suwakami.
+ * «Pobierz PDF» + pole wyboru «Dołącz „Co jeśli?” do PDF» (z aktualnymi suwakami).
  * PdfDownloadButton pobiera plik przez fetch i pokazuje błąd API zamiast strony z JSON.
  */
 function PdfDownload({ analysisId, fileName }: { analysisId: string; fileName: string }) {
-  const include = useScenarioStore((s) => s.showScenarios);
+  const include = useScenarioStore((s) => s.includeInPdf);
   const levers = useScenarioStore((s) => s.levers[analysisId] ?? NO_ACTION);
   return (
     <div className="pdf-download no-print">
       <PdfDownloadButton href={reportPdfUrl(analysisId, include ? levers : undefined)} label={pl.report.download}
         fileName={fileName} />
-      <ScenarioToggle compact />
+      <ScenarioToggle />
     </div>
   );
 }

@@ -171,8 +171,9 @@ export function KbwAssessmentCards({ report, compact = false }: { report: Backen
   );
 }
 
-export function BackendReportCards({ report }: { report: BackendReport }) {
-  const { assessment: { signals }, causes, recommendations, irrigation, data_sources, limitations_pl, references } = report;
+/** Karty wyniku. `basis = false`: «Podstawa analizy i źródła danych» renderuje sam rodzic (raport: pod „Co jeśli?”). */
+export function BackendReportCards({ report, basis = true }: { report: BackendReport; basis?: boolean }) {
+  const { causes, recommendations, irrigation, references } = report;
   const { backend: copy } = pl;
   const actions = groupRecommendations(recommendations);
   const field = useFieldChecks(report);
@@ -266,56 +267,66 @@ export function BackendReportCards({ report }: { report: BackendReport }) {
         </Card>
       )}
 
-      <Card className="basis">
-        <details>
-          <summary className="basis__summary">{pl.basis.title}</summary>
-          {signals.length > 0 && (
-            <>
-              <h3 className="basis__h">{copy.signals}</h3>
-              <ul className="reco__list">
-                {signals.map((signal) => (
-                  <li key={signal.code}>
-                    <strong>{copy.availability[signal.status]}</strong>
-                    <p>{signal.summary_pl}</p>
-                    <Metrics items={signal.metrics} />
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-          <h3 className="basis__h">{pl.basis.sources}</h3>
-          {data_sources.length ? (
-            <ul className="sources">
-              {data_sources.map((source, i) => (
-                <li key={`${source.source_id}-${i}`}>
-                  <div>
-                    <SourceLink url={source.url}>{source.name}</SourceLink>
-                    <div className="muted small">
-                      {[
-                        source.data_period, source.resolution, source.licence,
-                        source.live ? copy.liveSource : copy.savedSource, fmtDateTime(source.fetched_at)
-                      ].filter(Boolean).join(' · ')}
-                    </div>
-                    {source.attribution_pl && <small>{source.attribution_pl}</small>}
-                  </div>
+      {basis && <BasisCard report={report} />}
+    </>
+  );
+}
+
+
+/** «Podstawa analizy i źródła danych»: wskaźniki, źródła i odniesienia (rozwijane) oraz ograniczenia oceny. */
+export function BasisCard({ report }: { report: BackendReport }) {
+  const { assessment: { signals }, data_sources, limitations_pl, references } = report;
+  const { backend: copy } = pl;
+  return (
+    <Card className="basis">
+      <details>
+        <summary className="basis__summary">{pl.basis.title}</summary>
+        {signals.length > 0 && (
+          <>
+            <h3 className="basis__h">{copy.signals}</h3>
+            <ul className="reco__list">
+              {signals.map((signal) => (
+                <li key={signal.code}>
+                  <strong>{copy.availability[signal.status]}</strong>
+                  <p>{signal.summary_pl}</p>
+                  <Metrics items={signal.metrics} />
                 </li>
               ))}
             </ul>
-          ) : <p>{copy.noSources}</p>}
-          {references.length > 0 && (
-            <>
-              <h3 className="basis__h">{copy.references}</h3>
-              <ul>{references.map((ref) => <li key={ref.id}><SourceLink url={ref.url}>{ref.title_pl}</SourceLink></li>)}</ul>
-            </>
-          )}
-        </details>
-        {limitations_pl.length > 0 && (
-          <>
-            <h3 className="basis__h">{pl.report.limitations}</h3>
-            <ul className="limits">{limitations_pl.map((note) => <li key={note}>{note}</li>)}</ul>
           </>
         )}
-      </Card>
-    </>
+        <h3 className="basis__h">{pl.basis.sources}</h3>
+        {data_sources.length ? (
+          <ul className="sources">
+            {data_sources.map((source, i) => (
+              <li key={`${source.source_id}-${i}`}>
+                <div>
+                  <SourceLink url={source.url}>{source.name}</SourceLink>
+                  <div className="muted small">
+                    {[
+                      source.data_period, source.resolution, source.licence,
+                      source.live ? copy.liveSource : copy.savedSource, fmtDateTime(source.fetched_at)
+                    ].filter(Boolean).join(' · ')}
+                  </div>
+                  {source.attribution_pl && <small>{source.attribution_pl}</small>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : <p>{copy.noSources}</p>}
+        {references.length > 0 && (
+          <>
+            <h3 className="basis__h">{copy.references}</h3>
+            <ul>{references.map((ref) => <li key={ref.id}><SourceLink url={ref.url}>{ref.title_pl}</SourceLink></li>)}</ul>
+          </>
+        )}
+      </details>
+      {limitations_pl.length > 0 && (
+        <>
+          <h3 className="basis__h">{pl.report.limitations}</h3>
+          <ul className="limits">{limitations_pl.map((note) => <li key={note}>{note}</li>)}</ul>
+        </>
+      )}
+    </Card>
   );
 }

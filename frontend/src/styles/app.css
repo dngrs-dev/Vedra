@@ -458,20 +458,6 @@ button { font: inherit; cursor: pointer; }
   .sim-sliders, .sim-actions, .sim-ai__head .btn-primary, .sim-presets button { display: none; }
 }
 
-.report-options { margin-bottom: 12px; }
-.ai-toggle { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fafcfb; }
-.switch { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
-.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.switch__track { flex: none; width: 38px; height: 22px; border-radius: 999px; background: #c9d3cf; position: relative; transition: background 0.2s; margin-top: 1px; }
-.switch__thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.2s; }
-.switch input:checked + .switch__track { background: var(--green-700); }
-.switch input:checked + .switch__track .switch__thumb { transform: translateX(16px); }
-.switch input:focus-visible + .switch__track { outline: 3px solid rgba(42, 90, 75, 0.35); outline-offset: 2px; }
-.switch__text { display: grid; gap: 2px; }
-.switch__text small { color: var(--muted); font-size: 12px; line-height: 1.35; }
-.ai-toggle__consent { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
-.ai-toggle__consent .link-btn { font-size: 12px; padding: 0; }
-.sim-ai-off { border-top: 1px solid var(--line); padding-top: 10px; margin: 0; }
 
 .consent { width: min(620px, 100%); }
 .consent h3 { margin: 14px 0 6px; font-size: 14px; color: var(--green-900); }
@@ -516,3 +502,22 @@ button { font: inherit; cursor: pointer; }
 .scenario-toggle small { color: var(--muted); font-size: 12px; }
 .scenario-toggle--compact { font-size: 13px; align-items: center; }
 .scenario-toggle--compact input { margin: 0; }
+
+/* ---------- raport: „Co jeśli?” z AI jako rozwijany blok (jak FAQ) ---------- */
+.scenario-acc { padding: 0; }
+.scenario-acc > summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 18px; cursor: pointer; list-style: none; border-radius: inherit; }
+.scenario-acc > summary::-webkit-details-marker { display: none; }
+.scenario-acc > summary:hover { background: #f6faf8; }
+.scenario-acc > summary:focus-visible { outline: 3px solid rgba(42, 90, 75, 0.35); outline-offset: 2px; }
+.scenario-acc__text { display: grid; gap: 2px; }
+.scenario-acc__text b { font-size: 16px; color: var(--green-900); }
+.scenario-acc__text small { font-size: 13px; color: var(--muted); }
+.scenario-acc > summary svg { flex: none; color: var(--green-700); transition: transform 0.2s ease; }
+.scenario-acc[open] > summary svg { transform: rotate(180deg); }
+.scenario-acc[open] > summary { border-bottom: 1px solid var(--line); }
+.sim--embedded { border: 0; box-shadow: none; margin: 0; padding: 14px 18px 18px; background: transparent; }
+.sim-ai__consent { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.sim-ai__consent .link-btn { font-size: 12px; padding: 0; }
+@media print {
+  .scenario-acc { display: none; }
+}

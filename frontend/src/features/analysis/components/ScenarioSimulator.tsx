@@ -181,7 +181,7 @@ function AiPanel({ insight }: { insight: AiInsight }) {
 }
 
 /** «Co jeśli?» - как меняется риск засухи и водный баланс при разных действиях фермера + комментарий ИИ. */
-export function ScenarioSimulator({ analysisId }: { analysisId: string }) {
+export function ScenarioSimulator({ analysisId, embedded = false }: { analysisId: string; embedded?: boolean }) {
   // Общие для карты, страницы raportu и PDF (галочка «Dołącz do PDF»)
   const levers = useScenarioStore((s) => s.levers[analysisId] ?? NO_ACTION);
   const storeLevers = useScenarioStore((s) => s.setLevers);
@@ -190,9 +190,9 @@ export function ScenarioSimulator({ analysisId }: { analysisId: string }) {
   const debounced = useDebounced(levers, 350);
   const [askedFor, setAskedFor] = useState<Levers | null>(null);
   const [consentOpen, setConsentOpen] = useState(false);
-  const aiEnabled = useAiStore((s) => s.enabled);
   const consentFor = useAiStore((s) => s.consentFor);
   const grantConsent = useAiStore((s) => s.grantConsent);
+  const withdrawConsent = useAiStore((s) => s.withdrawConsent);
   const { data: aiStatus } = useAiStatus();
   // RODO: dane trafiają do zewnętrznej usługi tylko po zgodzie na tego konkretnego dostawcę
   const needsConsent = !!aiStatus?.external;
@@ -231,11 +231,14 @@ export function ScenarioSimulator({ analysisId }: { analysisId: string }) {
   const aiStale = askedFor !== null && JSON.stringify(askedFor) !== JSON.stringify(levers);
 
   return (
-    <Card title="Co jeśli? Symulator działań" className="sim">
-      <p className="muted small">
-        Sprawdź, jak zmieni się ryzyko suszy i bilans wody na polu, gdy zatrzymasz więcej wody, poprawisz glebę,
-        okryjesz ją lub zaczniesz nawadniać. Porównanie z wariantem „bez działań”.
-      </p>
+    // W raporcie symulacja siedzi w rozwijanym bloku, który ma już swój tytuł
+    <Card title={embedded ? undefined : 'Co jeśli? Symulator działań'} className={embedded ? 'sim sim--embedded' : 'sim'}>
+      {!embedded && (
+        <p className="muted small">
+          Sprawdź, jak zmieni się ryzyko suszy i bilans wody na polu, gdy zatrzymasz więcej wody, poprawisz glebę,
+          okryjesz ją lub zaczniesz nawadniać. Porównanie z wariantem „bez działań”.
+        </p>
+      )}
 
       <div className="sim-sliders">
         {SLIDERS.map(render)}
@@ -274,7 +277,6 @@ export function ScenarioSimulator({ analysisId }: { analysisId: string }) {
         </>
       )}
 
-      {aiEnabled ? (
       <section className="sim-ai">
         <div className="sim-ai__head">
           <h3>Prognoza i porada AI</h3>
@@ -297,10 +299,14 @@ export function ScenarioSimulator({ analysisId }: { analysisId: string }) {
             <AiPanel insight={ai.data} />
           </>
         )}
+        {consented && (
+          <p className="sim-ai__consent">
+            Zgoda na przekazanie danych do {aiStatus?.provider_name}: udzielona ·{' '}
+            <button type="button" className="link-btn" onClick={withdrawConsent}>Wycofaj zgodę</button>
+          </p>
+        )}
       </section>
-      ) : (
-        <p className="muted small sim-ai-off">Analiza AI jest wyłączona. Możesz ją włączyć na górze raportu.</p>
-      )}
+
       {consentOpen && aiStatus && (
         <AiConsentModal
           status={aiStatus}
