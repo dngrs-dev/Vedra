@@ -62,13 +62,6 @@ export const pl = {
     regionsFailed: 'Granice województw są chwilowo niedostępne - działkę nadal możesz wybrać na mapie.'
   },
 
-  selectMode: {
-    label: 'Tryb zaznaczania ramką (Ctrl + LPM)',
-    simple: 'Zwykły wybór',
-    smart: 'Inteligentny wybór',
-    simpleTip: 'Ramka = dokładnie zaznaczony prostokąt',
-    smartTip: 'Ramka = wszystkie działki, które w większości leżą w środku'
-  },
 
   confirm: {
     button: 'Potwierdź działkę'

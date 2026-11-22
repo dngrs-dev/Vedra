@@ -142,7 +142,7 @@ export function useParcelSelect() {
     [run]
   );
 
-  // Ctrl-drag in smart mode selects registered parcels. Simple mode selects the drawn area.
+  // Ctrl-drag selects the registered parcels in the frame (the drawn area only when there are none).
   const selectArea = useCallback(
     async (ring: LatLng[]) => {
       const areaHa = +polygonAreaHa(ring).toFixed(2);
@@ -154,20 +154,6 @@ export function useParcelSelect() {
       }
       if (areaHa > MAX_CUSTOM_AREA_HA) {
         toast(`Obszar jest zbyt duży (${Math.round(areaHa)} ha). Maksimum: ${MAX_CUSTOM_AREA_HA} ha.`, 'error');
-        return;
-      }
-
-      if (useAnalysisStore.getState().selectMode === 'simple') {
-        abortRef.current?.abort();
-        setLoading(false);
-        setFound(null);
-        setParcel({
-          id: `OBSZAR_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`,
-          ring,
-          areaHa,
-          center,
-          isCustom: true
-        });
         return;
       }
 

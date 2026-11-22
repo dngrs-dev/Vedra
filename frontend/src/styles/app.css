@@ -360,11 +360,6 @@ button { font: inherit; cursor: pointer; }
 .parcel-list li span:first-child { font-family: ui-monospace, Consolas, monospace; overflow: hidden; text-overflow: ellipsis; }
 
 /* Rectangle selection mode in the map help dialog. */
-.mode-toggle { display: flex; flex-wrap: wrap; width: fit-content; gap: 4px; margin: 0 0 16px; padding: 4px; border-radius: 10px; background: var(--green-100); }
-.mode-toggle button { border: 0; border-radius: 7px; padding: 7px 12px; background: transparent; color: var(--green-800); font-weight: 600; font-size: 13px; }
-.mode-toggle button:hover { background: var(--card); }
-.mode-toggle button.is-active { background: var(--green-800); color: #fff; }
-.mode-toggle button:focus-visible { outline: 2px solid var(--green-700); outline-offset: 2px; }
 @media (max-width: 900px) {
   .topbar { display: flex; flex-wrap: wrap; justify-content: space-between; row-gap: 8px; }
   .topbar__center { order: 3; flex-basis: 100%; display: flex; justify-content: center; }

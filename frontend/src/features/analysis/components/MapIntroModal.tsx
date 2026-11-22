@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { SelectModeToggle } from './SelectModeToggle';
 
 interface MapIntroModalProps {
   /** remember = true → больше не показывать автоматически при входе на /map */
@@ -27,12 +26,12 @@ const STEPS = [
   },
   {
     title: 'Kliknij działkę',
-    text: 'Przybliż mapę (pierwsze kliknięcie przybliża) i kliknij pole - zaznaczymy działkę ewidencyjną. Przełącznik „Granice działek” pokaże granice i numery.',
+    text: 'Klikaj w okolicę swojego pola - każde kliknięcie przybliża mapę. Gdy widać pojedyncze działki, kliknij swoją. Przełącznik „Granice działek” pokaże obręby i granice działek.',
     keys: <MouseLeft />
   },
   {
     title: 'Albo zaznacz ramką',
-    text: 'Przytrzymaj Ctrl (⌘ na Macu) i przeciągnij ramkę. Inteligentny wybór wyszukuje działki ewidencyjne, a zwykły wybór zaznacza własny obszar.',
+    text: 'Przytrzymaj Ctrl (⌘ na Macu) i przeciągnij ramkę - zaznaczymy wszystkie działki ewidencyjne w ramce.',
     keys: (
       <>
         <kbd>Ctrl</kbd>
@@ -83,8 +82,6 @@ export function MapIntroModal({ onClose, initialRemember = false }: MapIntroModa
             </li>
           ))}
         </ol>
-
-        <SelectModeToggle />
 
         <label className="intro__remember">
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
